@@ -374,7 +374,7 @@ WithTable
 
 WithClause
   = "with" _ n:Name _
-    a:( "(" _ an1:Name ans:(_ "," an:Name { return an; })* _ ")" _ { return [an1, ...ans]; } )?
+    a:( "(" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ ")" _ { return [an1, ...ans]; } )?
     "as" _ "(" _ t:Table _ ")" _
   {
     if (a != null) {
