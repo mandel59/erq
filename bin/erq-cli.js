@@ -28,7 +28,9 @@ function showUsage() {
 }
 
 const syntax = readFileSync(new URL("../src/erq.pegjs", import.meta.url).pathname, "utf-8")
-const parser = peggy.generate(syntax);
+const parser = peggy.generate(syntax, {
+  allowedStartRules: ["start", "cli_start"],
+});
 
 const options = commandLineArgs(optionList);
 
@@ -54,7 +56,7 @@ if (isTTY) { rl.prompt(); }
 for await (const line of rl) {
   input += line + '\n';
   try {
-    const sql = parser.parse(input);
+    const sql = parser.parse(input, { startRule: "cli_start" });
     try {
       console.error(sql);
       const t0 = performance.now();
