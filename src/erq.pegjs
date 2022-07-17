@@ -469,6 +469,9 @@ Table1
   / "{" _ rs:ValueReferences _ "}" {
     return new TableBuilder(null, null).select(rs);
   }
+  / vs:ValuesList {
+    return new TableBuilder(null, `(${vs})`);
+  }
   / tr:TableReference _ fs:Filters {
     let tb = new TableBuilder(tr.name, tr.expression);
     for (const f of fs) {
