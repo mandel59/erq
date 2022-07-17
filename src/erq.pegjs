@@ -363,7 +363,7 @@ class TableBuilder {
 
 start = _ t:Table _ { return t; };
 
-cli_start = _ t:Table _ ";;" _ { return t; };
+cli_readline = _ ts:(t:Table _ ";;" _ { return t; })+ { return ts; };
 
 Table
   = WithTable / ValuesList / TableUnion

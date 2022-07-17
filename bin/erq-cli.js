@@ -29,7 +29,7 @@ function showUsage() {
 
 const syntax = readFileSync(new URL("../src/erq.pegjs", import.meta.url).pathname, "utf-8")
 const parser = peggy.generate(syntax, {
-  allowedStartRules: ["start", "cli_start"],
+  allowedStartRules: ["start", "cli_readline"],
 });
 
 const options = commandLineArgs(optionList);
@@ -56,24 +56,26 @@ if (isTTY) { rl.prompt(); }
 for await (const line of rl) {
   input += line + '\n';
   try {
-    const sql = parser.parse(input, { startRule: "cli_start" });
+    const sqls = parser.parse(input, { startRule: "cli_readline" });
     try {
-      console.error(sql);
-      const t0 = performance.now();
-      const stmt = db.prepare(sql);
-      stmt.raw(true);
-      const columns = stmt.columns();
-      const columnNames = columns.map(c => c.name);
-      console.error(JSON.stringify(columnNames));
-      let i = 0;
-      for (const r of stmt.iterate()) {
-        console.log(JSON.stringify(r));
-        i++;
+      for (const sql of sqls) {
+        console.error(sql);
+        const t0 = performance.now();
+        const stmt = db.prepare(sql);
+        stmt.raw(true);
+        const columns = stmt.columns();
+        const columnNames = columns.map(c => c.name);
+        console.error(JSON.stringify(columnNames));
+        let i = 0;
+        for (const r of stmt.iterate()) {
+          console.log(JSON.stringify(r));
+          i++;
+        }
+        const t1 = performance.now();
+        const rows = (i === 1) ? "1 row" : `${i} rows`;
+        const t = t1 - t0;
+        console.error("%s (%ss)", rows, (t / 1000).toFixed(3));
       }
-      const t1 = performance.now();
-      const rows = (i === 1) ? "1 row" : `${i} rows`;
-      const t = t1 - t0;
-      console.error("%s (%ss)", rows, (t / 1000).toFixed(3));
     } catch (error) {
       console.error(error.message);
     }
