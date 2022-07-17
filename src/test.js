@@ -82,8 +82,5 @@ r group by r.a select x: max(r.b)
 `))
 
 } catch (error) {
-  console.error(error.message);
-  if (error && error.location) {
-    console.error(error.location);
-  }
+  console.error(error);
 }
