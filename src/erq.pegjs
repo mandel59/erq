@@ -161,12 +161,14 @@ class TableBuilder {
   #having = [];
   #select = [];
   #distinct = false;
+  #order = [];
+  #limit = null;
+  #offset = 0;
   constructor(name, expression) {
     this.#name = name;
     this.#expression = expression;
   }
-  toSQL(allowOrdered = false, unionOrder) {
-    unionOrder ??= [];
+  toSQL(allowOrdered = false) {
     const columns = this.#select;
     let sql = "select ";
     if (this.#distinct) {
@@ -254,10 +256,10 @@ class TableBuilder {
     const order = columns
       .map((r) => [`(${r.expression})`, r.sort])
       .filter(e => e[1] != null)
-    if (unionOrder.length + order.length > 0) {
+    if (this.#order.length + order.length > 0) {
       sql += " order by ";
       let k = 0;
-      for (const [e, s] of unionOrder) {
+      for (const [e, s] of this.#order) {
         k++;
         if (k > 1) {
           sql += ", ";
@@ -266,7 +268,7 @@ class TableBuilder {
         sql += " ";
         sql += s;
       }
-      if (unionOrder.length > 0 && order.length > 0) {
+      if (this.#order.length > 0 && order.length > 0) {
         sql += ", ";
       }
       let i = 0;
@@ -280,7 +282,15 @@ class TableBuilder {
         sql += s;
       }
     }
-    if (!allowOrdered && (unionOrder.length + order.length > 0)) {
+    if (this.#limit != null) {
+      sql += " limit ";
+      sql += this.#limit.toString();
+      if (this.#offset > 0) {
+        sql += " offset ";
+        sql += this.#offset.toString();
+      }
+    }
+    if (!allowOrdered && (this.#order.length + order.length > 0 || this.#limit != null)) {
       return `select * from (${sql})`;
     }
     return sql;
@@ -332,6 +342,21 @@ class TableBuilder {
     this.#distinct = true;
     return this;
   }
+  orderBy(order) {
+    if (this.#limit != null) {
+      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).orderBy(order);
+    }
+    this.#order = [...order, ...this.#order];
+    return this;
+  }
+  limitOffset(limit, offset) {
+    if (this.#limit != null) {
+      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).limitOffset(limit, offset);
+    }
+    this.#limit = limit;
+    this.#offset = offset;
+    return this;
+  }
 }
 
 }}
@@ -364,7 +389,11 @@ TableUnion
     ts:(_ ";" _ t:Table1 { return t; })*
     order:OrderClause?
     limitOffset:LimitOffsetClause?
-    fs:(_ fs:Filters { return fs; })?
+    cs:(
+      o:OrderClause { return ["orderBy", o]; }
+      / l:LimitOffsetClause { return ["limitOffset", l] }
+      / fs:(_ fs:Filters { return ["filters", fs]; })
+    )*
   {
     const union = distinct ? " union " : " union all "
     let sql;
@@ -372,7 +401,10 @@ TableUnion
       t1.distinct();
     }
     if (ts.length === 0) {
-      sql = t1.toSQL(true, order);
+      if (order != null) {
+        t1 = t1.orderBy(order);
+      }
+      sql = t1.toSQL(true);
     } else {
       sql = `${t1.toSQL(false)}${union}${ts.map(tb => tb.toSQL(false)).join(union)}`;
       if (order) {
@@ -398,12 +430,21 @@ TableUnion
         sql += offset;
       }
     }
-    if (fs != null) {
-      let tb = new TableBuilder(null, `(${sql})`)
-      for (const f of fs) {
-        tb = f(tb)
+    if (cs.length > 0) {
+      let tb = new TableBuilder(null, `(${sql})`);
+      for (const [tag, v] of cs) {
+        if (tag === "orderBy") {
+          tb = tb.orderBy(v);
+        } else if (tag === "limitOffset") {
+          const [limit, offset] = v;
+          tb = tb.limitOffset(limit, offset);
+        } else if (tag === "filters") {
+          for (const f of v) {
+            tb = f(tb)
+          }
+        }
       }
-      sql = tb.toSQL(true)
+      sql = tb.toSQL(true);
     }
     return sql;
   }
