@@ -458,8 +458,8 @@ OrderClause
   }
 
 LimitOffsetClause
-  = _ "limit" _ limit:Expression { return [limit, null]; }
-  / _ "limit" _ limit:Expression _ "offset" _ offset:Expression { return [limit, offset]; }
+  = _ "limit" _ limit:Expression _ "offset" _ offset:Expression { return [limit, offset]; }
+  / _ "limit" _ limit:Expression { return [limit, null]; }
   / _ "offset" _ offset:Expression _ "limit" _ limit:Expression { return [limit, offset]; }
 
 Table1
