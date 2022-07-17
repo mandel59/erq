@@ -44,12 +44,15 @@ console.error("Connected to %s", dbpath);
 const rl = readline.createInterface({
   input: stdin,
   output: stderr,
-  prompt: stderr.isTTY ? '> ' : ''
+  prompt: 'erq> ',
 });
 
-rl.prompt();
+const isTTY = stdin.isTTY && stderr.isTTY;
+
+let input = '';
+if (isTTY) { rl.prompt(); }
 for await (const line of rl) {
-  const input = line;
+  input += line + '\n';
   try {
     const sql = parser.parse(input);
     try {
@@ -73,6 +76,11 @@ for await (const line of rl) {
       console.error(error.message);
     }
   } catch (error) {
+    if (error.found == null) {
+      rl.setPrompt('...> ');
+      if (isTTY) { rl.prompt(); }
+      continue;
+    }
     console.error(error.message);
     if (error && error.location) {
       const start = error.location.start.offset;
@@ -88,5 +96,7 @@ for await (const line of rl) {
       console.error(JSON.stringify(error.location));
     }
   }
-  rl.prompt();
+  input = '';
+  rl.setPrompt('erq> ');
+  if (isTTY) { rl.prompt(); }
 }
