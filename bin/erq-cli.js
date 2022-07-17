@@ -54,7 +54,7 @@ const isTTY = stdin.isTTY && stderr.isTTY;
 let input = '';
 if (isTTY) { rl.prompt(); }
 for await (const line of rl) {
-  input += line + '\n';
+  input += line;
   try {
     const sqls = parser.parse(input, { startRule: "cli_readline" });
     try {
@@ -81,6 +81,7 @@ for await (const line of rl) {
     }
   } catch (error) {
     if (error.found == null) {
+      input += "\n";
       rl.setPrompt('...> ');
       if (isTTY) { rl.prompt(); }
       continue;
