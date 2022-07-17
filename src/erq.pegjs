@@ -160,17 +160,16 @@ class TableBuilder {
   #group = [];
   #having = [];
   #select = [];
-  #limit = null;
-  #offset = 0;
+  #distinct = false;
   constructor(name, expression) {
     this.#name = name;
     this.#expression = expression;
   }
-  toSQL(allowOrdered = false, distinct = false, unionOrder) {
+  toSQL(allowOrdered = false, unionOrder) {
     unionOrder ??= [];
     const columns = this.#select;
     let sql = "select ";
-    if (distinct) {
+    if (this.#distinct) {
       sql += "distinct ";
     }
     if (columns.length === 0) {
@@ -281,15 +280,7 @@ class TableBuilder {
         sql += s;
       }
     }
-    if (this.#limit != null) {
-      sql += " limit ";
-      sql += this.#limit.toString();
-      if (this.#offset > 0) {
-        sql += " offset ";
-        sql += this.#offset.toString();
-      }
-    }
-    if (!allowOrdered && (unionOrder.length + order.length > 0 || this.#limit != null)) {
+    if (!allowOrdered && (unionOrder.length + order.length > 0)) {
       return `select * from (${sql})`;
     }
     return sql;
@@ -337,6 +328,10 @@ class TableBuilder {
       return new TableBuilder(this.#name, `(${this.toSQL(true)})`).join(tr, on, d);
     }
   }
+  distinct() {
+    this.#distinct = true;
+    return this;
+  }
 }
 
 }}
@@ -369,13 +364,17 @@ TableUnion
     ts:(_ ";" _ t:Table1 { return t; })*
     order:OrderClause?
     limitOffset:LimitOffsetClause?
+    fs:(_ fs:Filters { return fs; })?
   {
     const union = distinct ? " union " : " union all "
     let sql;
+    if (distinct) {
+      t1.distinct();
+    }
     if (ts.length === 0) {
-      sql = t1.toSQL(true, distinct, order);
+      sql = t1.toSQL(true, order);
     } else {
-      sql = `${t1.toSQL(false, distinct)}${union}${ts.map(tb => tb.toSQL(false, distinct)).join(union)}`;
+      sql = `${t1.toSQL(false)}${union}${ts.map(tb => tb.toSQL(false)).join(union)}`;
       if (order) {
         sql += " order by ";
         let k = 0;
@@ -398,6 +397,13 @@ TableUnion
         sql += " offset ";
         sql += offset;
       }
+    }
+    if (fs != null) {
+      let tb = new TableBuilder(null, `(${sql})`)
+      for (const f of fs) {
+        tb = f(tb)
+      }
+      sql = tb.toSQL(true)
     }
     return sql;
   }
@@ -551,25 +557,25 @@ UnOp
 
 BinOp
   = "=="
-  / "="
   / "<="
   / ">="
-  / "<"
-  / ">"
-  / "<>"
   / "!="
-  / "&"
-  / "|"
   / "<<"
   / ">>"
+  / "<>"
+  / "<"
+  / ">"
+  / "="
+  / "&"
+  / "|"
   / "+"
   / "-"
   / "*"
   / "/"
   / "%"
   / "||"
-  / "->"
   / "->>"
+  / "->"
   / "between"
   / "and"
   / "or"
