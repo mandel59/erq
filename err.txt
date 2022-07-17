@@ -1,0 +1,1 @@
+Connected to /Users/mandel59/ws/mojidata/packages/mojidata/dist/moji.db
