@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { argv, stdin, stderr } from "node:process";
+import { stdin, stderr } from "node:process";
 import { readFileSync } from "node:fs";
 import readline from "node:readline";
 import commandLineArgs from "command-line-args";
