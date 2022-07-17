@@ -384,9 +384,9 @@ WithClause
   }
 
 TableUnion
-  = distinct:("distinct" _ { return true; })?
-    t1:Table1
+  = t1:Table1
     ts:(_ ";" _ t:Table1 { return t; })*
+    distinct:(_ "distinct" { return true; })?
     order:OrderClause?
     limitOffset:LimitOffsetClause?
     cs:(
