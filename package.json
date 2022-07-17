@@ -17,10 +17,8 @@
   },
   "dependencies": {
     "better-sqlite3": "^7.6.2",
-    "bun-types": "^0.1.4",
     "command-line-args": "^5.2.1",
     "command-line-usage": "^6.1.3",
-    "peggy": "^2.0.1",
-    "readline-sync": "^1.4.10"
+    "peggy": "^2.0.1"
   }
 }
