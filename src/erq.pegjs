@@ -338,8 +338,8 @@ class TableBuilder {
       return new TableBuilder(this.#name, `(${this.toSQL(true)})`).join(tr, on, d);
     }
   }
-  distinct() {
-    this.#distinct = true;
+  distinct(distinct) {
+    this.#distinct = Boolean(distinct);
     return this;
   }
   orderBy(order) {
@@ -397,16 +397,14 @@ TableUnion
   {
     const union = distinct ? " union " : " union all "
     let sql;
-    if (distinct) {
-      t1.distinct();
-    }
+    t1.distinct(distinct);
     if (ts.length === 0) {
       if (order != null) {
         t1 = t1.orderBy(order);
       }
       sql = t1.toSQL(true);
     } else {
-      sql = `${t1.toSQL(false)}${union}${ts.map(tb => tb.toSQL(false)).join(union)}`;
+      sql = `${t1.toSQL(false)}${union}${ts.map(tb => tb.distinct(distinct).toSQL(false)).join(union)}`;
       if (order) {
         sql += " order by ";
         let k = 0;
