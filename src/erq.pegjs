@@ -715,6 +715,7 @@ RowValueComparison
 
 Value
   = Literal
+  / "cast" _ "(" _ e:Expression _ "as" _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
   / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
   / t:Name _ "." _ n:Name ! (_ "." _ "*") { return `${t}.${n}`; }
   / n:Name _ "(" _ ")" { return `${n}()`; }
@@ -722,6 +723,17 @@ Value
   / n:Name _ "(" _ es:Expressions _ ")" { return `${n}(${es})`; }
   / n:Name ! (_ "." _ "*") { return n; }
   ;
+
+TypeName
+  = n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
+  { return [n1, ...ns].join(" ") + `(${s1}, ${s2})` }
+  / n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ ")"
+  { return [n1, ...ns].join(" ") + `(${s1})` }
+  / n1:Name ns:(_ n:Name { return n; })*
+  { return [n1, ...ns].join(" ") }
+
+SignedNumber
+  = s:[-+]? n:NumericLiteral { return `${s ?? ""}${n}`; }
 
 Name "name"
   = $('`' [^`]* '`')+
@@ -740,9 +752,13 @@ Literal "literal"
   / "false"
   / "null"
   / $("'" [^']* "'")+
+  / NumericLiteral
+  ;
+
+NumericLiteral
+  = $("0x" [0-9]+)
   / $([0-9]+ ("." [0-9]*)?)
   / $("." [0-9]+)
-  ;
 
 comments
   = "/*" ((!"*/") .)* "*/"
