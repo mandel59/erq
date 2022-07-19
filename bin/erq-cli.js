@@ -56,18 +56,28 @@ let outputStream = stdout;
 /** @type {"read" | "eval"} */
 let state = "read";
 let input = "";
+let sigint = false;
 
-function resetReadline() {
+function resetPrompt() {
   input = "";
-  rl.setPrompt('erq> ');
+  setPrompt();
   if (isTTY) { rl.prompt(); }
 }
 
-let sigint = false;
+function setPrompt() {
+  if (input === "") {
+    rl.setPrompt("erq> ");
+  } else {
+    rl.setPrompt("...> ");
+  }
+}
+
 function handleSigint() {
   if (state === "read") {
     rl.clearLine(0);
-    resetReadline();
+    input = "";
+    setPrompt();
+    if (isTTY) { rl.prompt(); }
   } else {
     sigint = true;
   }
@@ -82,7 +92,7 @@ async function parseErq() {
   } catch (error) {
     if (error.found == null) {
       input += "\n";
-      rl.setPrompt('...> ');
+      setPrompt();
       if (isTTY) { rl.prompt(); }
       return null;
     }
@@ -100,15 +110,17 @@ async function parseErq() {
       }
       console.error(JSON.stringify(error.location));
     }
-    resetReadline();
+    resetPrompt();
   }
   return null;
 }
 
 async function runSqls(sqls) {
-  state = "eval";
   try {
     for (const sql of sqls) {
+      if (sigint) {
+        break;
+      }
       console.error(sql);
       const t0 = performance.now();
       const stmt = db.prepare(sql);
@@ -117,7 +129,6 @@ async function runSqls(sqls) {
       const columnNames = columns.map(c => c.name);
       console.error(JSON.stringify(columnNames));
       let i = 0;
-      sigint = false;
       for (const r of stmt.iterate()) {
         i++;
         if (!outputStream.write(JSON.stringify(r) + "\n")) {
@@ -137,18 +148,32 @@ async function runSqls(sqls) {
     }
   } catch (error) {
     console.error(error.message);
-  } finally {
-    state = "read";
   }
 }
 
 if (isTTY) { rl.prompt(); }
 rl.on("line", async (line) => {
-  input += line;
-  const sqls = await parseErq();
-  if (sqls != null) {
-    await runSqls(sqls);
-    resetReadline();
+  if (state === "read") {
+    state = "eval";
+    try {
+      input += line;
+      while (input !== "") {
+        const sqls = await parseErq();
+        if (sqls == null) {
+          break;
+        }
+        await runSqls(sqls);
+      }
+      resetPrompt();
+    } finally {
+      sigint = false;
+      state = "read";
+    }
+  } else {
+    if (input !== "") {
+      input += "\n";
+    }
+    input += line;
   }
 });
 rl.on("close", async () => {
