@@ -58,12 +58,6 @@ let state = "read";
 let input = "";
 let sigint = false;
 
-function resetPrompt() {
-  input = "";
-  setPrompt();
-  if (isTTY) { rl.prompt(); }
-}
-
 function setPrompt() {
   if (input === "") {
     rl.setPrompt("erq> ");
@@ -110,7 +104,11 @@ async function parseErq() {
       }
       console.error(JSON.stringify(error.location));
     }
-    resetPrompt();
+    input = "";
+    setPrompt();
+    if (isTTY) {
+      rl.prompt();
+    }
   }
   return null;
 }
@@ -164,7 +162,10 @@ rl.on("line", async (line) => {
         }
         await runSqls(sqls);
       }
-      resetPrompt();
+      setPrompt();
+      if (isTTY) {
+        rl.prompt();
+      }
     } finally {
       sigint = false;
       state = "read";
