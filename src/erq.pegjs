@@ -361,9 +361,14 @@ class TableBuilder {
 
 }}
 
-start = _ t:Table _ { return t; };
+start = _ s:Statement _ { return s; };
 
-cli_readline = _ ts:(t:Table _ ";;" _ { return t; })+ { return ts; };
+cli_readline = _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
+
+Statement
+  = "explain" _ "query" _ "plan" _ s:Statement { return `explain query plan ${s}`; }
+  / "explain" _ s:Statement { return `explain ${s}`; }
+  / Table
 
 Table
   = WithTable / ValuesList / TableUnion
