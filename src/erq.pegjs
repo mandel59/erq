@@ -724,13 +724,21 @@ RowValueComparison
 Value
   = Literal
   / "cast" _ "(" _ e:Expression _ "as" _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
+  / FilteredFunctionCall
+  / FunctionCall
   / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
   / t:Name _ "." _ n:Name ! (_ "." _ "*") { return `${t}.${n}`; }
-  / n:Name _ "(" _ ")" { return `${n}()`; }
-  / n:Name _ "(" _ "distinct" _ e:Expression _ ")" { return `${n}(distinct ${e})`; }
-  / n:Name _ "(" _ es:Expressions _ ")" { return `${n}(${es})`; }
   / n:Name ! (_ "." _ "*") { return n; }
   ;
+
+FilteredFunctionCall
+  = "filter" _ "(" _ "where" _ e:Expression _ ")" _ f:FunctionCall { return `${f} filter (where ${e})`; }
+  / "[" _ e:Expression _ "]" _ f:FunctionCall { return `${f} filter (where ${e})`; }
+
+FunctionCall
+  = n:Name _ "(" _ ")" { return `${n}()`; }
+  / n:Name _ "(" _ "distinct" _ e:Expression _ ")" { return `${n}(distinct ${e})`; }
+  / n:Name _ "(" _ es:Expressions _ ")" { return `${n}(${es})`; }
 
 TypeName
   = n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
