@@ -768,7 +768,7 @@ NumericLiteral
   / $([0-9]+ ("." [0-9]*)?)
   / $("." [0-9]+)
 
-comments
+comment "comment"
   = "/*" ((!"*/") .)* "*/"
   / "--" ((!"\n") .)*
 
@@ -777,5 +777,5 @@ space "space"
   ;
 
 _ "boundary"
-  = (comments / space)*
+  = (comment / space)*
   ;
