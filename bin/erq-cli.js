@@ -113,36 +113,50 @@ async function parseErq() {
   return null;
 }
 
-async function runSqls(sqls) {
+async function runSqls(statements) {
   try {
-    for (const sql of sqls) {
+    for (const { type, query: sql } of statements) {
       if (sigint) {
         break;
       }
       console.error(sql);
       const t0 = performance.now();
       const stmt = db.prepare(sql);
-      stmt.raw(true);
-      const columns = stmt.columns();
-      const columnNames = columns.map(c => c.name);
-      console.error(JSON.stringify(columnNames));
-      let i = 0;
-      for (const r of stmt.iterate()) {
-        i++;
-        if (!outputStream.write(JSON.stringify(r) + "\n")) {
-          await new Promise(resolve => outputStream.once("drain", () => resolve()));
-        } else if (i % 100 === 0) {
-          await new Promise(resolve => setImmediate(() => resolve()));
+      if (type === "select") {
+        stmt.raw(true);
+        const columns = stmt.columns();
+        const columnNames = columns.map(c => c.name);
+        console.error(JSON.stringify(columnNames));
+        let i = 0;
+        for (const r of stmt.iterate()) {
+          i++;
+          if (!outputStream.write(JSON.stringify(r) + "\n")) {
+            await new Promise(resolve => outputStream.once("drain", () => resolve()));
+          } else if (i % 100 === 0) {
+            await new Promise(resolve => setImmediate(() => resolve()));
+          }
+          if (sigint) {
+            console.error("Interrupted");
+            break;
+          }
         }
-        if (sigint) {
-          console.error("Interrupted");
-          break;
+        const t1 = performance.now();
+        const t = t1 - t0;
+        const rows = (i === 1) ? "1 row" : `${i} rows`;
+        console.error("%s (%ss)", rows, (t / 1000).toFixed(3));
+      } else {
+        const { changes, lastInsertRowid } = stmt.run();
+        const t1 = performance.now();
+        const t = t1 - t0;
+        const rows = (changes === 1) ? "1 row" : `${changes} rows`;
+        if (type === "insert") {
+          console.error("%s changed, lastInsertRowid=%s (%ss)", rows, lastInsertRowid, (t / 1000).toFixed(3));
+        } else if (type === "update") {
+          console.error("%s changed (%ss)", rows, (t / 1000).toFixed(3));
+        } else {
+          console.error("ok (%ss)", (t / 1000).toFixed(3));
         }
       }
-      const t1 = performance.now();
-      const rows = (i === 1) ? "1 row" : `${i} rows`;
-      const t = t1 - t0;
-      console.error("%s (%ss)", rows, (t / 1000).toFixed(3));
     }
   } catch (error) {
     console.error(error.message);

@@ -367,9 +367,27 @@ start = _ s:Statement _ { return s; };
 cli_readline = _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
 
 Statement
-  = "explain" _ "query" _ "plan" _ s:Statement { return `explain query plan ${s}`; }
-  / "explain" _ s:Statement { return `explain ${s}`; }
-  / Table
+  = "explain" _ "query" _ "plan" _ s:Statement { return { type: "select", query: `explain query plan ${s}` }; }
+  / "explain" _ s:Statement { return { type: "select", query: `explain ${s}` }; }
+  / c:CreateTable { return { type: "create", query: c }; }
+  / t:Table { return { type: "select", query: t }; }
+
+CreateTable
+  = "create" _ "temporary" _ "table" _ n:Name _ def:CreateTableDef
+  {
+    return `create temporary table ${n} ${def}`;
+  }
+  / "create" _ "table" _ s:Name _ "." _ n:Name _ def:CreateTableDef
+  {
+    return `create table ${s}.${n} ${def}`;
+  }
+  / "create" _ "table" _ n:Name _ def:CreateTableDef
+  {
+    return `create table ${n} ${def}`;
+  }
+
+CreateTableDef
+  = "as" _ t:Table { return `as ${t}`; }
 
 Table
   = WithTable / ValuesList / TableUnion
