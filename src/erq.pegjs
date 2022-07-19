@@ -164,6 +164,7 @@ class TableBuilder {
   #order = [];
   #limit = null;
   #offset = 0;
+  #aggregate = false;
   constructor(name, expression) {
     this.#name = name;
     this.#expression = expression;
@@ -296,7 +297,7 @@ class TableBuilder {
     return sql;
   }
   where(e) {
-    if (this.#group.length > 0) {
+    if (this.#aggregate) {
       this.#having.push(e);
     } else {
       this.#where.push(e);
@@ -314,15 +315,15 @@ class TableBuilder {
     }
   }
   groupSelect(grs, rs) {
-    if (this.#group.length === 0 && this.#select.length === 0) {
-      for (const r of grs) {
-        this.#group.push(r);
-      }
-      for (const r of rs) {
-        this.#select.push(r);
-      }
-    } else {
+    if (this.#group.length > 0 || this.#select.length > 0) {
       return new TableBuilder(this.#name, `(${this.toSQL(true)})`).groupSelect(grs, rs);
+    }
+    this.#aggregate = true;
+    for (const r of grs) {
+      this.#group.push(r);
+    }
+    for (const r of rs) {
+      this.#select.push(r);
     }
     return this;
   }
@@ -523,6 +524,9 @@ Filter
   }
   / "{" _ grs:ValueReferences _ "=>" _ "}" {
     return (tb) => tb.groupSelect(grs, grs);
+  }
+  / "{" _ "=>" _ grs:ValueReferences  _ "}" {
+    return (tb) => tb.groupSelect([], grs);
   }
   / "{" _ rs:ValueWildCardReferences _ "}" {
     return (tb) => tb.select(rs);
