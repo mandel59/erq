@@ -236,8 +236,8 @@ function getTables() {
 }
 
 function getColumns(schema, table) {
-  /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1}[]} */
-  const columns = db.prepare(`pragma ${quoteSQLName(schema)}.table_info(${quoteSQLName(table)})`).all();
+  /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
+  const columns = db.prepare(`pragma ${quoteSQLName(schema)}.table_xinfo(${quoteSQLName(table)})`).all();
   return columns;
 }
 
@@ -257,7 +257,7 @@ function completer(line) {
       const m3 = m[3] ? unquoteSQLName(m[3]) : "";
       const [sn, tn] = (m2 != null) ? [m1, m2] : [tables.find(t => t.name === m1)?.schema, m1];
       if (sn != null) {
-        const columns = getColumns(sn, tn).filter(c => c.name.startsWith(m3));
+        const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
         if (m2 != null) {
           const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
           return [columns.map(c => `${qtn}.${c.name}`), q];
