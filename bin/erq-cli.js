@@ -243,37 +243,41 @@ function getColumns(schema, table) {
 
 function completer(line) {
   const m = reFQNamePart.exec(line);
-  const tables = getTables();
-  const schemas = Array.from(new Set(tables.map(t => t.schema)).values());
-  const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
-  const tableNames = tables.map(t => quoteSQLName(t.name));
   const q = m[0];
-  // column completion
-  {
-    const m = reParseColumnName.exec(q);
-    if (m != null) {
-      const m1 = unquoteSQLName(m[1]);
-      const m2 = m[2] && unquoteSQLName(m[2]);
-      const m3 = m[3] ? unquoteSQLName(m[3]) : "";
-      const [sn, tn] = (m2 != null) ? [m1, m2] : [tables.find(t => t.name === m1)?.schema, m1];
-      if (schemas.includes(sn)) {
-        const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
-        if (m2 != null) {
-          const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
-          return [columns.map(c => `${qtn}.${c.name}`), q];
-        } else {
-          const qtn = quoteSQLName(tn);
-          return [columns.map(c => `${qtn}.${c.name}`), q];
+  try {
+    const tables = getTables();
+    const schemas = Array.from(new Set(tables.map(t => t.schema)).values());
+    const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
+    const tableNames = tables.map(t => quoteSQLName(t.name));
+    // column completion
+    {
+      const m = reParseColumnName.exec(q);
+      if (m != null) {
+        const m1 = unquoteSQLName(m[1]);
+        const m2 = m[2] && unquoteSQLName(m[2]);
+        const m3 = m[3] ? unquoteSQLName(m[3]) : "";
+        const [sn, tn] = (m2 != null) ? [m1, m2] : [tables.find(t => t.name === m1)?.schema, m1];
+        if (schemas.includes(sn)) {
+          const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
+          if (m2 != null) {
+            const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
+            return [columns.map(c => `${qtn}.${c.name}`), q];
+          } else {
+            const qtn = quoteSQLName(tn);
+            return [columns.map(c => `${qtn}.${c.name}`), q];
+          }
         }
       }
     }
-  }
-  // table name completion
-  {
-    const matches = [...schemas, ...tableNames, ...tableNamesFQ].filter(n => n.startsWith(q)).sort();
-    if (matches.length > 0) {
-      return [matches, q];
+    // table name completion
+    {
+      const matches = [...schemas, ...tableNames, ...tableNamesFQ].filter(n => n.startsWith(q)).sort();
+      if (matches.length > 0) {
+        return [matches, q];
+      }
     }
+  } catch {
+    // ignore errors
   }
   return [[], q];
 }
