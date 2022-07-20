@@ -256,7 +256,7 @@ function completer(line) {
       const m2 = m[2] && unquoteSQLName(m[2]);
       const m3 = m[3] ? unquoteSQLName(m[3]) : "";
       const [sn, tn] = (m2 != null) ? [m1, m2] : [tables.find(t => t.name === m1)?.schema, m1];
-      if (sn != null) {
+      if (schemas.includes(sn)) {
         const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
         if (m2 != null) {
           const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
