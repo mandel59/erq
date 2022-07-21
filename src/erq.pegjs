@@ -367,27 +367,27 @@ start = _ s:Statement _ { return s; };
 cli_readline = _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
 
 Statement
-  = "explain" _ "query" _ "plan" _ s:Statement { return { type: "select", query: `explain query plan ${s}` }; }
-  / "explain" _ s:Statement { return { type: "select", query: `explain ${s}` }; }
+  = boundary "explain" __ "query" __ "plan" boundary _ s:Statement { return { type: "select", query: `explain query plan ${s}` }; }
+  / boundary "explain" boundary _ s:Statement { return { type: "select", query: `explain ${s}` }; }
   / c:CreateTable { return { type: "create", query: c }; }
   / t:Table { return { type: "select", query: t }; }
 
 CreateTable
-  = "create" _ "temporary" _ "table" _ n:Name _ def:CreateTableDef
+  = boundary "create" __ "temporary" __ "table" boundary _ n:Name _ def:CreateTableDef
   {
     return `create temporary table ${n} ${def}`;
   }
-  / "create" _ "table" _ s:Name _ "." _ n:Name _ def:CreateTableDef
+  / boundary "create" __ "table" boundary _  s:Name _ "." _ n:Name _ def:CreateTableDef
   {
     return `create table ${s}.${n} ${def}`;
   }
-  / "create" _ "table" _ n:Name _ def:CreateTableDef
+  / boundary "create" __ "table" boundary _ n:Name _ def:CreateTableDef
   {
     return `create table ${n} ${def}`;
   }
 
 CreateTableDef
-  = "as" _ t:Table { return `as ${t}`; }
+  = boundary "as" boundary _ t:Table { return `as ${t}`; }
 
 Table
   = WithTable / ValuesList / TableUnion
@@ -399,9 +399,9 @@ WithTable
   }
 
 WithClause
-  = "with" _ n:Name _
+  = boundary "with" boundary _ n:Name _
     a:( "(" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ ")" _ { return [an1, ...ans]; } )?
-    "as" _ "(" _ t:Table _ ")" _
+    boundary "as" boundary _ "(" _ t:Table _ ")" _
   {
     if (a != null) {
       return `${n}(${a.join(", ")}) as (${t})`;
@@ -412,7 +412,7 @@ WithClause
 TableUnion
   = t1:Table1
     ts:(_ ";" _ t:Table1 { return t; })*
-    distinct:(_ "distinct" { return true; })?
+    distinct:(_ boundary "distinct" boundary { return true; })?
     order:OrderClause?
     limitOffset:LimitOffsetClause?
     cs:(
@@ -474,7 +474,7 @@ TableUnion
   }
 
 OrderClause
-  = _ "order" _ "by"
+  = _ boundary "order" __ "by" boundary
     _ e1:Expression s1:(_ s:("asc" / "desc") { return s; })?
     r:(_ "," _ e:Expression s:(_ s:("asc" / "desc") { return s; })? { return [e, s ?? "asc"]; })*
   {
@@ -482,12 +482,12 @@ OrderClause
   }
 
 LimitOffsetClause
-  = _ "limit" _ limit:Expression _ "offset" _ offset:Expression { return [limit, offset]; }
-  / _ "limit" _ limit:Expression { return [limit, null]; }
-  / _ "offset" _ offset:Expression _ "limit" _ limit:Expression { return [limit, offset]; }
+  = _ boundary "limit" boundary _ limit:Expression _ boundary "offset" boundary _ offset:Expression { return [limit, offset]; }
+  / _ boundary "limit" boundary _ limit:Expression { return [limit, null]; }
+  / _ boundary "offset" boundary _ offset:Expression _ boundary "limit" boundary _ limit:Expression { return [limit, offset]; }
 
 Table1
-  = "select" _ rs:ValueReferences {
+  = boundary "select" boundary _ rs:ValueReferences {
     return new TableBuilder(null, null).select(rs);
   }
   / "{" _ rs:ValueReferences _ "}" {
@@ -509,7 +509,7 @@ Table1
   ;
 
 ValuesList
-  = "values" _ r1:Record rs:(_ ";" _ r:Record { return r; })*
+  = boundary "values" boundary _ r1:Record rs:(_ ";" _ r:Record { return r; })*
   {
     return "values " + [r1, ...rs].map(r => `(${r})`).join(", ");
   }
@@ -534,7 +534,7 @@ Filter
   = "[" _ e:Expression _ "]" {
     return (tb) => tb.where(e);
   }
-  / "where" _ e:Expression {
+  / boundary "where" boundary _ e:Expression {
     return (tb) => tb.where(e);
   }
   / "{" _ grs:ValueReferences _ "=>" _ rs:ValueWildCardReferences _ "}" {
@@ -549,19 +549,19 @@ Filter
   / "{" _ rs:ValueWildCardReferences _ "}" {
     return (tb) => tb.select(rs);
   }
-  / "group" _ "by" _ grs:ValueReferences _ "select" _ rs:ValueWildCardReferences {
+  / boundary "group" __ "by" boundary _ grs:ValueReferences _ boundary "select" boundary _ rs:ValueWildCardReferences {
     return (tb) => tb.groupSelect(grs, rs);
   }
-  / "select" _ rs:ValueWildCardReferences {
+  / boundary "select" boundary _ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
   / "," _ tr:TableReference {
     return (tb) => tb.join(tr, null);
   }
-  / d:(dw:("left" / "right" / "full") _ { return dw; })? "join" _ tr:TableReference _ "on" _ e:Expression {
+  / d:(boundary dw:("left" / "right" / "full") boundary _ { return dw; })? boundary "join" boundary _ tr:TableReference _ boundary "on" boundary _ e:Expression {
     return (tb) => tb.join(tr, e, d);
   }
-  / "natural" _ "join" _ tr:TableReference _ {
+  / boundary "natural" __ "join" boundary _ tr:TableReference _ {
     return (tb) => tb.join(tr, null, "natural");
   }
   ;
@@ -578,13 +578,13 @@ ValueWildCardReferences
   }
 
 ValueReference
-  = n:Name _ ":" _ e:Expression _ sort:("asc" / "desc") {
+  = n:Name _ ":" _ e:Expression _ boundary sort:("asc" / "desc") boundary {
     return { name: n, expression: e, sort: sort };
   }
   / n:Name _ ":" _ e:Expression {
     return { name: n, expression: e, sort: null };
   }
-  / e:Expression _ sort:("asc" / "desc") {
+  / e:Expression _ boundary sort:("asc" / "desc") boundary {
     return { name: null, expression: e, sort: sort };
   }
   / e:Expression {
@@ -623,7 +623,7 @@ UnOp
   = "~"
   / "+"
   / "-"
-  / "not"
+  / boundary "not" boundary
   ;
 
 BinOp
@@ -647,15 +647,15 @@ BinOp
   / "%"
   / "->>"
   / "->"
-  / "between"
-  / "and"
-  / "or"
-  / "is" _ "not" { return "is not"; }
-  / "is"
-  / "not" _ "glob" { return "not glob"; }
-  / "glob"
-  / "not" _ "like" { return "not like"; }
-  / "like"
+  / boundary "between" boundary
+  / boundary "and" boundary
+  / boundary "or" boundary
+  / boundary "is" __ "not" boundary { return "is not"; }
+  / boundary "is" boundary
+  / boundary "not" __ "glob" boundary { return "not glob"; }
+  / boundary "glob" boundary
+  / boundary "not" __ "like" boundary { return "not like"; }
+  / boundary "like" boundary
   ;
 
 BinCompOp
@@ -667,24 +667,24 @@ BinCompOp
   / ">"
   / "<>"
   / "!="
-  / "is" _ "not" { return "is not"; }
-  / "is"
+  / boundary "is" __ "not" boundary { return "is not"; }
+  / boundary "is" boundary
 
 Expression
   = "(" _ e:Expression _ ")" { return `(${e})` }
-  / "select" _ t:Table _ op:BinOp _ e2:Expression { return `(${t}) ${op} ${e2}` }
-  / "select" _ t:Table { return `(${t})` }
-  / "not" _ "exists" _ t:Table _ op:BinOp _ e2:Expression { return `not exists (${t}) ${op} ${e2}` }
-  / "not" _ "exists" _ t:Table { return `not exists (${t})` }
-  / "exists" _ t:Table _ op:BinOp _ e2:Expression { return `exists (${t}) ${op} ${e2}` }
-  / "exists" _ t:Table { return `exists (${t})` }
+  / boundary "select" boundary _ t:Table _ op:BinOp _ e2:Expression { return `(${t}) ${op} ${e2}` }
+  / boundary "select" boundary _ t:Table { return `(${t})` }
+  / boundary "not" __ "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not exists (${t}) ${op} ${e2}` }
+  / boundary "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
+  / boundary "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `exists (${t}) ${op} ${e2}` }
+  / boundary "exists" boundary _ t:Table { return `exists (${t})` }
   / CaseExpression
   / e:Expression1OrRowValue _ "in" _ t:Table _ op:BinOp _ e2:Expression { return `${e} in (${t}) ${op} ${e2}` }
   / e:Expression1OrRowValue _ "in" _ t:Table { return `${e} in (${t})`; }
   / Expression1
 
 CaseExpression
-  = "case" _ w:WhenClause+ el:ElseClause? "end"
+  = boundary "case" boundary _ w:WhenClause+ el:ElseClause? boundary "end" boundary
   {
     let sql = `case `;
     for (const e of w) {
@@ -696,7 +696,7 @@ CaseExpression
     sql += "end";
     return sql;
   }
-  / "case" _ ex:ExpressionOrRowValue _ w:WhenClause+ el:ElseClause? "end"
+  / boundary "case" boundary _ ex:ExpressionOrRowValue _ w:WhenClause+ el:ElseClause? boundary "end" boundary
   {
     let sql = `case `;
     sql += ex;
@@ -710,16 +710,16 @@ CaseExpression
     sql += "end";
     return sql;
   }
-  / "if" _ c:Expression _ "then" _ e:Expression _ el:ElseClause? "end"
+  / boundary "if" boundary _ c:Expression _ boundary "then" boundary _ e:Expression _ el:ElseClause? boundary "end" boundary
   {
     return `case when ${c} then ${e} ${el ?? ""}end`;
   }
 
 WhenClause
-  = "when" _ c:ExpressionOrRowValue _ "then" _ e:Expression _ { return `when ${c} then ${e} `; }
+  = boundary "when" boundary _ c:ExpressionOrRowValue _ boundary "then" boundary _ e:Expression _ { return `when ${c} then ${e} `; }
 
 ElseClause
-  = "else" _ e:Expression _ { return `else ${e} `; }
+  = boundary "else" boundary _ e:Expression _ { return `else ${e} `; }
 
 ExpressionOrRowValue
   = Expression
@@ -731,7 +731,7 @@ Expression1OrRowValue
 
 RowValue
   = "{" _ es:Expressions _ "}" { return `(${es})`; }
-  / "select" _ t:Table { return `(${t})` }
+  / boundary "select" boundary _ t:Table { return `(${t})` }
 
 Expression1
   = op:UnOp _ e:Expression1 { return `${op} ${e}` }
@@ -745,7 +745,7 @@ RowValueComparison
 
 Value
   = Literal
-  / "cast" _ "(" _ e:Expression _ "as" _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
+  / boundary "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
   / FilteredFunctionCall
   / FunctionCall
   / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
@@ -754,12 +754,12 @@ Value
   ;
 
 FilteredFunctionCall
-  = "filter" _ "(" _ "where" _ e:Expression _ ")" _ f:FunctionCall { return `${f} filter (where ${e})`; }
+  = boundary "filter" _ "(" _ "where" boundary _ e:Expression _ ")" _ f:FunctionCall { return `${f} filter (where ${e})`; }
   / "[" _ e:Expression _ "]" _ f:FunctionCall { return `${f} filter (where ${e})`; }
 
 FunctionCall
   = n:Name _ "(" _ ")" { return `${n}()`; }
-  / n:Name _ "(" _ "distinct" _ e:Expression _ ")" { return `${n}(distinct ${e})`; }
+  / n:Name _ "(" _ "distinct" boundary _ e:Expression _ ")" { return `${n}(distinct ${e})`; }
   / n:Name _ "(" _ es:Expressions _ ")" { return `${n}(${es})`; }
 
 TypeName
@@ -786,9 +786,9 @@ Name "name"
   ;
 
 Literal "literal"
-  = "true"
-  / "false"
-  / "null"
+  = boundary "true" boundary
+  / boundary "false" boundary
+  / boundary "null" boundary
   / $("'" [^']* "'")+
   / NumericLiteral
   ;
@@ -806,6 +806,14 @@ space "space"
   = [ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
   ;
 
-_ "boundary"
+_
   = (comment / space)*
   ;
+
+boundary "boundary" = & {
+  const re = /\b/y;
+  re.lastIndex = offset();
+  return re.test(input);
+}
+
+__ = boundary _ boundary
