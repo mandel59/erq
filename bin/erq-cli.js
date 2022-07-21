@@ -40,7 +40,7 @@ if (options.help) {
 }
 
 const dbpath = options.db ?? ":memory:";
-const db = new Database(dbpath);
+const db = new Database(dbpath, { readonly: true });
 console.error("Connected to %s", dbpath);
 
 // global states
