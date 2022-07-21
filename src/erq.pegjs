@@ -567,7 +567,7 @@ Filter
   / "select" boundary _ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
-  / "," _ tr:TableReference {
+  / "join" boundary _ tr:TableReference {
     return (tb) => tb.join(tr, null);
   }
   / d:(boundary dw:("left" / "right" / "full") boundary _ { return dw; })? boundary "join" boundary _ tr:TableReference _ boundary "on" boundary _ e:Expression {
