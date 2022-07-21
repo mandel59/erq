@@ -370,13 +370,23 @@ async function runSqls(statements) {
       const stmt = db.prepare(sql);
       if (type === "select") {
         stmt.raw(true);
+        // stmt.safeIntegers(true);
         const columns = stmt.columns();
         const columnNames = columns.map(c => c.name);
         console.error(JSON.stringify(columnNames));
         let i = 0;
         for (const r of stmt.iterate()) {
           i++;
-          if (!outputStream.write(JSON.stringify(r) + "\n")) {
+          if (!outputStream.write(JSON.stringify(r.map(value => {
+            if (typeof value === "object") {
+              // convert Buffer object to Array object
+              return Array.from(value);
+            }
+            if (typeof value === "bigint") {
+              return String(value);
+            }
+            return value;
+          })) + "\n")) {
             await new Promise(resolve => outputStream.once("drain", () => resolve()));
           } else if (i % 100 === 0) {
             await new Promise(resolve => setImmediate(() => resolve()));
