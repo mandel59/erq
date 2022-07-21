@@ -269,15 +269,24 @@ function completer(line) {
         }
       }
     }
-    // table name completion
+    // other name completion
+    const columnNames = tables.flatMap(t => {
+      return getColumns(t.schema, t.name)
+        .filter(c => c.hidden !== 1)
+        .map(c => quoteSQLName(c.name));
+    });
     {
-      const matches = [...schemas, ...tableNames, ...tableNamesFQ].filter(n => n.startsWith(q)).sort();
+      const matches
+        = Array.from(new Set([...schemas, ...tableNames, ...tableNamesFQ, ...columnNames]).values())
+          .filter(n => n.startsWith(q))
+          .sort();
       if (matches.length > 0) {
         return [matches, q];
       }
     }
-  } catch {
+  } catch (error) {
     // ignore errors
+    console.error(error);
   }
   return [[], q];
 }
