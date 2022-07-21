@@ -378,7 +378,7 @@ async function runSqls(statements) {
         for (const r of stmt.iterate()) {
           i++;
           if (!outputStream.write(JSON.stringify(r.map(value => {
-            if (typeof value === "object") {
+            if (value != null && typeof value === "object") {
               // convert Buffer object to Array object
               return Array.from(value);
             }
