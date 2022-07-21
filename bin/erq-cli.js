@@ -264,10 +264,10 @@ function completer(line) {
           const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
           if (m2 != null) {
             const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
-            return [columns.map(c => `${qtn}.${c.name}`), q];
+            return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
           } else {
             const qtn = quoteSQLName(tn);
-            return [columns.map(c => `${qtn}.${c.name}`), q];
+            return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
           }
         }
       }
