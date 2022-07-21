@@ -246,7 +246,7 @@ function completer(line) {
   const q = m[0];
   try {
     const tables = getTables();
-    const schemas = Array.from(new Set(tables.map(t => t.schema)).values());
+    const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
     const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
     const tableNames = tables.map(t => quoteSQLName(t.name));
     // column completion
