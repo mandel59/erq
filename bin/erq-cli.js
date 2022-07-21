@@ -30,6 +30,7 @@ function showUsage() {
 const syntax = readFileSync(new URL("../src/erq.pegjs", import.meta.url).pathname, "utf-8")
 const parser = peggy.generate(syntax, {
   allowedStartRules: ["start", "cli_readline"],
+  // trace: true,
 });
 
 const options = commandLineArgs(optionList);
