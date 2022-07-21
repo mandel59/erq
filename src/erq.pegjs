@@ -370,24 +370,36 @@ Statement
   = boundary "explain" __ "query" __ "plan" boundary _ s:Statement { return { type: "select", query: `explain query plan ${s}` }; }
   / boundary "explain" boundary _ s:Statement { return { type: "select", query: `explain ${s}` }; }
   / c:CreateTable { return { type: "create", query: c }; }
+  / d:DropTable { return { type: "drop", query: d }; }
   / t:Table { return { type: "select", query: t }; }
 
 CreateTable
-  = boundary "create" __ "temporary" __ "table" boundary _ n:Name _ def:CreateTableDef
+  = boundary "create" __ "temporary" __ tv:("table" / "view") boundary _ n:Name _ boundary "as" boundary _ t:Table
   {
-    return `create temporary table ${n} ${def}`;
+    return `create temporary ${tv} ${n} as ${t}`;
   }
-  / boundary "create" __ "table" boundary _  s:Name _ "." _ n:Name _ def:CreateTableDef
+  / boundary "create" __ tv:("table" / "view") boundary _ n:TableName _ boundary "as" boundary _ t:Table
   {
-    return `create table ${s}.${n} ${def}`;
+    return `create ${tv} ${n} as ${t}`;
   }
-  / boundary "create" __ "table" boundary _ n:Name _ def:CreateTableDef
+  / boundary tv:("table" / "view") boundary _ n:TableName _ "<-" _ t:Table
   {
-    return `create table ${n} ${def}`;
+    return `create ${tv} ${n} as ${t}`;
   }
 
-CreateTableDef
-  = boundary "as" boundary _ t:Table { return `as ${t}`; }
+DropTable
+  = boundary "drop" __ "temporary" __ tv:("table" / "view") boundary _ n:TableName
+  {
+    return `drop temporary ${tv} ${n}`;
+  }
+  / boundary "drop" __ tv:("table" / "view") boundary _ n:TableName
+  {
+    return `drop ${tv} ${n}`;
+  }
+
+TableName
+  = s:Name _ "." _ n:Name { return `${s}.${n}`; }
+  / Name
 
 Table
   = WithTable / ValuesList / TableUnion
