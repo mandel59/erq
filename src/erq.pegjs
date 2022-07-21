@@ -567,11 +567,11 @@ Filter
   / "select" boundary _ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
-  / "join" boundary _ tr:TableReference {
-    return (tb) => tb.join(tr, null);
+  / d:(boundary dw:("left" / "right" / "full") boundary _ { return dw; }) boundary "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; }) {
+    return (tb) => tb.join(tr, on, d);
   }
-  / d:(boundary dw:("left" / "right" / "full") boundary _ { return dw; })? boundary "join" boundary _ tr:TableReference _ boundary "on" boundary _ e:Expression {
-    return (tb) => tb.join(tr, e, d);
+  / "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
+    return (tb) => tb.join(tr, on);
   }
   / "natural" __ "join" boundary _ tr:TableReference _ {
     return (tb) => tb.join(tr, null, "natural");
