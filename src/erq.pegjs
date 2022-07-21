@@ -623,7 +623,7 @@ UnOp
   = "~"
   / "+"
   / "-"
-  / boundary "not" boundary
+  / boundary "not" boundary { return "not"; }
   ;
 
 BinOp
