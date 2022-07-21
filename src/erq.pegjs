@@ -647,15 +647,15 @@ BinOp
   / "%"
   / "->>"
   / "->"
-  / boundary "between" boundary
-  / boundary "and" boundary
-  / boundary "or" boundary
+  / boundary "between" boundary { return "between"; }
+  / boundary "and" boundary { return "and"; }
+  / boundary "or" boundary { return "or"; }
   / boundary "is" __ "not" boundary { return "is not"; }
-  / boundary "is" boundary
+  / boundary "is" boundary { return "is"; }
   / boundary "not" __ "glob" boundary { return "not glob"; }
-  / boundary "glob" boundary
+  / boundary "glob" boundary { return "glob"; }
   / boundary "not" __ "like" boundary { return "not like"; }
-  / boundary "like" boundary
+  / boundary "like" boundary { return "like"; }
   ;
 
 BinCompOp
@@ -668,19 +668,20 @@ BinCompOp
   / "<>"
   / "!="
   / boundary "is" __ "not" boundary { return "is not"; }
-  / boundary "is" boundary
+  / boundary "is" boundary { return "is"; }
 
 Expression
-  = "(" _ e:Expression _ ")" { return `(${e})` }
-  / boundary "select" boundary _ t:Table _ op:BinOp _ e2:Expression { return `(${t}) ${op} ${e2}` }
+  = boundary "select" boundary _ t:Table _ op:BinOp _ e2:Expression { return `(${t}) ${op} ${e2}` }
   / boundary "select" boundary _ t:Table { return `(${t})` }
   / boundary "not" __ "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not exists (${t}) ${op} ${e2}` }
   / boundary "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
   / boundary "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `exists (${t}) ${op} ${e2}` }
   / boundary "exists" boundary _ t:Table { return `exists (${t})` }
   / CaseExpression
-  / e:Expression1OrRowValue _ "in" _ t:Table _ op:BinOp _ e2:Expression { return `${e} in (${t}) ${op} ${e2}` }
-  / e:Expression1OrRowValue _ "in" _ t:Table { return `${e} in (${t})`; }
+  / e:Expression1OrRowValue _ boundary "not" __ "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `${e} not in (${t}) ${op} ${e2}` }
+  / e:Expression1OrRowValue _ boundary "not" __ "in" boundary _ t:Table { return `${e} not in (${t})`; }
+  / e:Expression1OrRowValue _ boundary "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `${e} in (${t}) ${op} ${e2}` }
+  / e:Expression1OrRowValue _ boundary "in" boundary _ t:Table { return `${e} in (${t})`; }
   / Expression1
 
 CaseExpression
@@ -744,7 +745,8 @@ RowValueComparison
   = r1:RowValue _ op:BinCompOp _ r2:RowValue { return `${r1} ${op} ${r2}`; }
 
 Value
-  = Literal
+  = "(" _ e:Expression _ ")" { return `(${e})` }
+  / Literal
   / boundary "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
   / FilteredFunctionCall
   / FunctionCall
