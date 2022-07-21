@@ -136,7 +136,7 @@ function completer(line) {
     }
   } catch (error) {
     // ignore errors
-    console.error(error);
+    // console.error(error);
   }
   return [[], q];
 }
@@ -190,15 +190,17 @@ async function parseErq() {
     if (error && error.location) {
       const start = error.location.start.offset;
       const end = error.location.end.offset;
+      console.error(" at line %d column %d", error.location.start.line, error.location.start.column);
       if (stderr.isTTY) {
+        console.error("---");
         console.error(
           '%s',
           input.slice(0, start)
           + '\x1b[1m\x1b[37m\x1b[41m'
           + input.slice(start, end)
           + '\x1b[0m' + input.slice(end));
+        console.error("---");
       }
-      console.error(JSON.stringify(error.location));
     }
     input = "";
     setPrompt();
@@ -275,6 +277,11 @@ rl.on("line", async (line) => {
     state = "eval";
     try {
       input += line;
+      if (!isTTY) {
+        // slurp all input
+        input += "\n";
+        return;
+      }
       while (input !== "") {
         const sqls = await parseErq();
         if (sqls == null) {
