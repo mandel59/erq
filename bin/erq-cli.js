@@ -40,7 +40,9 @@ if (options.help) {
 }
 
 const dbpath = options.db ?? ":memory:";
-const db = new Database(dbpath, { readonly: true });
+// TODO: add flag and command to allow modifing database
+const readonly = dbpath !== ":memory:";
+const db = new Database(dbpath, { readonly });
 console.error("Connected to %s", dbpath);
 
 // global states
