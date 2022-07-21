@@ -653,12 +653,12 @@ BinOp
   / "||"
   / "|"
   / "+"
+  / "->>"
+  / "->"
   / "-"
   / "*"
   / "/"
   / "%"
-  / "->>"
-  / "->"
   / boundary "between" boundary { return "between"; }
   / boundary "and" boundary { return "and"; }
   / boundary "or" boundary { return "or"; }
