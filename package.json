@@ -5,7 +5,8 @@
   "repository": "mandel59/erq",
   "type": "module",
   "devDependencies": {
-    "@types/node": "^18.0.6"
+    "@types/node": "^18.0.6",
+    "ava": "^4.3.1"
   },
   "description": "Erq - Easy Relational Query Language",
   "license": "MIT",
@@ -13,7 +14,7 @@
     "erq": "bin/erq-cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "ava"
   },
   "dependencies": {
     "better-sqlite3": "^7.6.2",
