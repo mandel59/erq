@@ -26,7 +26,7 @@ join s: salary on s.employee_id = e.id
 `));
 
   console.log(parser.parse(`
-e: employees, j: (json_each('[1,2,3]', '$') {value})
+e: employees join j: (json_each('[1,2,3]', '$') {value})
 `));
 
   console.log(parser.parse(`
@@ -60,7 +60,7 @@ t: ({x: 1, y: 2}; {2, 3}; {3, 4})
 `))
 
   console.log(parser.parse(`
-mji, mjsm
+mji join mjsm
 where mji.MJ文字図形名 = mjsm.MJ文字図形名
 select mji.*, mjsm.*
 limit 10
@@ -83,4 +83,5 @@ r group by r.a select x: max(r.b)
 
 } catch (error) {
   console.error(error);
+  process.exitCode = 1;
 }
