@@ -803,9 +803,9 @@ Name "name"
   ;
 
 Literal "literal"
-  = "true" boundary
-  / "false" boundary
-  / "null" boundary
+  = $("true" boundary)
+  / $("false" boundary)
+  / $("null" boundary)
   / $("'" [^']* "'")+
   / NumericLiteral
   ;
