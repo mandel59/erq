@@ -174,6 +174,14 @@ function handleSigint() {
 }
 rl.on("SIGINT", handleSigint);
 
+function handleSigcont() {
+  if (state === "read") {
+    // resume the stream
+    rl.prompt();
+  }
+}
+rl.on("SIGCONT", handleSigcont);
+
 async function parseErq() {
   try {
     const sqls = parser.parse(input, { startRule: "cli_readline" });
