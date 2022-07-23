@@ -683,9 +683,7 @@ BinCompOp
   / "is" boundary { return "is"; }
 
 Expression
-  = "select" boundary _ t:Table _ op:BinOp _ e2:Expression { return `(${t}) ${op} ${e2}` }
-  / "select" boundary _ t:Table { return `(${t})` }
-  / "not" __ "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not exists (${t}) ${op} ${e2}` }
+  = "not" __ "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not exists (${t}) ${op} ${e2}` }
   / "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
   / "exists" boundary _ t:Table _ op:BinOp _ e2:Expression { return `exists (${t}) ${op} ${e2}` }
   / "exists" boundary _ t:Table { return `exists (${t})` }
@@ -746,7 +744,8 @@ Expression1OrRowValue
 
 RowValue
   = "{" _ es:Expressions _ "}" { return `(${es})`; }
-  / "select" boundary _ t:Table { return `(${t})` }
+  / "from" boundary _ t:Table { return `(${t})`; }
+  / v:ValuesList { return `(${v})`; }
 
 Expression1
   = op:UnOp _ e:Expression1 { return `${op} ${e}` }
@@ -757,6 +756,7 @@ Expression1
 
 Value
   = "(" _ e:Expression _ ")" { return `(${e})` }
+  / "from" boundary _ t:Table { return `(${t})` }
   / Literal
   / "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
   / FilteredFunctionCall

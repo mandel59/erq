@@ -39,7 +39,7 @@ test('select table', t => {
     type: 'select',
     query: `select * from employees where (name in (select value from json_each('["Ryusei","Mike","Bob"]', '$')))`
   });
-  t.deepEqual(parser.parse(`e: employees { salary: select s: salary[s.employee_id = e.id]{value} }`), {
+  t.deepEqual(parser.parse(`e: employees { salary: from s: salary[s.employee_id = e.id]{value} }`), {
     type: 'select',
     query: 'select (select value from salary as s where (s.employee_id = e.id)) as salary from employees as e'
   });
@@ -82,7 +82,7 @@ test('select table', t => {
     with t(x) as (values {1}; {2}; {3})
     with u as (t{x, y: x*2})
     u
-    [{x, y} in values {1, 2}; {3, 6} and {x, y} > select values {2, 2}]
+    [{x, y} in values {1, 2}; {3, 6} and {x, y} > values {2, 2}]
   `), {
     type: 'select',
     query: 'with t(x) as (values (1), (2), (3)), u as (select x, x * 2 as y from t) select * from u where ((x, y) in (values (1, 2), (3, 6)) and (x, y) > (values (2, 2)))'
