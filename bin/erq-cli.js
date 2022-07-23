@@ -182,16 +182,13 @@ function handleSigcont() {
 }
 rl.on("SIGCONT", handleSigcont);
 
-async function parseErq() {
+function parseErq() {
   try {
     const sqls = parser.parse(input, { startRule: "cli_readline" });
     input = "";
     return sqls;
   } catch (error) {
     if (error.found == null) {
-      input += "\n";
-      setPrompt();
-      if (isTTY) { rl.prompt(); }
       return null;
     }
     console.error(error.message);
@@ -211,10 +208,6 @@ async function parseErq() {
       }
     }
     input = "";
-    setPrompt();
-    if (isTTY) {
-      rl.prompt();
-    }
   }
   return null;
 }
@@ -281,17 +274,19 @@ async function runSqls(statements) {
 
 if (isTTY) { rl.prompt(); }
 rl.on("line", async (line) => {
+  if (input !== "") {
+    input += "\n";
+  }
+  input += line;
   if (state === "read") {
     state = "eval";
     try {
-      input += line;
       if (!isTTY) {
         // slurp all input
-        input += "\n";
         return;
       }
       while (input !== "") {
-        const sqls = await parseErq();
+        const sqls = parseErq();
         if (sqls == null) {
           break;
         }
@@ -305,11 +300,6 @@ rl.on("line", async (line) => {
       sigint = false;
       state = "read";
     }
-  } else {
-    if (input !== "") {
-      input += "\n";
-    }
-    input += line;
   }
 });
 rl.on("close", async () => {
