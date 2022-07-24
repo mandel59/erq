@@ -790,7 +790,12 @@ SignedNumber
 
 Name "name"
   = $('`' [^`]* '`')+
-  / n:$([_A-Za-z\u0100-\uffff][_A-Za-z0-9\u0100-\uffff]*) & {
+  / n:$(
+    ![ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
+    [_A-Za-z\u0100-\uffff]
+    (
+      ![ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
+      [_A-Za-z0-9\u0100-\uffff])*) & {
     return reIdent.test(n);
   } {
     if (keywords.has(n.toUpperCase())) {
