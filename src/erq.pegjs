@@ -367,8 +367,8 @@ start = _ s:Statement _ { return s; };
 cli_readline = _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
 
 Statement
-  = "explain" __ "query" __ "plan" boundary _ s:Statement { return { type: "select", query: `explain query plan ${s}` }; }
-  / "explain" boundary _ s:Statement { return { type: "select", query: `explain ${s}` }; }
+  = "explain" __ "query" __ "plan" boundary _ s:Statement { return { type: "select", query: `explain query plan ${s.query}` }; }
+  / "explain" boundary _ s:Statement { return { type: "select", query: `explain ${s.query}` }; }
   / c:CreateTable { return { type: "create", query: c }; }
   / d:DropTable { return { type: "drop", query: d }; }
   / t:Table { return { type: "select", query: t }; }

@@ -94,4 +94,6 @@ test('select table', t => {
   t.deepEqual(parser.parse(`r group by r.a select x: max(r.b)`), { type: 'select', query: 'select max(r.b) as x from r group by (r.a)' });
   t.deepEqual(parser.parse(`{x and exists t and y}`), { type: 'select', query: 'select x and exists (select * from t) and y' });
   t.deepEqual(parser.parse(`{x and not exists t[p] and y}`), { type: 'select', query: 'select x and not exists (select * from t where (p)) and y' });
+  t.deepEqual(parser.parse(`explain query plan t`), { type: 'select', query: 'explain query plan select * from t' });
+  t.deepEqual(parser.parse(`explain t`), { type: 'select', query: 'explain select * from t' });
 });
