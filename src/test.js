@@ -92,4 +92,5 @@ test('select table', t => {
     query: 'select case when 1 then 1 else 2 end, case 1 when 1 then 1 else 2 end, case when 1 then 2 else 3 end'
   });
   t.deepEqual(parser.parse(`r group by r.a select x: max(r.b)`), { type: 'select', query: 'select max(r.b) as x from r group by (r.a)' });
+  t.deepEqual(parser.parse(`{x and exists t and y}`), { type: 'select', query: 'select x and exists (select * from t) and y' });
 });
