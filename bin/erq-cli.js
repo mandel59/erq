@@ -126,9 +126,12 @@ function completer(line) {
         .map(c => quoteSQLName(c.name));
     });
     {
+      const qq = q.replace(/`/g, "");
       const matches
         = Array.from(new Set([...schemas, ...tableNames, ...tableNamesFQ, ...columnNames]).values())
-          .filter(n => n.startsWith(q))
+          .filter(n => {
+            return n.replace(/`/g, "").startsWith(qq);
+          })
           .sort();
       if (matches.length > 0) {
         return [matches, q];
