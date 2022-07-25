@@ -189,6 +189,35 @@ json_each(json)
 json_each(json,path)
 json_tree(json)
 json_tree(json,path)
+// FTS3 and FTS4 extensions
+fts3()
+fts4()
+offsets(X)
+snippet(X)
+matchinfo(X)
+// FTS5 extension
+fts5()
+bm25(X)
+highlight(X,Y,Z,W)
+snippet(X)
+// R*Tree module
+rtree()
+rtreecheck(R)
+rtreecheck(S,R)
+// geopoly interface to the R*Tree module
+geopoly()
+geopoly_overlap(P1,P2)
+geopoly_within(P1,P2)
+geopoly_area(P)
+geopoly_blob(P)
+geopoly_json(P)
+geopoly_svg(P,...)
+geopoly_bbox(P)
+geopoly_group_bbox(P)
+geopoly_contains_point(P,X,Y)
+geopoly_xform(P,A,B,C,D,E,F)
+geopoly_regular(X,Y,R,N)
+geopoly_ccw(J)
 `
 
 const erqFunctions = new Set(

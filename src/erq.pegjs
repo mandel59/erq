@@ -673,6 +673,7 @@ BinOp
   / "like" boundary { return "like"; }
   / "not" __ "regexp" boundary { return "not regexp"; }
   / "regexp" boundary { return "regexp"; }
+  / "match" boundary { return "match"; }
   ;
 
 BinCompOp
