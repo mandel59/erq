@@ -46,6 +46,20 @@ const readonly = dbpath !== ":memory:";
 const db = new Database(dbpath, { readonly });
 console.error("Connected to %s", dbpath);
 
+// user functions
+
+db.table("string_split", {
+  parameters: ["string", "separator"],
+  columns: ["value"],
+  rows: function* (
+    /** @type {string} */ string,
+    /** @type {string} */ separator) {
+    for (const value of string.split(separator)) {
+      yield [value];
+    }
+  }
+});
+
 // global states
 
 /** @type {"read" | "eval"} */
