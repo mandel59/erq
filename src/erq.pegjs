@@ -617,7 +617,10 @@ ValueWildCardReference
   ;
 
 TableExpression
-  = "(" _ t:Table _ ")" { return `(${t})`; }
+  = "{" _ rs:ValueReferences _ "}" {
+    return `(${new TableBuilder(null, null).select(rs).toSQL(true)})`;
+  }
+  / "(" _ t:Table _ ")" { return `(${t})`; }
   / s:Name _ "." _ n:Name _ "(" _ ")" { return `${s}.${n}()`; }
   / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return `${s}.${n}(${es})`; }
   / s:Name _ "." _ t:Name { return `${s}.${t}`; }

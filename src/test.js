@@ -96,4 +96,5 @@ test('select table', t => {
   t.deepEqual(parser.parse(`{x and not exists t[p] and y}`), { type: 'select', query: 'select x and not exists (select * from t where (p)) and y' });
   t.deepEqual(parser.parse(`explain query plan t`), { type: 'select', query: 'explain query plan select * from t' });
   t.deepEqual(parser.parse(`explain t`), { type: 'select', query: 'explain select * from t' });
+  t.deepEqual(parser.parse(`t: {x: 'a b c'} join string_split(x, ' ')`), { type: 'select', query: `select * from (select 'a b c' as x) as t join string_split(x, ' ')` });
 });
