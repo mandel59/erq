@@ -367,11 +367,26 @@ start = _ s:Statement _ { return s; };
 cli_readline = _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
 
 Statement
-  = "explain" __ "query" __ "plan" boundary _ s:Statement { return { type: "select", query: `explain query plan ${s.query}` }; }
-  / "explain" boundary _ s:Statement { return { type: "select", query: `explain ${s.query}` }; }
+  = "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", query: `explain query plan ${s.query}` }; }
+  / "explain" boundary _ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
+  / Statement1
+
+Statement1
+  = s:Attach { return { type: "attach", query: s }; }
+  / s:Detach { return { type: "detach", query: s }; }
   / c:CreateTable { return { type: "create", query: c }; }
   / d:DropTable { return { type: "drop", query: d }; }
   / t:Table { return { type: "select", query: t }; }
+
+Attach
+  = "attach" boundary _ e:Expression _ "as" boundary _ n:Name {
+    return `attach ${e} as ${n}`;
+  }
+
+Detach
+  = "detach" boundary _ n:Name {
+    return `detach ${n}`;
+  }
 
 CreateTable
   = "create" __ "temporary" __ tv:("table" / "view") boundary _ n:Name _ boundary "as" boundary _ t:Table
