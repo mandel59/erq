@@ -54,7 +54,7 @@ db.table("string_split", {
   rows: function* (
     /** @type {string} */ string,
     /** @type {string} */ separator) {
-    for (const value of string.split(separator)) {
+    for (const value of separator === "" ? string : string.split(separator)) {
       yield [value];
     }
   }
