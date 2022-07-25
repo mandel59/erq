@@ -51,11 +51,48 @@ console.error("Connected to %s", dbpath);
 db.table("string_split", {
   parameters: ["string", "separator"],
   columns: ["value"],
+  rows: function* (string, separator) {
+    for (const value of separator === "" ? String(string) : String(string).split(separator)) {
+      yield [value];
+    }
+  }
+});
+
+db.function("unhex", { deterministic: true }, function (string) {
+  return Buffer.from(string, "hex");
+});
+
+db.function("parse_int", { deterministic: true }, function (string, radix) {
+  return Number.parseInt(string, radix);
+});
+
+db.function("regexp", { deterministic: true }, function (pattern, string) {
+  return Number(new RegExp(pattern, "gu").test(string));
+});
+
+db.function("regexp_replace", { deterministic: true }, function (source_string, pattern, replace_string) {
+  return String(source_string).replace(new RegExp(pattern, "gu"), replace_string);
+});
+
+db.function("regexp_substr", { deterministic: true }, function (string, pattern) {
+  const re = new RegExp(pattern, "gu");
+  const m = re.exec(string);
+  if (m) {
+    return m[0];
+  }
+  return null;
+});
+
+db.table("regexp_substr_all", {
+  parameters: ["string", "pattern"],
+  columns: ["value"],
   rows: function* (
     /** @type {string} */ string,
-    /** @type {string} */ separator) {
-    for (const value of separator === "" ? string : string.split(separator)) {
-      yield [value];
+    /** @type {string} */ pattern) {
+    const re = new RegExp(pattern, "gu");
+    let m;
+    while (m = re.exec(string)) {
+      yield [m[0]];
     }
   }
 });

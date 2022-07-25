@@ -671,6 +671,8 @@ BinOp
   / "glob" boundary { return "glob"; }
   / "not" __ "like" boundary { return "not like"; }
   / "like" boundary { return "like"; }
+  / "not" __ "regexp" boundary { return "not regexp"; }
+  / "regexp" boundary { return "regexp"; }
   ;
 
 BinCompOp
