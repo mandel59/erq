@@ -46,9 +46,177 @@ const readonly = dbpath !== ":memory:";
 const db = new Database(dbpath, { readonly });
 console.error("Connected to %s", dbpath);
 
+// builtin functions
+
+const sqliteFunctionsList = `
+// built-in scalar SQL functions
+abs(X)
+changes()
+char(X1,X2,...,XN)
+coalesce(X,Y,...)
+format(FORMAT,...)
+glob(X,Y)
+hex(X)
+ifnull(X,Y)
+iif(X,Y,Z)
+instr(X,Y)
+last_insert_rowid()
+length(X)
+like(X,Y)
+like(X,Y,Z)
+likelihood(X,Y)
+likely(X)
+// load_extension(X)
+// load_extension(X,Y)
+lower(X)
+ltrim(X)
+ltrim(X,Y)
+max(X,Y,...)
+min(X,Y,...)
+nullif(X,Y)
+printf(FORMAT,...)
+quote(X)
+random()
+randomblob(N)
+replace(X,Y,Z)
+round(X)
+round(X,Y)
+rtrim(X)
+rtrim(X,Y)
+sign(X)
+soundex(X)
+sqlite_compileoption_get(N)
+sqlite_compileoption_used(X)
+sqlite_offset(X)
+sqlite_source_id()
+sqlite_version()
+substr(X,Y)
+substr(X,Y,Z)
+substring(X,Y)
+substring(X,Y,Z)
+total_changes()
+trim(X)
+trim(X,Y)
+typeof(X)
+unicode(X)
+unlikely(X)
+upper(X)
+zeroblob(N)
+// date and time functions
+date(time-value, modifier, modifier, ...)
+time(time-value, modifier, modifier, ...)
+datetime(time-value, modifier, modifier, ...)
+julianday(time-value, modifier, modifier, ...)
+unixepoch(time-value, modifier, modifier, ...)
+strftime(format, time-value, modifier, modifier, ...)
+// built-in aggregate functions
+avg(X)
+count(*)
+count(X)
+group_concat(X)
+group_concat(X,Y)
+max(X)
+min(X)
+sum(X)
+// window functions
+row_number()
+rank()
+dense_rank()
+percent_rank()
+cume_dist()
+ntile(N)
+lag(expr)
+lag(expr, offset)
+lag(expr, offset, default)
+lead(expr)
+lead(expr, offset)
+lead(expr, offset, default)
+first_value(expr)
+last_value(expr)
+nth_value(expr, N)
+// built-in mathematical functions
+acos(X)
+acosh(X)
+asin(X)
+asinh(X)
+atan(X)
+atan2(Y,X)
+atanh(X)
+ceil(X)
+ceiling(X)
+cos(X)
+cosh(X)
+degrees(X)
+exp(X)
+floor(X)
+ln(X)
+log(B,X)
+log(X)
+log10(X)
+log2(X)
+mod(X,Y)
+pi()
+pow(X,Y)
+power(X,Y)
+radians(X)
+sin(X)
+sinh(X)
+sqrt(X)
+tan(X)
+tanh(X)
+trunc(X)
+// JSON scalar functions
+json(json)
+json_array(value1,value2,...)
+json_array_length(json)
+json_array_length(json,path)
+json_extract(json,path,...)
+json_insert(json,path,value,...)
+json_object(label1,value1,...)
+json_patch(json1,json2)
+json_remove(json,path,...)
+json_replace(json,path,value,...)
+json_set(json,path,value,...)
+json_type(json)
+json_type(json,path)
+json_valid(json)
+json_quote(value)
+// JSON aggregate functions
+json_group_array(value)
+json_group_object(name,value)
+// JSON table-valued functions
+json_each(json)
+json_each(json,path)
+json_tree(json)
+json_tree(json,path)
+`
+
+const erqFunctions = new Set(
+  sqliteFunctionsList
+    .replace(/\/\/[^\n]*\n/g, "")
+    .match(/\w+\(/g)
+    .map(x => x.substring(0, x.length - 1)));
+
 // user functions
 
-db.table("string_split", {
+function defineTable(
+  /** @type {string} */ name,
+  /** @type {BetterSqlite3.VirtualTableOptions} */ options
+) {
+  erqFunctions.add(name);
+  db.table(name, options);
+}
+
+function defineFunction(
+  /** @type {string} */ name,
+  /** @type {Database.RegistrationOptions} */ options,
+  /** @type {(...params: any[]) => any} */ func
+) {
+  erqFunctions.add(name);
+  db.function(name, options, func);
+}
+
+defineTable("string_split", {
   parameters: ["string", "separator"],
   columns: ["value"],
   rows: function* (string, separator) {
@@ -58,23 +226,23 @@ db.table("string_split", {
   }
 });
 
-db.function("unhex", { deterministic: true }, function (string) {
+defineFunction("unhex", { deterministic: true }, function (string) {
   return Buffer.from(string, "hex");
 });
 
-db.function("parse_int", { deterministic: true }, function (string, radix) {
+defineFunction("parse_int", { deterministic: true }, function (string, radix) {
   return Number.parseInt(string, radix);
 });
 
-db.function("regexp", { deterministic: true }, function (pattern, string) {
+defineFunction("regexp", { deterministic: true }, function (pattern, string) {
   return Number(new RegExp(pattern, "gu").test(string));
 });
 
-db.function("regexp_replace", { deterministic: true }, function (source_string, pattern, replace_string) {
+defineFunction("regexp_replace", { deterministic: true }, function (source_string, pattern, replace_string) {
   return String(source_string).replace(new RegExp(pattern, "gu"), replace_string);
 });
 
-db.function("regexp_substr", { deterministic: true }, function (string, pattern) {
+defineFunction("regexp_substr", { deterministic: true }, function (string, pattern) {
   const re = new RegExp(pattern, "gu");
   const m = re.exec(string);
   if (m) {
@@ -83,7 +251,7 @@ db.function("regexp_substr", { deterministic: true }, function (string, pattern)
   return null;
 });
 
-db.table("regexp_substr_all", {
+defineTable("regexp_substr_all", {
   parameters: ["string", "pattern"],
   columns: ["value"],
   rows: function* (
@@ -179,7 +347,12 @@ function completer(line) {
     {
       const qq = q.replace(/`/g, "");
       const matches
-        = Array.from(new Set([...schemas, ...tableNames, ...tableNamesFQ, ...columnNames]).values())
+        = Array.from(new Set([
+          ...schemas,
+          ...tableNames,
+          ...tableNamesFQ,
+          ...columnNames,
+          ...erqFunctions]).values())
           .filter(n => {
             return n.replace(/`/g, "").startsWith(qq);
           })
