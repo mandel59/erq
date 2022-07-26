@@ -259,8 +259,22 @@ defineFunction("unhex", { deterministic: true }, function (string) {
   return Buffer.from(string, "hex");
 });
 
-defineFunction("parse_int", { deterministic: true }, function (string, radix) {
-  return Number.parseInt(string, radix);
+defineFunction("parse_int", { deterministic: true, safeIntegers: true }, function (string, radix) {
+  if (typeof radix !== "bigint" || radix < 2n || radix > 36n) {
+    throw RangeError("parse_int() radix must be an integer in range [2, 36]");
+  }
+  if (string == null) {
+    return null;
+  }
+  if (radix === 10n) {
+    return BigInt(string);
+  }
+  const n = parseInt(string, Number(radix));
+  if (Number.isSafeInteger(n)) {
+    return BigInt(n);
+  } else {
+    throw RangeError("parse_int() cannot convert to a 64-bit signed integer");
+  }
 });
 
 defineFunction("regexp", { deterministic: true }, function (pattern, string) {
@@ -447,7 +461,7 @@ function parseErq() {
     if (error.found == null) {
       return null;
     }
-    console.error(error.message);
+    console.error("%s: %s", error.name, error.message);
     if (error && error.location) {
       const start = error.location.start.offset;
       const end = error.location.end.offset;
@@ -524,7 +538,7 @@ async function runSqls(statements) {
       }
     }
   } catch (error) {
-    console.error(error.message);
+    console.error("%s: %s", error.name, error.message);
   }
 }
 
