@@ -482,9 +482,26 @@ function parseErq() {
   return null;
 }
 
+async function runCLICommand({ command, args }) {
+  if (command === "load") {
+    if (args.length === 1) {
+      db.loadExtension(args[0]);
+    } else {
+      console.error("usage: .load PATH");
+    }
+  } else {
+    console.error("unknown command: %s args: %s", command, JSON.stringify(args));
+  }
+}
+
 async function runSqls(statements) {
   try {
-    for (const { type, query: sql } of statements) {
+    for (const statement of statements) {
+      if (statement.type === "command") {
+        await runCLICommand(statement);
+        continue;
+      }
+      const { type, query: sql } = statement;
       if (sigint) {
         break;
       }

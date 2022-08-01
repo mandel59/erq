@@ -364,7 +364,21 @@ class TableBuilder {
 
 start = _ s:Statement _ { return s; };
 
-cli_readline = _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
+cli_readline
+  = c:CLICommand { return [c]; }
+  / _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
+
+CLICommand
+  = "." c:$([_0-9A-Za-z]*) space* args:(
+    a:(
+      ("'" xs:[^']* "'" { return xs.join(""); }
+      / '"' xs:(
+        "\\" x:. { if (x === "\n") { return ""; } else { return x; } }
+        / x:[^"] { return x; })* '"' { return xs.join(""); }
+      / !space x:[^'"] { return x; }
+      )+ ) space*
+      { return a.join(""); })*
+  { return { type: "command", command: c, args }; }
 
 Statement
   = "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", query: `explain query plan ${s.query}` }; }
