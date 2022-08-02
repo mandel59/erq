@@ -789,7 +789,7 @@ Expression1
 
 Value
   = "(" _ e:Expression _ ")" { return `(${e})` }
-  / "from" boundary _ !("from" boundary) t:Table { return `(${t})` }
+  / &("from" / "with" / "values") t:Table { return `(${t})` }
   / "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
   / "exists" boundary _ t:Table { return `exists (${t})` }
   / Literal
