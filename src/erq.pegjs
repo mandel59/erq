@@ -431,7 +431,9 @@ TableName
   / Name
 
 Table
-  = WithTable / ValuesList / TableUnion
+  = WithTable
+  / ValuesList
+  / ("from" boundary _)? t:TableUnion { return t; }
 
 WithTable
   = ts:WithClause+
