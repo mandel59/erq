@@ -388,8 +388,8 @@ Statement
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
   / s:Detach { return { type: "detach", query: s }; }
-  / c:CreateTable { return { type: "create", query: c }; }
-  / d:DropTable { return { type: "drop", query: d }; }
+  / c:Create { return { type: "create", query: c }; }
+  / d:Drop { return { type: "drop", query: d }; }
   / t:Table { return { type: "select", query: t }; }
 
 Attach
@@ -402,28 +402,62 @@ Detach
     return `detach ${n}`;
   }
 
-CreateTable
-  = "create" __ "temporary" __ tv:("table" / "view") boundary _ n:Name _ boundary "as" boundary _ t:Table
+Create
+  = "create" __ "temporary" __ tv:("table" / "view") ine:(__ "if" __ "not" __ "exists")? boundary _ n:Name _ boundary "as" boundary _ t:Table
   {
-    return `create temporary ${tv} ${n} as ${t}`;
+    if (ine) {
+      return `create temporary ${tv} if not exists ${n} as ${t}`;
+    } else {
+      return `create temporary ${tv} ${n} as ${t}`;
+    }
   }
-  / "create" __ tv:("table" / "view") boundary _ n:TableName _ boundary "as" boundary _ t:Table
+  / "create" __ tv:("table" / "view") ine:(__ "if" __ "not" __ "exists")? boundary _ n:TableName _ boundary "as" boundary _ t:Table
   {
-    return `create ${tv} ${n} as ${t}`;
+    if (ine) {
+      return `create ${tv} if not exists ${n} as ${t}`;
+    } else {
+      return `create ${tv} ${n} as ${t}`;
+    }
+  }
+  / "create" __ "index" ine:(__ "if" __ "not" __ "exists")? boundary _ n:TableName _ boundary "on" boundary _ tn:Name _ "(" _ ic:IndexedColumns ")"
+  {
+    if (ine) {
+      return `create index if not exists ${n} on ${tn} (${ic})`;
+    } else {
+      return `create index ${n} on ${tn} (${ic})`;
+    }
   }
   / tv:("table" / "view") boundary _ n:TableName _ "<-" _ t:Table
   {
     return `create ${tv} ${n} as ${t}`;
   }
 
-DropTable
+IndexedColumns
+  = e1:IndexedColumn _ es:("," _ e:IndexedColumn { return e; })* {
+    return [e1, ...es].join(", ");
+  }
+
+IndexedColumn
+  = e:Expression s1:(_ s:("asc" / "desc") { return s; })? {
+    if (s1) {
+      return `${e} ${s1}`;
+    } else {
+      return e;
+    }
+  }
+
+Drop
   = "drop" __ "temporary" __ tv:("table" / "view") boundary _ n:TableName
   {
     return `drop temporary ${tv} ${n}`;
   }
-  / "drop" __ tv:("table" / "view") boundary _ n:TableName
+  / "drop" __ tv:("table" / "view" / "index") ie:(__ "if" __ "exists")? boundary _ n:TableName
   {
-    return `drop ${tv} ${n}`;
+    if (ie) {
+      return `drop ${tv} if exists ${n}`;
+    } else {
+      return `drop ${tv} ${n}`;
+    }
   }
 
 TableName
@@ -705,6 +739,7 @@ BinOp
   / "not" __ "regexp" boundary { return "not regexp"; }
   / "regexp" boundary { return "regexp"; }
   / "match" boundary { return "match"; }
+  / "collate" boundary { return "collate"; }
   ;
 
 BinCompOp
@@ -720,8 +755,7 @@ BinCompOp
   / "is" boundary { return "is"; }
 
 Expression
-  = CaseExpression
-  / e:Expression1OrRowValue _ boundary rest:(
+  = e:Expression1OrRowValue _ boundary rest:(
     "not" __ "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
     / "not" __ "in" boundary _ t:Table { return `not in (${t})`; }
     / "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `in (${t}) ${op} ${e2}` }
@@ -783,12 +817,13 @@ RowValue
 Expression1
   = op:UnOp _ e:Expression1 { return `${op} ${e}` }
   / r1:RowValue _ op:BinCompOp _ r2:RowValue { return `${r1} ${op} ${r2}`; }
-  / v:Value _ op:BinOp _ e:Expression1 { return `${v} ${op} ${e}` }
-  / Value
+  / v:Value x:(_ op:BinOp _ e:Expression1 { return `${op} ${e}`; })?
+  { if (x) return `${v} ${x}`; else return v; }
   ;
 
 Value
-  = "(" _ e:Expression _ ")" { return `(${e})` }
+  = CaseExpression
+  / "(" _ e:Expression _ ")" { return `(${e})` }
   / &(("from" / "with" / "values") boundary) t:Table { return `(${t})` }
   / "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
   / "exists" boundary _ t:Table { return `exists (${t})` }

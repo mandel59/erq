@@ -102,3 +102,15 @@ test('select table', t => {
   t.deepEqual(parser.parse(`mji_reading [MJ文字図形名 in mji[対応するUCS = '𩸽']{MJ文字図形名}]`), { type: 'select', query: `select * from mji_reading where (MJ文字図形名 in (select MJ文字図形名 from mji where (対応するUCS = '𩸽')))` });
   t.deepEqual(parser.parse(`{from_1}`), { type: 'select', query: `select from_1` });
 });
+
+test('create table', t => {
+  t.deepEqual(parser.parse(`table temp.t <- {42}`), { type: 'create', query: `create table \`temp\`.t as select 42` });
+})
+
+test('create view', t => {
+  t.deepEqual(parser.parse(`view temp.t <- {42}`), { type: 'create', query: `create view \`temp\`.t as select 42` });
+})
+
+test('create index', t => {
+  t.deepEqual(parser.parse(`create index if not exists i on t (x collate nocase asc, y desc)`), { type: 'create', query: `create index if not exists i on t (x collate nocase asc, y desc)` });
+})
