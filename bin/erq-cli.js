@@ -458,7 +458,7 @@ function parseErq() {
     input = "";
     return sqls;
   } catch (error) {
-    if (error.found == null) {
+    if (error.found === null) {
       return null;
     }
     console.error("%s: %s", error.name, error.message);
