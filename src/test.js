@@ -102,6 +102,7 @@ test('select table', t => {
   t.deepEqual(parser.parse(`mji_reading [MJ文字図形名 in mji[対応するUCS = '𩸽']{MJ文字図形名}]`), { type: 'select', query: `select * from mji_reading where (MJ文字図形名 in (select MJ文字図形名 from mji where (対応するUCS = '𩸽')))` });
   t.deepEqual(parser.parse(`{from_1}`), { type: 'select', query: `select from_1` });
   t.deepEqual(parser.parse(`{'a' in ['a', 'b', 'c']}`), { type: 'select', query: `select 'a' in ('a', 'b', 'c')` });
+  t.deepEqual(parser.parse(`{{'a'} in [{'a'}, {'b'}, {'c'}]}`), { type: 'select', query: `select ('a') in (('a'), ('b'), ('c'))` });
 });
 
 test('create table', t => {

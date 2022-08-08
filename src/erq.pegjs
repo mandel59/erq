@@ -699,6 +699,11 @@ Expressions
   / Expression
   ;
 
+RowValues
+  = e:RowValue _ "," _ es:RowValues { return `${e}, ${es}`; }
+  / RowValue
+  ;
+
 UnOp
   = "~"
   / "+"
@@ -758,12 +763,12 @@ Expression
   = e:Expression1OrRowValue _ boundary rest:(
     "not" __ "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
     / "not" __ "in" boundary _ t:Table { return `not in (${t})`; }
-    / "not" __ "in" _ "[" _ es:Expressions _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
-    / "not" __ "in" _ "[" _ es:Expressions _ "]" { return `not in (${es})`; }
+    / "not" __ "in" _ "[" _ es:ExpressionsOrRowValues _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
+    / "not" __ "in" _ "[" _ es:ExpressionsOrRowValues _ "]" { return `not in (${es})`; }
     / "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `in (${t}) ${op} ${e2}` }
     / "in" boundary _ t:Table { return `in (${t})`; }
-    / "in" _ "[" _ es:Expressions _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
-    / "in" _ "[" _ es:Expressions _ "]" { return `in (${es})`; }
+    / "in" _ "[" _ es:ExpressionsOrRowValues _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
+    / "in" _ "[" _ es:ExpressionsOrRowValues _ "]" { return `in (${es})`; }
   ) { return `${e} ${rest}`; }
   / Expression1
 
@@ -812,6 +817,10 @@ ExpressionOrRowValue
 Expression1OrRowValue
   = Expression1
   / RowValue
+
+ExpressionsOrRowValues
+  = Expressions
+  / RowValues
 
 RowValue
   = "{" _ es:Expressions _ "}" { return `(${es})`; }
