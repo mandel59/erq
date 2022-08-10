@@ -858,6 +858,7 @@ FilteredFunctionCall
 FunctionCall
   = n:Name _ "(" _ rs:(
     ")" { return `)`; }
+    / "*" _ ")" { return `*)`; }
     / "distinct" boundary _ e:Expression _ ")" { return `distinct ${e})`; }
     / es:Expressions _ ")" { return `${es})`; }
   ) { return `${n}(${rs}`; }
