@@ -9,8 +9,8 @@ import peggy from "peggy";
 
 const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
+  { name: 'load', alias: 'l', typeLabel: '{underline path}',  type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
-  { name: 'load', alias: 'l', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' }
 ];
 
 function showUsage() {
