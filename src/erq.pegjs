@@ -427,10 +427,18 @@ Create
       return `create index ${n} on ${tn} (${ic})`;
     }
   }
+  / "create" __ "virtual" __ "table" boundary _ n:TableName _ boundary "using" _ tn:Name _ "(" a:$ModuleArguments ")"
+  {
+    return `create virtual table ${n} using ${tn}(${a})`;
+  }
   / tv:("table" / "view") boundary _ n:TableName _ "<-" _ t:Table
   {
     return `create ${tv} ${n} as ${t}`;
   }
+
+ModuleArguments
+  = "(" ModuleArguments ")"
+  / (("'" ("''" / [^'])* "'")+ / [^()'])*
 
 IndexedColumns
   = e1:IndexedColumn _ es:("," _ e:IndexedColumn { return e; })* {
