@@ -10,7 +10,7 @@ import peggy from "peggy";
 const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
-  { name: 'load', alias: 'l', type: String, lazyMultiple: true, description: 'load extension' }
+  { name: 'load', alias: 'l', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' }
 ];
 
 function showUsage() {
