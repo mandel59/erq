@@ -875,7 +875,7 @@ SignedNumber
   = s:[-+]? n:NumericLiteral { return `${s ?? ""}${n}`; }
 
 Name "name"
-  = $('`' [^`]* '`')+
+  = $('`' ("``" / [^`])* '`')+
   / n:$(
     ![ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
     [_A-Za-z\u0100-\uffff]
@@ -895,9 +895,33 @@ Literal "literal"
   = $("true" boundary)
   / $("false" boundary)
   / $("null" boundary)
-  / $("'" [^']* "'")+
+  / $("'" ("''" / [^'])* "'")+
+  / &"E'" e:EscapedString { return e; }
   / NumericLiteral
   ;
+
+EscapedString
+  = "E'" s:EscapedStringBody "'" { return `('${s}')`; }
+
+EscapedStringBody
+  = s:(
+    "\\" c:(
+      "'" { return "''"; }
+      / '"' { return '"'; }
+      / "\\" { return "\\"; }
+      / "/" { return "/"; }
+      / "b" { return "'||char(8)||'"; }
+      / "f" { return "'||char(12)||'"; }
+      / "n" { return "'||char(10)||'"; }
+      / "r" { return "'||char(13)||'"; }
+      / "t" { return "'||char(9)||'"; }
+      / "x" x:$([0-9A-Fa-f][0-9A-Fa-f]) { return `'||char(0x${x})||'`; }
+      / "u{" x:$([0-9A-Fa-f]+) "}" { return `'||char(0x${x})||'`; }
+      / "u" x:$([0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]) { return `'||char(0x${x})||'`; }
+    ) { return c; }
+    / "''"
+    / [^\\'])*
+  { return s.join(""); }
 
 NumericLiteral
   = $("0x" [0-9]+)
