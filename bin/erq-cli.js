@@ -10,6 +10,7 @@ import peggy from "peggy";
 const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
+  { name: 'load', alias: 'l', type: String, lazyMultiple: true, description: 'load extension' }
 ];
 
 function showUsage() {
@@ -556,6 +557,15 @@ async function runSqls(statements) {
     }
   } catch (error) {
     console.error("%s: %s", error.name, error.message);
+  }
+}
+
+for (const l of options.load) {
+  try {
+    await runCLICommand({ command: "load", args: [l] });
+  } catch (error) {
+    console.error("%s: %s", error.name, error.message);
+    process.exit(1);
   }
 }
 
