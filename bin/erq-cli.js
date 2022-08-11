@@ -1,15 +1,38 @@
 #!/usr/bin/env node
 import process, { stdin, stdout, stderr } from "node:process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import readline from "node:readline";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
 import peggy from "peggy";
 
+const ERQ_HISTORY = process.env["ERQ_HISTORY"];
+
+function loadHistory() {
+  if (ERQ_HISTORY) {
+    try {
+      return readFileSync(ERQ_HISTORY, "utf-8").split("\n").filter(line => line);
+    } catch {
+      // ignore
+    }
+  }
+  return [];
+}
+
+function saveHistory(history) {
+  if (ERQ_HISTORY) {
+    try {
+      writeFileSync(ERQ_HISTORY, history.join("\n"), "utf-8");
+    } catch {
+      // ignore
+    }
+  }
+}
+
 const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
-  { name: 'load', alias: 'l', typeLabel: '{underline path}',  type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
+  { name: 'load', alias: 'l', typeLabel: '{underline path}', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
 ];
 
@@ -256,7 +279,7 @@ defineTable("string_split", {
   }
 });
 
-defineFunction("substring_index", { deterministic: true, safeIntegers: true }, function(string, delimiter, count) {
+defineFunction("substring_index", { deterministic: true, safeIntegers: true }, function (string, delimiter, count) {
   if (typeof delimiter !== "string") throw new TypeError("substring_index() delimiter must be a string");
   if (typeof count !== "bigint") throw new TypeError("substring_index() count must be an integer");
   if (string == null) return null;
@@ -426,6 +449,7 @@ const rl = readline.createInterface({
   output: stderr,
   completer,
   prompt: 'erq> ',
+  history: loadHistory(),
 });
 
 const isTTY = stdin.isTTY && stderr.isTTY;
@@ -606,6 +630,11 @@ rl.on("line", async (line) => {
     }
   }
 });
+/** @type {string[] | undefined} */
+let history;
+rl.on("history", (h) => {
+  history = h;
+});
 rl.on("close", async () => {
   if (input !== null) {
     input += "\n;;";
@@ -613,5 +642,8 @@ rl.on("close", async () => {
     if (sqls != null) {
       await runSqls(sqls);
     }
+  }
+  if (history) {
+    saveHistory(history);
   }
 });
