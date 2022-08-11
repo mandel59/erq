@@ -256,6 +256,13 @@ defineTable("string_split", {
   }
 });
 
+defineFunction("substring_index", { deterministic: true, safeIntegers: true }, function(string, delimiter, count) {
+  if (typeof delimiter !== "string") throw new TypeError("substring_index() delimiter must be a string");
+  if (typeof count !== "bigint") throw new TypeError("substring_index() count must be an integer");
+  if (string == null) return null;
+  return String(string).split(delimiter)[count - 1n] ?? null;
+});
+
 defineFunction("unhex", { deterministic: true }, function (string) {
   return Buffer.from(string, "hex");
 });
