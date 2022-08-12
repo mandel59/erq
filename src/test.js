@@ -103,6 +103,8 @@ test('select table', t => {
   t.deepEqual(parser.parse(`{from_1}`), { type: 'select', query: `select from_1` });
   t.deepEqual(parser.parse(`{'a' in ['a', 'b', 'c']}`), { type: 'select', query: `select 'a' in ('a', 'b', 'c')` });
   t.deepEqual(parser.parse(`{{'a'} in [{'a'}, {'b'}, {'c'}]}`), { type: 'select', query: `select ('a') in (('a'), ('b'), ('c'))` });
+  t.deepEqual(parser.parse(`values ['a', 'b', 'c']`), { type: 'select', query: `values ('a'), ('b'), ('c')` });
+  t.deepEqual(parser.parse(`values [{'a'}, {'b'}, {'c'}]`), { type: 'select', query: `values ('a'), ('b'), ('c')` });
 });
 
 test('create table', t => {

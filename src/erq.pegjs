@@ -613,9 +613,15 @@ Table1
   ;
 
 ValuesList
-  = "values" boundary _ r1:Record rs:(_ ";" _ r:Record { return r; })*
+  = "values" _ r1:Record rs:(_ ";" _ r:Record { return r; })*
   {
     return "values " + [r1, ...rs].map(r => `(${r})`).join(", ");
+  }
+  / "values" _ "[" _ vs:(
+      e1:(Record/Expression) es:(_ "," _ e:(Record/Expression) { return e; })* { return [e1, ...es].map(e => `(${e})`).join(", "); }
+    ) _ "]"
+  {
+    return "values " + vs;
   }
 
 Record
@@ -790,12 +796,12 @@ Expression
   = e:Expression1OrRowValue _ boundary rest:(
     "not" __ "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
     / "not" __ "in" boundary _ t:Table { return `not in (${t})`; }
-    / "not" __ "in" _ "[" _ es:ExpressionsOrRowValues _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
-    / "not" __ "in" _ "[" _ es:ExpressionsOrRowValues _ "]" { return `not in (${es})`; }
+    / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
+    / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" { return `not in (${es})`; }
     / "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `in (${t}) ${op} ${e2}` }
     / "in" boundary _ t:Table { return `in (${t})`; }
-    / "in" _ "[" _ es:ExpressionsOrRowValues _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
-    / "in" _ "[" _ es:ExpressionsOrRowValues _ "]" { return `in (${es})`; }
+    / "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
+    / "in" _ "[" _ es:RecordOrExpressionList _ "]" { return `in (${es})`; }
   ) { return `${e} ${rest}`; }
   / Expression1
 
@@ -845,9 +851,13 @@ Expression1OrRowValue
   = Expression1
   / RowValue
 
-ExpressionsOrRowValues
-  = Expressions
-  / RowValues
+RecordOrExpressionList
+  = e1:RecordOrExpression es:(_ "," _ e:RecordOrExpression { return e; })*
+  { return [e1, ...es].join(", "); }
+
+RecordOrExpression
+  = r:Record {return `(${r})`}
+  / Expression
 
 RowValue
   = "{" _ es:Expressions _ "}" { return `(${es})`; }
