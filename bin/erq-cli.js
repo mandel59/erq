@@ -6,6 +6,7 @@ import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
 import peggy from "peggy";
+import { parse as parseCSV } from "csv-parse/sync";
 
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
 
@@ -521,7 +522,29 @@ async function runCLICommand({ command, args }) {
     } else {
       console.error("usage: .load PATH");
     }
-  } else {
+  }
+  else if (command === "meta-load") {
+    const [table, contentType, content] = args;
+    if (contentType === "csv") {
+      const csv = parseCSV(content);
+      const [header, ...records] = csv;
+      if (header === null) {
+        console.error("unknown content type: %s", contentType);
+      } else {
+        db.prepare(`create table ${table} (${header.map(f => `\`${f.replace(/`/g, "``")}\``).join(",")})`).run();
+        const insert = db.prepare(`insert into ${table} values (${header.map(f => "?").join(",")})`);
+        const insertMany = db.transaction(() => {
+          for (const record of records) {
+            insert.run(record);
+          }
+        });
+        insertMany();
+      }
+    } else {
+      console.error("unknown content type: %s", contentType);
+    }
+  }
+  else {
     console.error("unknown command: %s args: %s", command, JSON.stringify(args));
   }
 }

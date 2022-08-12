@@ -381,9 +381,13 @@ CLICommand
   { return { type: "command", command: c, args }; }
 
 Statement
-  = "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", query: `explain query plan ${s.query}` }; }
+  = MetaStatement
+  / "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", query: `explain query plan ${s.query}` }; }
   / "explain" boundary _ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
   / Statement1
+
+MetaStatement
+  = l:LoadRawBlock { return { type: "command", command: "meta-load", args: l }}
 
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
@@ -391,6 +395,10 @@ Statement1
   / c:Create { return { type: "create", query: c }; }
   / d:Drop { return { type: "drop", query: d }; }
   / t:Table { return { type: "select", query: t }; }
+
+LoadRawBlock
+  = "load" __ t:TableName __ "from" _ x:RawBlock
+  { return [t, ...x]; }
 
 Attach
   = "attach" boundary _ e:Expression _ "as" boundary _ n:Name {
@@ -932,10 +940,13 @@ Literal "literal"
   = $("true" boundary)
   / $("false" boundary)
   / $("null" boundary)
-  / $("'" ("''" / [^'])* "'")+
-  / &"E'" e:EscapedString { return e; }
+  / StringLiteral
   / NumericLiteral
   ;
+
+StringLiteral
+  = $("'" ("''" / [^'])* "'")+
+  / &"E'" e:EscapedString { return e; }
 
 EscapedString
   = "E'" s:EscapedStringBody "'" { return `('${s}')`; }
@@ -964,6 +975,12 @@ NumericLiteral
   = $("0x" [0-9]+)
   / $([0-9]+ ("." [0-9]*)? ([eE] [0-9]+)?)
   / $("." [0-9]+ ([eE] [0-9]+)?)
+
+RawBlock
+  = p:$("`"+) tag:$([-_0-9A-Za-z]+) "\r"? "\n"
+  c:$((!(q:$("`"+) &{ return p === q; }) [^\r\n]* "\r"? "\n")*)
+  $("`"+)
+  { return [tag, c]; }
 
 comment
   = "/*" ((!"*/") .)* "*/"
