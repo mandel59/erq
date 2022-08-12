@@ -431,9 +431,15 @@ Create
   {
     return `create virtual table ${n} using ${tn}(${a})`;
   }
-  / tv:("table" / "view") boundary _ n:TableName _ "<-" _ t:Table
+  / tv:("table" / "view") boundary _ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
-    return `create ${tv} ${n} as ${t}`;
+    const [s, n] = x;
+    const qn = s != null ? `${s}.${n}` : n;
+    if (a != null) {
+      return `create ${tv} ${qn} as with ${n}(${a.join(", ")}) as (${t}) select * from ${n}`;
+    } else {
+      return `create ${tv} ${qn} as with ${n} as (${t}) select * from ${n}`;
+    }
   }
 
 ModuleArguments
@@ -469,8 +475,18 @@ Drop
   }
 
 TableName
-  = s:Name _ "." _ n:Name { return `${s}.${n}`; }
-  / Name
+  = x:TableName1 {
+    const [s, n] = x;
+    if (s != null) {
+      return `${s}.${n}`;
+    } else {
+      return n;
+    }
+  }
+
+TableName1
+  = s:Name _ "." _ n:Name { return [s, n]; }
+  / n:Name { return [null, n]; }
 
 Table
   = WithTable
@@ -485,7 +501,7 @@ WithTable
 
 WithClause
   = "with" boundary _ n:Name _
-    a:( "(" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ ")" _ { return [an1, ...ans]; } )?
+    a:ColumnNameList?
     boundary "as" boundary _ "(" _ t:Table _ ")" _
   {
     if (a != null) {
@@ -493,6 +509,9 @@ WithClause
     }
     return `${n} as (${t})`;
   }
+
+ColumnNameList
+  = "(" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ ")" _ { return [an1, ...ans]; }
 
 TableUnion
   = t1:Table1
