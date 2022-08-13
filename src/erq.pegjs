@@ -397,8 +397,40 @@ Statement1
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
-  = "load" __ t:TableName __ "from" _ x:RawBlock
-  { return [t, ...x]; }
+  = "load" boundary _ t:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })? boundary "from" _ x:RawBlock
+  {
+    return {
+      table: t,
+      def: d.def,
+      columns: d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name),
+      contentType: x[0],
+      content: x[1]
+    };
+  }
+
+TableDef
+  = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })*
+  { return { def: text(), columns: [c1, ...cs] } }
+
+ColumnDef
+  = name:Name type:(_ t:TypeName { return t; })? constraints:(_ c:ColumnConstraint { return c; })*
+  { return { name, type, constraints }; }
+
+ColumnConstraint
+  = name:("constraint" n:Name { return n; })? body:$ColumnConstraintBody
+  { return { name, body }}
+
+ColumnConstraintBody
+  = "primary" __ "key" (__ ("asc"/"desc"))? boundary ConflictClause? (__ "autoincrement")?
+  / "not" __ "null" ConflictClause?
+  / "unique" ConflictClause?
+  / "check" _ "(" _ Expression _ ")"
+  / "default" _ ("(" _ Expression _ ")" / Literal / SignedNumber)
+  / "collate" boundary _ Name
+  / "as" _ "(" _ Expression _ ")" (__ ("stored" / "virtual"))?
+
+ConflictClause
+  = __ "on" __ "conflict" __ ("rollback"/"abort"/"fail"/"ignore"/"replace")
 
 Attach
   = "attach" boundary _ e:Expression _ "as" boundary _ n:Name {
@@ -909,15 +941,18 @@ FunctionCall
   ) { return `${n}(${rs}`; }
 
 TypeName
-  = n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
-  { return [n1, ...ns].join(" ") + `(${s1}, ${s2})` }
-  / n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ ")"
-  { return [n1, ...ns].join(" ") + `(${s1})` }
-  / n1:Name ns:(_ n:Name { return n; })*
-  { return [n1, ...ns].join(" ") }
+  = !(("constraint"/"primary"/"not"/"unique"/"check"/"default"/"collate"/"references"/"generated"/"as") boundary) x:(
+    n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
+    { return [n1, ...ns].join(" ") + `(${s1}, ${s2})` }
+    / n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ ")"
+    { return [n1, ...ns].join(" ") + `(${s1})` }
+    / n1:Name ns:(_ n:Name { return n; })*
+    { return [n1, ...ns].join(" ") }
+  )
+  { return x; }
 
 SignedNumber
-  = s:[-+]? n:NumericLiteral { return `${s ?? ""}${n}`; }
+  = $([-+]? NumericLiteral)
 
 Name "name"
   = $('`' ("``" / [^`])* '`')+
@@ -977,7 +1012,7 @@ NumericLiteral
   / $("." [0-9]+ ([eE] [0-9]+)?)
 
 RawBlock
-  = p:$("`"+) tag:$([-_0-9A-Za-z]+) "\r"? "\n"
+  = p:$("`"+) tag:$([-_0-9A-Za-z]+)? "\r"? "\n"
   c:$((!(q:$("`"+) &{ return p === q; }) [^\r\n]* "\r"? "\n")*)
   $("`"+)
   { return [tag, c]; }

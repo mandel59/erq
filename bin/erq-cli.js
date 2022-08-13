@@ -525,18 +525,27 @@ async function runCLICommand({ command, args }) {
   }
   else if (command === "meta-load") {
     const t0 = performance.now();
-    const [table, contentType, content] = args;
+    const { table, def, columns: columnNames, contentType, content } = args;
     if (contentType === "csv") {
       const csv = parseCSV(content);
-      const [header, ...records] = csv;
-      if (header === null) {
-        console.error("unknown content type: %s", contentType);
+      let records, header, definition;
+      if (def) {
+        header = columnNames;
+        definition = def;
+        records = csv;
       } else {
-        const columns = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
-        const createTableSQL = `create table ${table} (${columns})`;
+        [header, ...records] = csv;
+        if (header != null) {
+          definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+        }
+      }
+      if (definition == null) {
+        console.error("header is not defined");
+      } else {
+        const createTableSQL = `create table ${table} (${definition})`;
         console.error(createTableSQL);
         db.prepare(createTableSQL).run();
-        const insertSQL = `insert into ${table} (${columns}) values (${header.map(f => "?").join(", ")})`;
+        const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
         console.error(insertSQL);
         const insert = db.prepare(insertSQL);
         const insertMany = db.transaction(() => {
