@@ -1,5 +1,27 @@
 {{
 
+function parseSQLStringLiteral(l) {
+  return l.substring(1, l.length - 1).replace(/''/g, "'");
+}
+
+function parseEscapedStringBody(b) {
+  return b.replace(/''|\\u\{[0-9A-Fa-f]+\}|\\u[0-9A-Fa-f]{4}|\\x[0-9A-Fa-f]{2}|\\['"\/\\bfnrt]/g, function (s) {
+    if (s === "''") return "'";
+    if (s === "\\'") return "'";
+    if (s === "\\\"") return '"';
+    if (s === "\\\\") return "\\";
+    if (s === "\\b") return "\b";
+    if (s === "\\f") return "\f";
+    if (s === "\\n") return "\n";
+    if (s === "\\r") return "\r";
+    if (s === "\\t") return "\t";
+    if (s.startsWith("\\x")) return String.fromCodePoint(parseInt(s.substring(2), 16));
+    if (s.startsWith("\\u{"/*}*/)) return String.fromCodePoint(parseInt(s.substring(3, s.length - 1), 16));
+    if (s.startsWith("\\u")) return String.fromCodePoint(parseInt(s.substring(2), 16));
+    return s;
+  });
+}
+
 const keywords = new Set([
   "ABORT",
   "ACTION",
@@ -397,24 +419,42 @@ Statement1
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
-  = "load" __ "table" boundary _ t:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })? boundary "from" _ x:RawBlock options:(_ opt:LoadOption { return opt; })*
+  = "load" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    boundary "from" _ x:(RawBlock/ParsedStringLiteral) opt:(_ opt:LoadOption { return opt; })*
   {
-    return {
-      table: t,
-      def: d && d.def,
-      columns: d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name),
-      contentType: x[0],
-      content: x[1],
-      options: Object.fromEntries(options),
-    };
+    const def = d && d.def;
+    const columns = d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
+    const options = Object.fromEntries(opt);
+    if (typeof x === "string") {
+      const path = typeof x === "string" ? x : null;
+      return {
+        table,
+        def,
+        columns,
+        path,
+        options,
+      };
+    } else {
+      const contentType = x.rawblock[0];
+      const content = x.rawblock[1];
+      return {
+        table,
+        def,
+        columns,
+        contentType,
+        content,
+        options,
+      };
+    }
   }
 
 LoadOption
-  = "null" boundary _ s:StringLiteral { return ["null", s]; }
+  = "null" boundary _ s:ParsedStringLiteral { return ["null", s]; }
   / "header" b:(__ b:("true"/"false") { return b; })? { return ["header", b !== "false"]; }
-  / "delimiter" boundary _ s:StringLiteral { return ["delimiter", s]; }
-  / "quote" boundary _ s:StringLiteral { return ["quote", s]; }
-  / "escape" boundary _ s:StringLiteral { return ["escape", s]; }
+  / "delimiter" boundary _ s:ParsedStringLiteral { return ["delimiter", s]; }
+  / "quote" boundary _ s:ParsedStringLiteral { return ["quote", s]; }
+  / "escape" boundary _ s:ParsedStringLiteral { return ["escape", s]; }
+  / ("format" __)? f:("csv"/"json"/"lines")  { return ["format", f]; }
 
 TableDef
   = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })*
@@ -988,8 +1028,15 @@ Literal "literal"
   ;
 
 StringLiteral
-  = $("'" ("''" / [^'])* "'")+
+  = SQLStringLiteral
   / &"E'" e:EscapedString { return e; }
+
+ParsedStringLiteral
+  = l:SQLStringLiteral { return parseSQLStringLiteral(l); }
+  / "E'" e:$EscapedStringBody "'" { return parseEscapedStringBody(e); }
+
+SQLStringLiteral
+  = $("'" ("''" / [^'])* "'")+
 
 EscapedString
   = "E'" s:EscapedStringBody "'" { return `('${s}')`; }
@@ -1023,7 +1070,7 @@ RawBlock
   = p:$("`"+) tag:$([-_0-9A-Za-z]+)? "\r"? "\n"
   c:$((!(q:$("`"+) &{ return p === q; }) [^\r\n]* "\r"? "\n")*)
   $("`"+)
-  { return [tag, c]; }
+  { return { rawblock: [tag, c] }; }
 
 comment
   = "/*" ((!"*/") .)* "*/"
