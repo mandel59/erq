@@ -967,6 +967,7 @@ Value
   / "exists" boundary _ t:Table { return `exists (${t})` }
   / Literal
   / "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
+  / WindowFunctionCall
   / FilteredFunctionCall
   / FunctionCall
   / n1:Name ns:(
@@ -976,9 +977,83 @@ Value
   )? ! (_ "." _ "*") { return ns != null ? `${n1}${ns}` : n1; }
   ;
 
+FilterClause
+  = "filter" _ "(" _ "where" boundary _ e:Expression _ ")" { return e; }
+  / "[" _ e:Expression _ "]" { return e; }
+  ;
+
+OverClause
+  = "over" _ w:WindowDefn { return `over ${w}`; }
+  / "over" _ n:Name { return `over ${n}`; }
+  ;
+
+WindowDefn
+  = "("
+      n:(_ !(("partition"/"order"/"range"/"rows"/"groups") boundary) n:Name { return n; })?
+      ps:(_ boundary "partition" __ "by" boundary _ e1:Expression es:(_ "," _ e:Expression { return e; })* { return [e1, ...es]; })?
+      os:(_ boundary "order" __ "by" boundary _ e1:OrderingTerm es:(_ "," _ e:OrderingTerm { return e; })* { return [e1, ...es]; })?
+      f:(_ f:FrameSpec { return f; })?
+      _ ")"
+    {
+      const a = [];
+      if (n != null) a.push(n);
+      if (ps != null) a.push(ps.map(e => `partition by ${e}`).join(", "))
+      if (os != null) a.push(os.map(e => `order by ${e}`).join(", "))
+      if (f != null) a.push(f);
+      return "(" + a.join(" ") + ")";
+    }
+  ;
+
+OrderingTerm
+  = e:Expression
+    c:(_ boundary "collate" n:Name { return n; })?
+    a:(_ boundary a:("asc"/"desc") { return a; })?
+    n:(_ boundary n:("nulls" __ "first" { return "nulls first"; } / "nulls" __ "last" { return "nulls last"; }) { return n; })?
+    {
+      let x = e;
+      if (c != null) x += ` collate ${c}`;
+      if (a != null) x += ` ${a}`;
+      if (n != null) x += ` ${n}`;
+      return x;
+    }
+  ;
+
+FrameSpec
+  = t:("range"/"rows"/"groups") boundary _
+    r:(
+      "between" boundary _ b1:(
+        "unbounded" __ "preceding" { return `unbounded preceding`; }
+        / "current" __ "row" { return `current row`; }
+        / e:Expression _ boundary pf:("preceding"/"following") { return `${e} ${pf}`; }
+      ) _ boundary "and" boundary _ b2:(
+        "unbounded" __ "following" { return `unbounded following`; }
+        / "current" __ "row" { return `current row`; }
+        / e:Expression _ boundary pf:("preceding"/"following") { return `${e} ${pf}`; }
+      )
+      { return `between ${b1} and ${b2}`; }
+      / "unbounded" __ "preceding" { return `unbounded preceding`; }
+      / e:Expression _ boundary "preceding" { return `${e} preceding`; }
+      / "current" __ "row" { return `current row`; }
+    )
+    x:(_ boundary "exclude" __ x:(
+      "no" __ "others" { return `exclude no others`; }
+      / "current" __ "row" { return `exclude current row`; }
+      / "group" { return `exclude group`; }
+      / "ties" { return `exclude ties`; }
+    ) { return x; })?
+    {
+      const a = [t, r];
+      if (x != null) a.push(x);
+      return a.join(" ");
+    }
+  ;
+
+WindowFunctionCall
+  = e:FilterClause _ o:OverClause _ f:FunctionCall { return `${f} filter (where ${e}) ${o}`; }
+  / o:OverClause _ f:FunctionCall { return `${f} ${o}`; }
+
 FilteredFunctionCall
-  = "filter" _ "(" _ "where" boundary _ e:Expression _ ")" _ f:FunctionCall { return `${f} filter (where ${e})`; }
-  / "[" _ e:Expression _ "]" _ f:FunctionCall { return `${f} filter (where ${e})`; }
+  = e:FilterClause _ f:FunctionCall { return `${f} filter (where ${e})`; }
 
 FunctionCall
   = n:Name _ "(" _ rs:(
@@ -987,6 +1062,7 @@ FunctionCall
     / "distinct" boundary _ e:Expression _ ")" { return `distinct ${e})`; }
     / es:Expressions _ ")" { return `${es})`; }
   ) { return `${n}(${rs}`; }
+  ;
 
 TypeName
   = !(("constraint"/"primary"/"not"/"unique"/"check"/"default"/"collate"/"references"/"generated"/"as") boundary) x:(
