@@ -524,6 +524,7 @@ async function runCLICommand({ command, args }) {
     }
   }
   else if (command === "meta-load") {
+    const t0 = performance.now();
     const [table, contentType, content] = args;
     if (contentType === "csv") {
       const csv = parseCSV(content);
@@ -531,14 +532,23 @@ async function runCLICommand({ command, args }) {
       if (header === null) {
         console.error("unknown content type: %s", contentType);
       } else {
-        db.prepare(`create table ${table} (${header.map(f => `\`${f.replace(/`/g, "``")}\``).join(",")})`).run();
-        const insert = db.prepare(`insert into ${table} values (${header.map(f => "?").join(",")})`);
+        const columns = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+        const createTableSQL = `create table ${table} (${columns})`;
+        console.error(createTableSQL);
+        db.prepare(createTableSQL).run();
+        const insertSQL = `insert into ${table} (${columns}) values (${header.map(f => "?").join(", ")})`;
+        console.error(insertSQL);
+        const insert = db.prepare(insertSQL);
         const insertMany = db.transaction(() => {
           for (const record of records) {
             insert.run(record);
           }
         });
         insertMany();
+        const t1 = performance.now();
+        const t = t1 - t0;
+        const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+        console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
       }
     } else {
       console.error("unknown content type: %s", contentType);
