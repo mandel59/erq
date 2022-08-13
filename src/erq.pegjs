@@ -397,16 +397,24 @@ Statement1
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
-  = "load" boundary _ t:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })? boundary "from" _ x:RawBlock
+  = "load" __ "table" boundary _ t:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })? boundary "from" _ x:RawBlock options:(_ opt:LoadOption { return opt; })*
   {
     return {
       table: t,
-      def: d.def,
+      def: d && d.def,
       columns: d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name),
       contentType: x[0],
-      content: x[1]
+      content: x[1],
+      options: Object.fromEntries(options),
     };
   }
+
+LoadOption
+  = "null" boundary _ s:StringLiteral { return ["null", s]; }
+  / "header" b:(__ b:("true"/"false") { return b; })? { return ["header", b !== "false"]; }
+  / "delimiter" boundary _ s:StringLiteral { return ["delimiter", s]; }
+  / "quote" boundary _ s:StringLiteral { return ["quote", s]; }
+  / "escape" boundary _ s:StringLiteral { return ["escape", s]; }
 
 TableDef
   = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })*

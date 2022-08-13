@@ -118,3 +118,30 @@ test('create view', t => {
 test('create index', t => {
   t.deepEqual(parser.parse(`create index if not exists i on t (x collate nocase asc, y desc)`), { type: 'create', query: `create index if not exists i on t (x collate nocase asc, y desc)` });
 })
+
+test('load table', t => {
+  t.deepEqual(parser.parse(`load table p from \`\`\`csv\nx,y\n1,2\n3,4\n,6\n7,\n\`\`\``), {
+    command: 'meta-load',
+    type: 'command',
+    args: {
+      columns: null,
+      content: `x,y\n1,2\n3,4\n,6\n7,\n`,
+      contentType: 'csv',
+      def: null,
+      options: {},
+      table: 'p',
+    },
+  });
+  t.deepEqual(parser.parse(`load table p(x integer, y integer, z as (x + y)) from \`\`\`csv\nx,y\n1,2\n3,4\n,6\n7,\n\`\`\` header`), {
+    command: 'meta-load',
+    type: 'command',
+    args: {
+      columns: ['x', 'y'],
+      content: `x,y\n1,2\n3,4\n,6\n7,\n`,
+      contentType: 'csv',
+      def: 'x integer, y integer, z as (x + y)',
+      options: {header: true},
+      table: 'p',
+    },
+  });
+})

@@ -525,14 +525,29 @@ async function runCLICommand({ command, args }) {
   }
   else if (command === "meta-load") {
     const t0 = performance.now();
-    const { table, def, columns: columnNames, contentType, content } = args;
+    const { table, def, columns: columnNames, contentType, content, options } = args;
+    const nullValue = options.nullValue ?? "";
+    const delimiter = options.delimiter ?? ",";
+    const quote = options.quote ?? '"';
+    const escape = options.escape ?? quote;
     if (contentType === "csv") {
-      const csv = parseCSV(content);
+      const csv = parseCSV(content, {
+        bom: true,
+        delimiter,
+        quote,
+        escape,
+        cast: (value, context) => {
+          if (value === nullValue && !context.quoting) {
+            return null;
+          }
+          return value;
+        },
+      });
       let records, header, definition;
       if (def) {
         header = columnNames;
         definition = def;
-        records = csv;
+        records = options.header ? csv.slice(1) : csv;
       } else {
         [header, ...records] = csv;
         if (header != null) {
