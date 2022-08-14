@@ -917,9 +917,9 @@ BinCompOp
   / "="
   / "<="
   / ">="
+  / "<>"
   / "<"
   / ">"
-  / "<>"
   / "!="
   / "is" __ "not" boundary { return "is not"; }
   / "is" boundary { return "is"; }
