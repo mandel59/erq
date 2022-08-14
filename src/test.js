@@ -105,6 +105,10 @@ test('select table', t => {
   t.deepEqual(parser.parse(`{{'a'} in [{'a'}, {'b'}, {'c'}]}`), { type: 'select', query: `select ('a') in (('a'), ('b'), ('c'))` });
   t.deepEqual(parser.parse(`values ['a', 'b', 'c']`), { type: 'select', query: `values ('a'), ('b'), ('c')` });
   t.deepEqual(parser.parse(`values [{'a'}, {'b'}, {'c'}]`), { type: 'select', query: `values ('a'), ('b'), ('c')` });
+  t.deepEqual(
+    parser.parse(`p {pname => max_weight: max(weight)} window w as (order by max_weight desc) {pname, rank: over w rank()}`),
+    { type: 'select', query: `select pname, rank() over w as rank from (select pname, max(weight) as max_weight from p group by (pname)) window w as (order by max_weight desc)` }
+  );
 });
 
 test('create table', t => {
@@ -140,7 +144,7 @@ test('load table', t => {
       content: `x,y\n1,2\n3,4\n,6\n7,\n`,
       contentType: 'csv',
       def: 'x integer, y integer, z as (x + y)',
-      options: {header: true},
+      options: { header: true },
       table: 'p',
     },
   });
