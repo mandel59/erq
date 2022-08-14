@@ -552,6 +552,14 @@ Create
   {
     return `create virtual table ${n} using ${tn}(${a})`;
   }
+  / "create" __ "table" ine:(__ "if" __ "not" __ "exists")? boundary _ n:TableName _ "(" _ td:TableDef _ ")"
+  {
+    if (ine != null) {
+      return `create table if not exists ${n} (${td.def})`;
+    } else {
+      return `create table ${n} (${td.def})`;
+    }
+  }
   / tv:("table" / "view") boundary _ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
     const [s, n] = x;
