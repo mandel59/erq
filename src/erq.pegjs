@@ -756,14 +756,13 @@ ValuesList
   {
     const values = "values " + vs;
     if (a != null) {
-      return `with \`$$v\`(${a.join(", ")}) as (${values}) select * from \`$$v\``;
+      return `select ${a.map(c => `null as ${c}`).join(", ")} where 0 union all ${values}`;
     }
     return values;
   }
   / "values" _ a:ColumnNameList "[" _ "]"
   {
-    const values = `select ${a.map(c => "null").join(", ")} where 0`;
-    return `with \`$$v\`(${a.join(", ")}) as (${values}) select * from \`$$v\``;
+    return `select ${a.map(c => `null as ${c}`).join(", ")} where 0`;
   }
   ;
 
