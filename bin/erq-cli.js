@@ -597,14 +597,14 @@ async function runSqls(statements) {
         await runCLICommand(statement);
         continue;
       }
-      const { type, query: sql } = statement;
+      const { type, query: sql, returning } = statement;
       if (sigint) {
         break;
       }
       console.error(sql);
       const t0 = performance.now();
       const stmt = db.prepare(sql);
-      if (type === "select") {
+      if (type === "select" || returning) {
         stmt.raw(true);
         // stmt.safeIntegers(true);
         const columns = stmt.columns();
@@ -643,7 +643,7 @@ async function runSqls(statements) {
         const rows = (changes === 1) ? "1 row" : `${changes} rows`;
         if (type === "insert") {
           console.error("%s changed, lastInsertRowid=%s (%ss)", rows, lastInsertRowid, (t / 1000).toFixed(3));
-        } else if (type === "update") {
+        } else if (type === "update" || type === "delete") {
           console.error("%s changed (%ss)", rows, (t / 1000).toFixed(3));
         } else {
           console.error("ok (%ss)", (t / 1000).toFixed(3));

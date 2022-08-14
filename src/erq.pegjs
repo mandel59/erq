@@ -449,7 +449,9 @@ Statement1
   / s:Detach { return { type: "detach", query: s }; }
   / c:Create { return { type: "create", query: c }; }
   / d:Drop { return { type: "drop", query: d }; }
-  / i:Insert { return { type: "insert", query: i }; }
+  / i:Insert r:ReturningClause? {  return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
+  / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
+  / d:Truncate { return { type: "delete", query: d }; }
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
@@ -573,23 +575,51 @@ Create
   }
 
 Insert
-  = "insert" __ "into" boundary _ n:TableName _ a:ColumnNameList? t:Table
+  = ts:WithClause* "insert" __ "into" boundary _ n:TableName _ a:ColumnNameList? t:Table
   {
+    const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     if (a != null) {
-      return `insert into ${n} (${a.join(", ")}) ${t}`;
+      return `${withclause}insert into ${n} (${a.join(", ")}) ${t}`;
     } else {
-      return `insert into ${n} ${t}`;
+      return `${withclause}insert into ${n} ${t}`;
     }
   }
-  / n:TableName _ a:ColumnNameList? "<-" _ t:Table
+  / ts:WithClause* n:TableName _ a:ColumnNameList? "<-" _ t:Table
   {
+    const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     if (a != null) {
-      return `insert into ${n} (${a.join(", ")}) ${t}`;
+      return `${withclause}insert into ${n} (${a.join(", ")}) ${t}`;
     } else {
-      return `insert into ${n} ${t}`;
+      return `${withclause}insert into ${n} ${t}`;
     }
   }
   ;
+
+Delete
+  = ts:WithClause*
+    "delete" __ "from" boundary _ n:TableName _
+    boundary "where" boundary _ e:Expression
+  {
+    const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
+    return `${withclause}delete from ${n} where ${e}`;
+  }
+
+Truncate
+  = "truncate" __ "table" boundary _ n:TableName
+  { return `delete from ${n}`; }
+
+ReturningClause
+  = rs:(_ boundary "returning" _ rs:ValueWildCardReferences { return rs; })
+  {
+    return " returning " + rs.map(s => {
+      if (s.name) {
+        return `${s.expression} as ${s.name}`;
+      } else {
+        return s.expression;
+      }
+    }).join(", ");
+  }
+
 
 ModuleArguments
   = "(" ModuleArguments ")"
