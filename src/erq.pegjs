@@ -742,16 +742,30 @@ Table2
   ;
 
 ValuesList
-  = "values" _ r1:Record rs:(_ ";" _ r:Record { return r; })*
+  = "values" _ a:ColumnNameList? r1:Record rs:(_ ";" _ r:Record { return r; })*
   {
-    return "values " + [r1, ...rs].map(r => `(${r})`).join(", ");
+    const values = "values " + [r1, ...rs].map(r => `(${r})`).join(", ");
+    if (a != null) {
+      return `with \`$$v\`(${a.join(", ")}) as (${values}) select * from \`$$v\``;
+    }
+    return values;
   }
-  / "values" _ "[" _ vs:(
+  / "values" _ a:ColumnNameList? "[" _ vs:(
       e1:(Record/Expression) es:(_ "," _ e:(Record/Expression) { return e; })* { return [e1, ...es].map(e => `(${e})`).join(", "); }
     ) _ "]"
   {
-    return "values " + vs;
+    const values = "values " + vs;
+    if (a != null) {
+      return `with \`$$v\`(${a.join(", ")}) as (${values}) select * from \`$$v\``;
+    }
+    return values;
   }
+  / "values" _ a:ColumnNameList "[" _ "]"
+  {
+    const values = `select ${a.map(c => "null").join(", ")} where 0`;
+    return `with \`$$v\`(${a.join(", ")}) as (${values}) select * from \`$$v\``;
+  }
+  ;
 
 Record
   = "{" _ vs:Expressions _ "}"
