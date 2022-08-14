@@ -449,6 +449,7 @@ Statement1
   / s:Detach { return { type: "detach", query: s }; }
   / c:Create { return { type: "create", query: c }; }
   / d:Drop { return { type: "drop", query: d }; }
+  / i:Insert { return { type: "insert", query: i }; }
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
@@ -570,6 +571,25 @@ Create
       return `create ${tv} ${qn} as with ${n} as (${t}) select * from ${n}`;
     }
   }
+
+Insert
+  = "insert" __ "into" boundary _ n:TableName _ a:ColumnNameList? t:Table
+  {
+    if (a != null) {
+      return `insert into ${n} (${a.join(", ")}) ${t}`;
+    } else {
+      return `insert into ${n} ${t}`;
+    }
+  }
+  / n:TableName _ a:ColumnNameList? "<-" _ t:Table
+  {
+    if (a != null) {
+      return `insert into ${n} (${a.join(", ")}) ${t}`;
+    } else {
+      return `insert into ${n} ${t}`;
+    }
+  }
+  ;
 
 ModuleArguments
   = "(" ModuleArguments ")"
