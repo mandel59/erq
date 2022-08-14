@@ -8,6 +8,7 @@ import Database from "better-sqlite3";
 import peggy from "peggy";
 import { parse as parseCSV } from "csv-parse/sync";
 
+const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
 
 function loadHistory() {
@@ -55,7 +56,7 @@ function showUsage() {
 const syntax = readFileSync(new URL("../src/erq.pegjs", import.meta.url).pathname, "utf-8")
 const parser = peggy.generate(syntax, {
   allowedStartRules: ["start", "cli_readline"],
-  // trace: true,
+  trace: DEBUG,
 });
 
 const options = commandLineArgs(optionList);
@@ -494,7 +495,11 @@ function parseErq() {
     if (error.found === null) {
       return null;
     }
-    console.error("%s: %s", error.name, error.message);
+    if (DEBUG) {
+      console.error(error);
+    } else {
+      console.error("%s: %s", error.name, error.message);
+    }
     if (error && error.location) {
       const start = error.location.start.offset;
       const end = error.location.end.offset;

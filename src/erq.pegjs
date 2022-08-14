@@ -179,6 +179,7 @@ class TableBuilder {
   #expression;
   #join = [];
   #where = [];
+  #window = [];
   #group = [];
   #having = [];
   #select = [];
@@ -263,6 +264,19 @@ class TableBuilder {
         sql += ")";
       }
     }
+    if (this.#window.length > 0) {
+      sql += " window "
+      let i = 0;
+      for (const {name, window} of this.#window) {
+        i++
+        if (i > 1) {
+          sql += ", ";
+        }
+        sql += name;
+        sql += " as ";
+        sql += window;
+      }
+    }
     if (this.#having.length > 0) {
       sql += " having "
       let i = 0;
@@ -318,6 +332,15 @@ class TableBuilder {
     }
     return sql;
   }
+  #isSelected() {
+    return this.#group.length > 0 || this.#select.length > 0;
+  }
+  #isLimited() {
+    return this.#limit != null;
+  }
+  #paren() {
+    return new TableBuilder(this.#name, `(${this.toSQL(true)})`);
+  }
   where(e) {
     if (this.#aggregate) {
       this.#having.push(e);
@@ -327,18 +350,17 @@ class TableBuilder {
     return this;
   }
   select(rs) {
-    if (this.#group.length === 0 && this.#select.length === 0) {
-      for (const r of rs) {
-        this.#select.push(r);
-      }
-      return this;
-    } else {
-      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).select(rs);
+    if (this.#isSelected()) {
+      return this.#paren().select(rs);
     }
+    for (const r of rs) {
+      this.#select.push(r);
+    }
+    return this;
   }
   groupSelect(grs, rs) {
-    if (this.#group.length > 0 || this.#select.length > 0) {
-      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).groupSelect(grs, rs);
+    if (this.#isSelected()) {
+      return this.#paren().groupSelect(grs, rs);
     }
     this.#aggregate = true;
     for (const r of grs) {
@@ -349,32 +371,43 @@ class TableBuilder {
     }
     return this;
   }
-  join(tr, on, d) {
-    if (this.#group.length === 0 && this.#select.length === 0) {
-      const j = { name: tr.name, expression: tr.expression, direction: d };
-      if (on) {
-        j.on = on;
-      }
-      this.#join.push(j);
-      return this;
-    } else {
-      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).join(tr, on, d);
+  window(w) {
+    if (this.#isSelected()) {
+      return this.#paren().window(w);
     }
+    this.#window.push(w);
+    return this;
+  }
+  join(tr, on, d) {
+    if (this.#isSelected()) {
+      return this.#paren().join(tr, on, d);
+    }
+    const j = { name: tr.name, expression: tr.expression, direction: d };
+    if (on) {
+      j.on = on;
+    }
+    this.#join.push(j);
+    return this;
   }
   distinct(distinct) {
-    this.#distinct = Boolean(distinct);
+    if (distinct) {
+      if (this.#isLimited()) {
+        return this.#paren().distinct(distinct);
+      }
+      this.#distinct = true;
+    }
     return this;
   }
   orderBy(order) {
-    if (this.#limit != null) {
-      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).orderBy(order);
+    if (this.#isLimited()) {
+      return this.#paren().orderBy(order);
     }
     this.#order = [...order, ...this.#order];
     return this;
   }
   limitOffset(limit, offset) {
-    if (this.#limit != null) {
-      return new TableBuilder(this.#name, `(${this.toSQL(true)})`).limitOffset(limit, offset);
+    if (this.#isLimited()) {
+      return this.#paren().limitOffset(limit, offset);
     }
     this.#limit = limit;
     this.#offset = offset;
@@ -598,6 +631,10 @@ WithClause
     return `${n} as (${t})`;
   }
 
+WindowClause
+  = "window" boundary _ n:Name _ boundary "as" _ w:WindowDefn
+  { return { name: n, window: w }; }
+
 ColumnNameList
   = "(" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ ")" _ { return [an1, ...ans]; }
 
@@ -679,6 +716,17 @@ LimitOffsetClause
   / _ boundary "offset" boundary _ offset:Expression _ boundary "limit" boundary _ limit:Expression { return [limit, offset]; }
 
 Table1
+  = tb:Table2 fs:(_ fs:Filters { return fs; })? {
+    if (fs != null) {
+      for (const f of fs) {
+        tb = f(tb);
+      }
+    }
+    return tb;
+  }
+  ;
+
+Table2
   = "select" boundary _ rs:ValueReferences {
     return new TableBuilder(null, null).select(rs);
   }
@@ -687,13 +735,6 @@ Table1
   }
   / vs:ValuesList {
     return new TableBuilder(null, `(${vs})`);
-  }
-  / tr:TableReference _ fs:Filters {
-    let tb = new TableBuilder(tr.name, tr.expression);
-    for (const f of fs) {
-      tb = f(tb);
-    }
-    return tb;
   }
   / tr:TableReference {
     return new TableBuilder(tr.name, tr.expression);
@@ -761,6 +802,9 @@ Filter
   }
   / "natural" __ "join" boundary _ tr:TableReference _ {
     return (tb) => tb.join(tr, null, "natural");
+  }
+  / w:WindowClause {
+    return (tb) => tb.window(w);
   }
   ;
 
