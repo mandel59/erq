@@ -341,6 +341,9 @@ class TableBuilder {
   #paren() {
     return new TableBuilder(this.#name, `(${this.toSQL(true)})`);
   }
+  as(name) {
+    return new TableBuilder(name, `(${this.toSQL(true)})`);
+  }
   where(e) {
     if (this.#aggregate) {
       this.#having.push(e);
@@ -702,6 +705,7 @@ TableUnion
     distinct:(_ boundary "distinct" boundary { return true; })?
     order:OrderClause?
     limitOffset:LimitOffsetClause?
+    alias:(_ boundary "as" boundary _ n:Name { return n; })?
     cs:(
       o:OrderClause { return ["orderBy", o]; }
       / l:LimitOffsetClause { return ["limitOffset", l] }
@@ -742,7 +746,7 @@ TableUnion
       }
     }
     if (cs.length > 0) {
-      let tb = new TableBuilder(null, `(${sql})`);
+      let tb = new TableBuilder(alias ?? null, `(${sql})`);
       for (const [tag, v] of cs) {
         if (tag === "orderBy") {
           tb = tb.orderBy(v);
@@ -876,6 +880,9 @@ Filter
   }
   / w:WindowClause {
     return (tb) => tb.window(w);
+  }
+  / "as" boundary _ n:Name {
+    return (tb) => tb.as(n);
   }
   ;
 
