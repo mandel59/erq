@@ -702,13 +702,15 @@ ColumnNameList
 TableUnion
   = t1:Table1
     ts:(_ ";" _ t:Table1 { return t; })*
-    distinct:(_ boundary "distinct" boundary { return true; })?
+    distinct:DistinctClause?
     order:OrderClause?
     limitOffset:LimitOffsetClause?
-    alias:(_ boundary "as" boundary _ n:Name { return n; })?
+    alias:AsClause?
     cs:(
-      o:OrderClause { return ["orderBy", o]; }
-      / l:LimitOffsetClause { return ["limitOffset", l] }
+      d:DistinctClause { return ["distinct", true]; }
+      / o:OrderClause { return ["orderBy", o]; }
+      / l:LimitOffsetClause { return ["limitOffset", l]; }
+      / a:AsClause { return ["as", a]; }
       / fs:(_ fs:Filters { return ["filters", fs]; })
     )*
   {
@@ -748,11 +750,15 @@ TableUnion
     if (cs.length > 0) {
       let tb = new TableBuilder(alias ?? null, `(${sql})`);
       for (const [tag, v] of cs) {
-        if (tag === "orderBy") {
+        if (tag === "distinct") {
+          tb = tb.distinct(v);
+        } else if (tag === "orderBy") {
           tb = tb.orderBy(v);
         } else if (tag === "limitOffset") {
           const [limit, offset] = v;
           tb = tb.limitOffset(limit, offset);
+        } else if (tag === "as") {
+          tb = tb.as(v);
         } else if (tag === "filters") {
           for (const f of v) {
             tb = f(tb)
@@ -763,6 +769,14 @@ TableUnion
     }
     return sql;
   }
+
+DistinctClause
+  = _ boundary "distinct" boundary { return true; }
+  ;
+
+AsClause
+  = _ boundary "as" boundary _ n:Name { return n; }
+  ;
 
 OrderClause
   = _ boundary "order" __ "by" boundary
@@ -880,9 +894,6 @@ Filter
   }
   / w:WindowClause {
     return (tb) => tb.window(w);
-  }
-  / "as" boundary _ n:Name {
-    return (tb) => tb.as(n);
   }
   ;
 
