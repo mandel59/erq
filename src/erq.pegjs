@@ -1272,7 +1272,7 @@ EscapedStringBody
   { return s.join(""); }
 
 NumericLiteral
-  = $("0x" [0-9]+)
+  = $("0x" [0-9A-Fa-f]+)
   / $([0-9]+ ("." [0-9]*)? ([eE] [0-9]+)?)
   / $("." [0-9]+ ([eE] [0-9]+)?)
 
