@@ -535,6 +535,7 @@ async function runCLICommand({ command, args }) {
     const delimiter = options.delimiter ?? ",";
     const quote = options.quote ?? '"';
     const escape = options.escape ?? quote;
+    const comment = options.comment ?? undefined;
     const format = options.format ?? contentType;
     const data = path ? readFileSync(path, "utf-8") : content;
     if (format === "csv") {
@@ -543,6 +544,7 @@ async function runCLICommand({ command, args }) {
         delimiter,
         quote,
         escape,
+        comment,
         cast: (value, context) => {
           if (value === nullValue && !context.quoting) {
             return null;

@@ -493,6 +493,7 @@ LoadOption
   / "delimiter" boundary _ s:ParsedStringLiteral { return ["delimiter", s]; }
   / "quote" boundary _ s:ParsedStringLiteral { return ["quote", s]; }
   / "escape" boundary _ s:ParsedStringLiteral { return ["escape", s]; }
+  / "comment" boundary _ s:ParsedStringLiteral { return ["comment", s]; }
   / ("format" __)? f:("csv"/"json"/"lines")  { return ["format", f]; }
 
 TableDef
