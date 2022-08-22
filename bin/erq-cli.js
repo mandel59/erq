@@ -444,12 +444,14 @@ function completer(line) {
 
 // readline
 
+const historySize = process.env['ERQ_HISTORY_SIZE'] ? parseInt(process.env['ERQ_HISTORY_SIZE'], 10) : 1000;
 const rl = readline.createInterface({
   input: stdin,
   output: stderr,
   completer,
   prompt: 'erq> ',
   history: loadHistory(),
+  historySize,
 });
 
 const isTTY = stdin.isTTY && stderr.isTTY;
