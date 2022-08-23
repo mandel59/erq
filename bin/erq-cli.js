@@ -270,20 +270,22 @@ function defineFunction(
 }
 
 defineTable("string_split", {
-  parameters: ["string", "separator"],
+  parameters: ["string", "delimiter"],
   columns: ["value"],
-  rows: function* (string, separator) {
-    for (const value of separator === "" ? String(string) : String(string).split(separator)) {
+  rows: function* (string, delimiter) {
+    if (typeof string !== "string") throw new TypeError("string_split(string,delimiter) string must be a string");
+    if (typeof delimiter !== "string") throw new TypeError("string_split(string,delimiter) delimiter must be a string");
+    for (const value of delimiter === "" ? Array.from(string) : String(string).split(delimiter)) {
       yield [value];
     }
   }
 });
 
-defineFunction("substring_index", { deterministic: true, safeIntegers: true }, function (string, delimiter, count) {
-  if (typeof delimiter !== "string") throw new TypeError("substring_index() delimiter must be a string");
-  if (typeof count !== "bigint") throw new TypeError("substring_index() count must be an integer");
+defineFunction("split_part", { deterministic: true }, function (string, delimiter, count) {
+  if (typeof delimiter !== "string") throw new TypeError("split_part(string,delimiter,count) delimiter must be a string");
+  if (typeof count !== "number" || !Number.isSafeInteger(count)) throw new TypeError("split_part(string,delimiter,count) count must be an integer");
   if (string == null) return null;
-  return String(string).split(delimiter)[count - 1n] ?? null;
+  return String(string).split(delimiter)[count - 1] ?? null;
 });
 
 defineFunction("unhex", { deterministic: true }, function (string) {
@@ -292,7 +294,7 @@ defineFunction("unhex", { deterministic: true }, function (string) {
 
 defineFunction("parse_int", { deterministic: true, safeIntegers: true }, function (string, radix) {
   if (typeof radix !== "bigint" || radix < 2n || radix > 36n) {
-    throw RangeError("parse_int() radix must be an integer in range [2, 36]");
+    throw RangeError("parse_int(string,radix) radix must be an integer in range [2, 36]");
   }
   if (string == null) {
     return null;
@@ -304,7 +306,7 @@ defineFunction("parse_int", { deterministic: true, safeIntegers: true }, functio
   if (Number.isSafeInteger(n)) {
     return BigInt(n);
   } else {
-    throw RangeError("parse_int() cannot convert to a 64-bit signed integer");
+    throw RangeError("parse_int(string,radix) cannot convert to a 64-bit signed integer");
   }
 });
 
