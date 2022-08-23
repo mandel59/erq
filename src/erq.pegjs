@@ -291,7 +291,7 @@ class TableBuilder {
       }
     }
     const order = columns
-      .map((r) => [`(${r.expression})`, r.sort])
+      .map((r) => r.name != null ? [r.name, r.sort] : [`(${r.expression})`, r.sort])
       .filter(e => e[1] != null)
     if (this.#order.length + order.length > 0) {
       sql += " order by ";

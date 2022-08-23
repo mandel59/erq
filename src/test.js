@@ -29,7 +29,7 @@ test('select table', t => {
     [total >= 100]
   `), {
     type: 'select',
-    query: "select e.id, e.name, sum(s.value) as total from employees as e join salary as s on s.employee_id = e.id where (s.date between '2020-01-01' and '2022-12-31') group by (e.id) having (total >= 100) order by (sum(s.value)) desc"
+    query: "select e.id, e.name, sum(s.value) as total from employees as e join salary as s on s.employee_id = e.id where (s.date between '2020-01-01' and '2022-12-31') group by (e.id) having (total >= 100) order by total desc"
   });
   t.deepEqual(parser.parse(`e: employees join j: (json_each('[1,2,3]', '$') {value})`), {
     type: 'select',
