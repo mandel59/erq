@@ -1249,28 +1249,50 @@ SQLStringLiteral
   = $("'" ("''" / [^'])* "'")+
 
 EscapedString
-  = "E'" s:EscapedStringBody "'" { return `('${s}')`; }
+  = "E'" s:EscapedStringBody "'" {
+    let fs = "";
+    let args = "";
+    for (const [f, ...a] of s) {
+      fs += f;
+      for (const x of a) {
+        args += ", ";
+        args += x;
+      }
+    }
+    return `printf('${fs}'${args})`;
+  }
 
 EscapedStringBody
   = s:(
     "\\" c:(
-      "'" { return "''"; }
-      / '"' { return '"'; }
-      / "\\" { return "\\"; }
-      / "/" { return "/"; }
-      / "b" { return "'||char(8)||'"; }
-      / "f" { return "'||char(12)||'"; }
-      / "n" { return "'||char(10)||'"; }
-      / "r" { return "'||char(13)||'"; }
-      / "t" { return "'||char(9)||'"; }
-      / "x" x:$([0-9A-Fa-f][0-9A-Fa-f]) { return `'||char(0x${x})||'`; }
-      / "u{" x:$([0-9A-Fa-f]+) "}" { return `'||char(0x${x})||'`; }
-      / "u" x:$([0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]) { return `'||char(0x${x})||'`; }
-      / "(" _ e:Expression _ ")" { return `'||(${e})||'`; }
+      "'" { return ["''"]; }
+      / '"' { return ['"']; }
+      / "\\" { return ["\\"]; }
+      / "/" { return ["/"]; }
+      / "b" { return ["%s", "char(8)"]; }
+      / "f" { return ["%s", "char(12)"]; }
+      / "n" { return ["%s", "char(10)"]; }
+      / "r" { return ["%s", "char(13)"];; }
+      / "t" { return ["%s", "char(9)"]; }
+      / "x" x:$([0-9A-Fa-f][0-9A-Fa-f]) { return ["%s", `char(0x${x})`]; }
+      / "u{" x:$([0-9A-Fa-f]+) "}" { return ["%s", `char(0x${x})`]; }
+      / "u" x:$([0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]) { return ["%s", `char(0x${x})`]; }
+      / "u(" _ e:Expression _ ")" { return ["%s", `char(${e})`]; }
+      / "(" _ e:Expression _ ")" { return ["%s", e]; }
+      / "%" opt:$FormatOption "(" _ e:Expression _ ")" { return [`%${opt}`, e]; }
     ) { return c; }
-    / "''"
-    / [^\\'])*
-  { return s.join(""); }
+    / "''" { return ["''"]; }
+    / "%" { return ["%%"]; }
+    / s:$([^%\\']+) { return [s] })*
+  { return s; }
+
+FormatOption
+  = FormatFlags? FormatWidth? FormatPrecision? FormatType
+
+FormatFlags = $([-+ 0#,!]+)
+FormatWidth = $([1-9][0-9]*)
+FormatPrecision = $("." [0-9]+)
+FormatType = [diufeEgGxXoszcpnqQw]
 
 NumericLiteral
   = $("0x" [0-9A-Fa-f]+)
