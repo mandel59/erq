@@ -1292,7 +1292,7 @@ FormatOption
 FormatFlags = $([-+ 0#,!]+)
 FormatWidth = $([1-9][0-9]*)
 FormatPrecision = $("." [0-9]+)
-FormatType = [diufeEgGxXoszcqQw]
+FormatType = [diufeEgGxXoscqQw]
 
 NumericLiteral
   = $("0x" [0-9A-Fa-f]+)
