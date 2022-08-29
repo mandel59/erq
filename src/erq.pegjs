@@ -1266,6 +1266,7 @@ EscapedStringBody
       / "x" x:$([0-9A-Fa-f][0-9A-Fa-f]) { return `'||char(0x${x})||'`; }
       / "u{" x:$([0-9A-Fa-f]+) "}" { return `'||char(0x${x})||'`; }
       / "u" x:$([0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]) { return `'||char(0x${x})||'`; }
+      / "(" _ e:Expression _ ")" { return `'||(${e})||'`; }
     ) { return c; }
     / "''"
     / [^\\'])*
