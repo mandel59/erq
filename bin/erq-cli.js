@@ -312,6 +312,17 @@ defineFunction("parse_int", { deterministic: true, safeIntegers: true }, functio
   }
 });
 
+defineFunction("to_enum", { deterministic: true, varargs: true, safeIntegers: true }, function (value, ...enumDefs) {
+  const i = enumDefs.indexOf(value) + 1;
+  if (i === 0) return null;
+  return BigInt(i);
+});
+
+defineFunction("from_enum", { deterministic: true, varargs: true, safeIntegers: true }, function (value, ...enumDefs) {
+  if (value == null) return null;
+  return enumDefs[BigInt(value) - 1n] ?? null;
+});
+
 defineFunction("regexp", { deterministic: true }, function (pattern, string) {
   return Number(new RegExp(pattern, "gu").test(string));
 });
