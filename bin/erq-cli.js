@@ -7,6 +7,7 @@ import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
 import peggy from "peggy";
 import { parse as parseCSV } from "csv-parse/sync";
+import iconv from "iconv-lite";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
@@ -539,7 +540,9 @@ async function runCLICommand({ command, args }) {
     const escape = options.escape ?? quote;
     const comment = options.comment ?? undefined;
     const format = options.format ?? contentType;
-    const data = path ? readFileSync(path, "utf-8") : content;
+    const encoding = options.encoding ?? "utf-8";
+    /** @type {string} */
+    const data = path ? iconv.decode(readFileSync(path), encoding) : content;
     if (format === "csv") {
       const csv = parseCSV(data, {
         bom: true,
