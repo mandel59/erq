@@ -8,6 +8,7 @@ import Database from "better-sqlite3";
 import peggy from "peggy";
 import { parse as parseCSV } from "csv-parse/sync";
 import iconv from "iconv-lite";
+import jsdom from "jsdom";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
@@ -341,6 +342,48 @@ defineTable("regexp_substr_all", {
     }
   }
 });
+
+defineTable("xml_tree", {
+  parameters: ["_xml", "content_type", "url", "referrer"],
+  columns: ["id", "parent", "type", "name", "value", "attributes"],
+  rows: function* (
+    /** @type {string | null} */ xml,
+    /** @type {string | null} */ contentType,
+    /** @type {string | null} */ url,
+    /** @type {string | null} */ referrer,
+  ) {
+    if (xml == null) {
+      return;
+    }
+    if (contentType == null) {
+      contentType = "application/xml";
+    }
+    const { window } = new jsdom.JSDOM(xml, {
+      contentType,
+      url,
+      referrer,
+    });
+    const result = window.document.evaluate("//node()", window.document, null, window.XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+    /** @type {Map<Node, number>} */
+    const idmap = new Map();
+    let id = 0;
+    /** @type {Node} */
+    let n;
+    while (n = result.iterateNext()) {
+      id += 1;
+      const attrs = /** @type {Element} */ (n).attributes;
+      yield [
+        id,
+        idmap.get(n.parentNode) ?? 0,
+        n.nodeType,
+        n.nodeName,
+        n.nodeValue,
+        attrs ? JSON.stringify(Object.fromEntries(Array.from(attrs, (attr) => [attr.name, attr.value]))) : null,
+      ];
+      idmap.set(n, id);
+    }
+  }
+})
 
 // global states
 
