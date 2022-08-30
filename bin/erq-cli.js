@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import process, { stdin, stdout, stderr } from "node:process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, readlinkSync } from "node:fs";
+import { resolve as pathResolve } from "node:path"
 import readline from "node:readline";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
@@ -396,6 +397,56 @@ defineTable("xml_tree", {
   }
 })
 
+defineFunction("process_cwd", { deterministic: false }, process.cwd);
+
+defineTable("readdir", {
+  parameters: ["_path"],
+  columns: ["type", "name"],
+  rows: function* (path) {
+    if (path == null) {
+      path = process.cwd();
+    }
+    const entries = readdirSync(path, {
+      encoding: "utf-8",
+      withFileTypes: true,
+    });
+    for (const e of entries) {
+      let type;
+      if (e.isFIFO()) {
+        type = "FIFO";
+      } else if (e.isCharacterDevice()) {
+        type = "CHR";
+      } else if (e.isDirectory()) {
+        type = "DIR"
+      } else if (e.isBlockDevice()) {
+        type = "BLK";
+      } else if (e.isFile()) {
+        type = "REG";
+      } else if (e.isSymbolicLink()) {
+        type = "LNK";
+      } else if (e.isSocket()) {
+        type = "SOCK";
+      } else {
+        type = "UNKNOWN";
+      }
+      yield [
+        type,
+        e.name,
+      ]
+    }
+  }
+});
+
+defineFunction("readfile", { deterministic: false }, function (filename) {
+  return readFileSync(filename);
+});
+
+defineFunction("readlink", { deterministic: false }, function (filename) {
+  return readlinkSync(filename, "utf-8");
+});
+
+defineFunction("path_resolve", { deterministic: false, varargs: true }, pathResolve);
+
 // global states
 
 /** @type {"read" | "eval"} */
@@ -583,6 +634,13 @@ async function runCLICommand({ command, args }) {
       db.loadExtension(args[0]);
     } else {
       console.error("usage: .load PATH");
+    }
+  }
+  else if (command === "cd") {
+    if (args.length === 1) {
+      process.chdir(args[0]);
+    } else {
+      console.error("usage: .cd PATH");
     }
   }
   else if (command === "meta-load") {
