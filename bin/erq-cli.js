@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import process, { stdin, stdout, stderr } from "node:process";
 import { readFileSync, writeFileSync, readdirSync, readlinkSync } from "node:fs";
-import { resolve as pathResolve } from "node:path"
+import { resolve as pathResolve, basename, dirname } from "node:path"
 import readline from "node:readline";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
@@ -397,7 +397,9 @@ defineTable("xml_tree", {
   }
 })
 
-defineFunction("process_cwd", { deterministic: false }, process.cwd);
+defineFunction("process_cwd", { deterministic: false }, function () {
+  return process.cwd();
+});
 
 defineTable("readdir", {
   parameters: ["_path"],
@@ -446,6 +448,18 @@ defineFunction("readlink", { deterministic: false }, function (filename) {
 });
 
 defineFunction("path_resolve", { deterministic: false, varargs: true }, pathResolve);
+
+defineFunction("basename", { deterministic: true }, function (p) {
+  return basename(p);
+});
+
+defineFunction("basename", { deterministic: true }, function (p, ext) {
+  return basename(p, ext);
+});
+
+defineFunction("dirname", { deterministic: true }, function (p) {
+  return dirname(p);
+});
 
 // global states
 
