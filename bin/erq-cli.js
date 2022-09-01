@@ -273,7 +273,7 @@ function defineFunction(
 }
 
 defineTable("string_split", {
-  parameters: ["string", "delimiter"],
+  parameters: ["_string", "_delimiter"],
   columns: ["value"],
   rows: function* (string, delimiter) {
     if (typeof string !== "string") throw new TypeError("string_split(string,delimiter) string must be a string");
@@ -342,7 +342,7 @@ defineFunction("regexp_substr", { deterministic: true }, function (string, patte
 });
 
 defineTable("regexp_substr_all", {
-  parameters: ["string", "pattern"],
+  parameters: ["_string", "_pattern"],
   columns: ["value"],
   rows: function* (
     /** @type {string} */ string,
