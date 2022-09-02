@@ -506,9 +506,19 @@ function getColumns(schema, table) {
   return columns;
 }
 
+function getPragmaNames() {
+  /** @type {{name: string}[]} */
+  const tables = db.prepare("pragma pragma_list").all();
+  return tables.map(({name}) => name);
+}
+
 function completer(line) {
   const m = reFQNamePart.exec(line);
   const q = m[0];
+  const isPragma = /pragma\s+\w*$/.test(line);
+  if (isPragma) {
+    return [getPragmaNames().filter(n => n.startsWith(q)), q];
+  }
   try {
     const tables = getTables();
     const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
@@ -737,7 +747,7 @@ async function runSqls(statements) {
       console.error(sql);
       const t0 = performance.now();
       const stmt = db.prepare(sql);
-      if (type === "select" || returning) {
+      if (type === "select" || type === "pragma" || returning) {
         stmt.raw(true);
         // stmt.safeIntegers(true);
         const columns = stmt.columns();

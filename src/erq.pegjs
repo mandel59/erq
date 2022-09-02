@@ -456,6 +456,7 @@ Statement1
   / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
   / d:Truncate { return { type: "delete", query: d }; }
   / s:Vacuum { return { type: "vacuum", query: s }; }
+  / s:Pragma { return { type: "pragma", query: s }; }
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
@@ -623,6 +624,25 @@ Vacuum
   { return `vacuum ${n}`; }
   / "vacuum"
   { return `vacuum`; }
+
+Pragma
+  = "pragma" boundary s:(_ s:Name _ "." { return s; })? _ n:Name _ e:(
+    "=" _ v:PragmaValue { return `= ${v}`; }
+    / "(" _ v:PragmaValue _ ")" { return `(${v})`; }
+  )?
+  {
+    const sn = (s != null) ? `${s}.${n}` : n;
+    if (e != null) {
+      return `pragma ${sn} ${e}`;
+    } else {
+      return `pragma ${sn}`;
+    }
+  }
+
+PragmaValue
+  = SignedNumber
+  / Name
+  / SQLStringLiteral
 
 ReturningClause
   = rs:(_ boundary "returning" _ rs:ValueWildCardReferences { return rs; })
@@ -1222,7 +1242,13 @@ TypeName
   { return x; }
 
 SignedNumber
-  = $([-+]? NumericLiteral)
+  = s:[-+]? _ n:NumericLiteral {
+    if (s != null) {
+      return `${s}${n}`;
+    } else {
+      return n;
+    }
+  }
 
 Name "name"
   = $('`' ("``" / [^`])* '`')+
