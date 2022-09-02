@@ -455,6 +455,7 @@ Statement1
   / i:Insert r:ReturningClause? {  return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
   / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
   / d:Truncate { return { type: "delete", query: d }; }
+  / s:Vacuum { return { type: "vacuum", query: s }; }
   / t:Table { return { type: "select", query: t }; }
 
 LoadRawBlock
@@ -612,6 +613,16 @@ Delete
 Truncate
   = "truncate" __ "table" boundary _ n:TableName
   { return `delete from ${n}`; }
+
+Vacuum
+  = "vacuum" boundary _ n:Name _ boundary "into" boundary s:SQLStringLiteral
+  { return `vacuum ${n} into ${s}`; }
+  / "vacuum" __ "into" boundary s:SQLStringLiteral
+  { return `vacuum into ${s}`; }
+  / "vacuum" boundary _ n:Name
+  { return `vacuum ${n}`; }
+  / "vacuum"
+  { return `vacuum`; }
 
 ReturningClause
   = rs:(_ boundary "returning" _ rs:ValueWildCardReferences { return rs; })
