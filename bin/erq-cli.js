@@ -10,6 +10,7 @@ import peggy from "peggy";
 import { parse as parseCSV } from "csv-parse/sync";
 import iconv from "iconv-lite";
 import jsdom from "jsdom";
+import { NodeVM } from "vm2";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
@@ -509,7 +510,7 @@ function getColumns(schema, table) {
 function getPragmaNames() {
   /** @type {{name: string}[]} */
   const tables = db.prepare("pragma pragma_list").all();
-  return tables.map(({name}) => name);
+  return tables.map(({ name }) => name);
 }
 
 function completer(line) {
@@ -726,6 +727,26 @@ async function runCLICommand({ command, args }) {
       }
     } else {
       console.error("unknown content type: %s", contentType);
+    }
+  }
+  else if (command === "meta-create-function") {
+    const [fn, ps, { rawblock: [tag, body] }] = args;
+    if (tag === "js" || tag === "javascript") {
+      const vm = new NodeVM({
+        console: 'inherit',
+        sandbox: {},
+        require: {
+          external: true,
+          builtin: [],
+        },
+        strict: true,
+      });
+      const f = vm.run(`module.exports = function(${ps.join(",")}) {\n${body}\n};`);
+      db.function(fn, f);
+      erqFunctions.add(fn);
+    }
+    else {
+      console.error("unknown language: %s", tag);
     }
   }
   else {

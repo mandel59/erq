@@ -446,6 +446,7 @@ Statement
 
 MetaStatement
   = l:LoadRawBlock { return { type: "command", command: "meta-load", args: l }}
+  / c:CreateFunction { return { type: "command", command: "meta-create-function", args:c } }
 
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
@@ -498,6 +499,16 @@ LoadOption
   / "comment" boundary _ s:ParsedStringLiteral { return ["comment", s]; }
   / "encoding" boundary _ s:ParsedStringLiteral { return ["encoding", s]; }
   / ("format" __)? f:("csv"/"json"/"lines")  { return ["format", f]; }
+
+CreateFunction
+  = "create" __ "function" boundary _ n:Name _ ps:FunctionParams _ "as" _ x:RawBlock
+  {
+    return [n, ps, x];
+  }
+
+FunctionParams
+  = "(" _ ")" { return []; }
+  / "(" _ n1:Identifier ns:(_ "," _ n:Identifier { return n; }) _ ")" { return [n1, ...ns]; }
 
 TableDef
   = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })*
@@ -1251,8 +1262,15 @@ SignedNumber
   }
 
 Name "name"
+  = QuotedName
+  / Identifier
+  ;
+
+QuotedName "quoted name"
   = $('`' ("``" / [^`])* '`')+
-  / n:$(
+
+Identifier "identifier"
+  = n:$(
     ![ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
     [_A-Za-z\u0100-\uffff]
     (
