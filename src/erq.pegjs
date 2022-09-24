@@ -458,7 +458,43 @@ Statement1
   / d:Truncate { return { type: "delete", query: d }; }
   / s:Vacuum { return { type: "vacuum", query: s }; }
   / s:Pragma { return { type: "pragma", query: s }; }
+  / s:Begin { return { type: "begin", query: s }; }
+  / s:Savepoint { return { type: "savepoint", query: s }; }
+  / s:Release { return { type: "release", query: s }; }
+  / s:Commit { return { type: "commit", query: s }; }
+  / s:Rollback { return { type: "rollback", query: s }; }
   / t:Table { return { type: "select", query: t }; }
+
+Begin
+  = "begin" boundary opt:(_ opt:("deferred"/"immediate"/"exclusive") { return opt; })?
+  {
+    if (opt != null) {
+      return `begin ${opt}`;
+    } else {
+      return "begin";
+    }
+  }
+
+Commit
+  = "commit"
+
+Savepoint
+  = "savepoint" boundary _ n:Name
+  { return `savepoint ${n}`; }
+
+Release
+  = "release" boundary _ n:Name
+  { return `release ${n}`; }
+
+Rollback
+  = "rollback" boundary savepoint:(_ "to" boundary n:Name { return n; })?
+  {
+    if (savepoint != null) {
+      return `rollback to ${savepoint}`;
+    } else {
+      return "rollback";
+    }
+  }
 
 LoadRawBlock
   = "load" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
