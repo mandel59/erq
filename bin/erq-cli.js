@@ -721,13 +721,17 @@ async function runCLICommand({ command, args }) {
         console.error(insertSQL);
         const insert = db.prepare(insertSQL);
         const insertMany = db.transaction(() => {
+          let i = 0;
           for (const record of records) {
-            if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
+            i++;
+            if (record.length === header.length) {
+              insert.run(record);
+            } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
               insert.run(record.concat(...Array(header.length - record.length)));
             } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
               insert.run(record.slice(0, header.length));
             } else {
-              insert.run(record);
+              throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
             }
           }
         });
