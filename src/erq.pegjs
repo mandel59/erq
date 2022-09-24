@@ -462,11 +462,11 @@ Statement1
 
 LoadRawBlock
   = "load" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
-    boundary "from" _ x:(RawBlock/ParsedStringLiteral) opt:(_ opt:LoadOption { return opt; })*
+    boundary "from" _ x:(RawBlock/ParsedStringLiteral) opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
   {
     const def = d && d.def;
     const columns = d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
-    const options = Object.fromEntries(opt);
+    const options = Object.fromEntries(opt ?? []);
     if (typeof x === "string") {
       const path = typeof x === "string" ? x : null;
       return {
