@@ -677,6 +677,9 @@ async function runCLICommand({ command, args }) {
     const escape = options.escape ?? quote;
     const comment = options.comment ?? undefined;
     const format = options.format ?? contentType;
+    const relax_column_count = options.relax_column_count ?? undefined;;
+    const relax_column_count_less = options.relax_column_count_less ?? undefined;;
+    const relax_column_count_more = options.relax_column_count_more ?? undefined;;
     const encoding = options.encoding ?? "utf-8";
     /** @type {string} */
     const data = path ? iconv.decode(readFileSync(path), encoding) : content;
@@ -687,6 +690,9 @@ async function runCLICommand({ command, args }) {
         quote,
         escape,
         comment,
+        relax_column_count,
+        relax_column_count_less,
+        relax_column_count_more,
         cast: (value, context) => {
           if (value === nullValue && !context.quoting) {
             return null;
@@ -716,7 +722,13 @@ async function runCLICommand({ command, args }) {
         const insert = db.prepare(insertSQL);
         const insertMany = db.transaction(() => {
           for (const record of records) {
-            insert.run(record);
+            if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
+              insert.run(record.concat(...Array(header.length - record.length)));
+            } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
+              insert.run(record.slice(0, header.length));
+            } else {
+              insert.run(record);
+            }
           }
         });
         insertMany();

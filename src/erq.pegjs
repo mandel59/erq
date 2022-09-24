@@ -498,6 +498,8 @@ LoadOption
   / "escape" boundary _ s:ParsedStringLiteral { return ["escape", s]; }
   / "comment" boundary _ s:ParsedStringLiteral { return ["comment", s]; }
   / "encoding" boundary _ s:ParsedStringLiteral { return ["encoding", s]; }
+  / "relax" __ "column" __ "count" __ lm:("less"/"more") { return ["relax_column_count_" + lm, true]; }
+  / "relax" __ "column" __ "count" { return ["relax_column_count", true]; }
   / ("format" __)? f:("csv"/"json"/"lines")  { return ["format", f]; }
 
 CreateFunction
