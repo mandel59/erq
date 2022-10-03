@@ -1044,7 +1044,7 @@ UnOp
   = "~"
   / "+"
   / "-"
-  / "not" boundary { return "not"; }
+  / "not" boundary { return "not "; }
   ;
 
 BinOp
@@ -1168,7 +1168,7 @@ RowValue
   / v:ValuesList { return `(${v})`; }
 
 Expression1
-  = op:UnOp _ e:Expression1 { return `${op} ${e}` }
+  = op:UnOp _ e:Expression1 { return `${op}${e}` }
   / r1:RowValue _ op:BinCompOp _ r2:RowValue { return `${r1} ${op} ${r2}`; }
   / v:Value x:(_ op:BinOp _ e:Expression1 { return `${op} ${e}`; })?
   { if (x) return `${v} ${x}`; else return v; }
