@@ -784,8 +784,8 @@ ColumnNameList
 TableUnion
   = t1:Table1
     ts:(_ ";" _ t:Table1 { return t; })*
-    distinct:DistinctClause?
     order:OrderClause?
+    distinct:DistinctClause?
     limitOffset:LimitOffsetClause?
     alias:AsClause?
     cs:(
