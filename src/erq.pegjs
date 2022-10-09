@@ -528,9 +528,11 @@ LoadRawBlock
 
 LoadOption
   = "null" boundary _ s:ParsedStringLiteral { return ["null", s]; }
-  / "header" b:(__ b:("true"/"false") { return b; })? { return ["header", b !== "false"]; }
+  / "header" { return ["header", true]; }
+  / "no" __ "header" { return ["header", false]; }
   / "delimiter" boundary _ s:ParsedStringLiteral { return ["delimiter", s]; }
   / "quote" boundary _ s:ParsedStringLiteral { return ["quote", s]; }
+  / "no" __ "quote" { return ["quote", null]; }
   / "escape" boundary _ s:ParsedStringLiteral { return ["escape", s]; }
   / "comment" boundary _ s:ParsedStringLiteral { return ["comment", s]; }
   / "encoding" boundary _ s:ParsedStringLiteral { return ["encoding", s]; }
