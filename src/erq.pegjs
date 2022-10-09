@@ -532,7 +532,7 @@ LoadOption
   / "no" __ "header" { return ["header", false]; }
   / "delimiter" boundary _ s:ParsedStringLiteral { return ["delimiter", s]; }
   / "quote" boundary _ s:ParsedStringLiteral { return ["quote", s]; }
-  / "no" __ "quote" { return ["quote", null]; }
+  / "no" __ "quote" { return ["quote", false]; }
   / "escape" boundary _ s:ParsedStringLiteral { return ["escape", s]; }
   / "comment" boundary _ s:ParsedStringLiteral { return ["comment", s]; }
   / "encoding" boundary _ s:ParsedStringLiteral { return ["encoding", s]; }
