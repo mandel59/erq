@@ -476,6 +476,13 @@ const patQuot = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\
 const patPart = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*"
 const reName = new RegExp(`^${patName}$`, "u");
 const reFQNamePart = new RegExp(`(?:(?:${patName}|${patQuot})\\.){0,2}(?:${patName}|${patQuot}|${patPart})?$`, "u");
+/**
+ * Parse dot-separated name like `t.c` or `s.t.c`.
+ * Used as `m = reParseColumnName.exec(q);`.
+ * `m[1]`: schema or table name.
+ * `m[2]`: table name if schema name is specified.
+ * `m[3]`: column name.
+ */
 const reParseColumnName = new RegExp(`^(${patName}|${patQuot})(?:\\.(${patName}|${patQuot}))?\\.(${patName}|${patQuot}|${patPart})?$`, "u");
 
 function quoteSQLName(name) {
@@ -532,6 +539,7 @@ function completer(line) {
         const m1 = unquoteSQLName(m[1]);
         const m2 = m[2] && unquoteSQLName(m[2]);
         const m3 = m[3] ? unquoteSQLName(m[3]) : "";
+        // set sn as the schema name and tn as the table name.
         const [sn, tn] = (m2 != null) ? [m1, m2] : [tables.find(t => t.name === m1)?.schema, m1];
         if (schemas.includes(sn)) {
           const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
@@ -547,9 +555,15 @@ function completer(line) {
     }
     // other name completion
     const columnNames = tables.flatMap(t => {
-      return getColumns(t.schema, t.name)
-        .filter(c => c.hidden !== 1)
-        .map(c => quoteSQLName(c.name));
+      try {
+        return getColumns(t.schema, t.name)
+          .filter(c => c.hidden !== 1)
+          .map(c => quoteSQLName(c.name));
+      } catch {
+        // If the view is invalid, getColumn throws an SqliteError.
+        // Ignore it.
+        return [];
+      }
     });
     {
       const qq = q.replace(/`/g, "");
@@ -570,7 +584,7 @@ function completer(line) {
     }
   } catch (error) {
     // ignore errors
-    // console.error(error);
+    console.error(error);
   }
   return [[], q];
 }
