@@ -522,7 +522,7 @@ function getPragmaNames() {
 
 function completer(line) {
   const m = reFQNamePart.exec(line);
-  const q = m[0];
+  let q = m[0];
   const isPragma = /pragma\s+\w*$/.test(line);
   if (isPragma) {
     return [getPragmaNames().filter(n => n.startsWith(q)), q];
@@ -551,6 +551,7 @@ function completer(line) {
             return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
           }
         }
+        q = q.replace(/^.*\./, "");
       }
     }
     // other name completion
