@@ -1226,6 +1226,7 @@ Value
 
 PackName
   = k:Name _ ":" _ e:Expression { return [parseSQLIdentifier(k), e]; }
+  / n:Name &(_ ("," / "}")) { return [parseSQLIdentifier(n), n]; }
   / e:Expression { return [e, e]; }
 
 UnpackName
