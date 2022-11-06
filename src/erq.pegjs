@@ -188,6 +188,7 @@ const reIdent = /^[_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}][\p{Lu}\p{Ll}\p{Lt}\p{L
 
 class TableBuilder {
   #name;
+  #lastName;
   #expression;
   #rename;
   #join = [];
@@ -202,7 +203,7 @@ class TableBuilder {
   #offset = 0;
   #aggregate = false;
   constructor(name, expression, rename = name != null) {
-    this.#name = name;
+    this.#name = this.#lastName = name;
     this.#expression = expression;
     this.#rename = rename;
   }
@@ -403,14 +404,15 @@ class TableBuilder {
     if (on) {
       j.on = on;
     }
+    this.#lastName = j.name;
     this.#join.push(j);
     return this;
   }
   sugarJoin(nl, nr, tr, dw) {
-    const tlname = this.#name ?? "_l_";
+    const tlname = this.#lastName ?? "_l_";
     const trname = tr.name ?? `_r${this.#join.length + 1}_`;
     const trrename = (tr.name == null) || tr.rename;
-    return ((this.#name == null) ? this.as("_l_") : this)
+    return ((this.#lastName == null) ? this.as("_l_") : this)
       .join({ name: trname, rename: trrename, expression: tr.expression }, `${tlname}.${nl} = ${trname}.${nr ?? nl}`, dw);
   }
   distinct(distinct) {
