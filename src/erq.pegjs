@@ -396,7 +396,7 @@ class TableBuilder {
   }
   sugarJoin(nl, nr, tr, dw) {
     const tlname = this.#name ?? "_l_";
-    const trname = tr.name ?? "_r_";
+    const trname = tr.name ?? `_r${this.#join.length + 1}_`;
     const trrename = (tr.name == null) || tr.rename;
     return ((this.#name == null) ? this.as("_l_") : this)
       .join({ name: trname, rename: trrename, expression: tr.expression }, `${tlname}.${nl} = ${trname}.${nr ?? nl}`, dw);
