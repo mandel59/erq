@@ -109,6 +109,10 @@ test('select table', t => {
     parser.parse(`p {pname => max_weight: max(weight)} window w as (order by max_weight desc) {pname, rank: over w rank()}`),
     { type: 'select', query: `select pname, rank() over w as rank from (select pname, max(weight) as max_weight from p group by (pname)) window w as (order by max_weight desc)` }
   );
+  t.deepEqual(
+    parser.parse(`t: (values(x)[1]) full -:x:> (values(x, y)[{1, 11}, {2, 12}]) full -:x:> (values(x, z)[{1, 21}, {3, 23}]) {t.x, y, z}`),
+    { type: 'select', query: `select t.x, y, z from (select null as x where 0 union all values (1)) as t full join (select null as x, null as y where 0 union all values (1, 11), (2, 12)) as _r1_ on t.x = _r1_.x full join (select null as x, null as z where 0 union all values (1, 21), (3, 23)) as _r2_ on t.x = _r2_.x` }
+  )
 });
 
 test('create table', t => {
