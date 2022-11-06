@@ -59,7 +59,7 @@ test('select table', t => {
     { value => sum(x) asc }
   `), {
     type: 'select',
-    query: "select value, sum(x) from (select * from (select value, value + 1 as x from json_each('[1,2,3]', '$') order by (value) asc) union all select * from (select value, - value * 10 from json_each('[1,2,3]', '$') order by (value) desc)) group by (value) order by (sum(x)) asc"
+    query: "select value, sum(x) from (select * from (select value, value + 1 as x from json_each('[1,2,3]', '$') order by (value) asc) union all select * from (select value, -value * 10 from json_each('[1,2,3]', '$') order by (value) desc)) group by (value) order by (sum(x)) asc"
   });
   t.deepEqual(parser.parse(`
     t: ({x: 1, y: 2}; {2, 3}; {3, 4})
@@ -67,7 +67,7 @@ test('select table', t => {
     { z, w: x * y * z }
   `), {
     type: 'select',
-    query: 'select z, x * y * z as w from (select t.x, t.y, x + y as z from (select 1 as x, 2 as y union all select 2, 3 union all select 3, 4) as t) as t'
+    query: 'select z, x * y * z as w from (select t.x, t.y, x + y as z from (select 1 as x, 2 as y union all select 2, 3 union all select 3, 4) as t)'
   });
   t.deepEqual(parser.parse(`
     mji join mjsm

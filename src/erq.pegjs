@@ -177,6 +177,7 @@ const reIdent = /^[_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}][\p{Lu}\p{Ll}\p{Lt}\p{L
 class TableBuilder {
   #name;
   #expression;
+  #rename;
   #join = [];
   #where = [];
   #window = [];
@@ -188,9 +189,10 @@ class TableBuilder {
   #limit = null;
   #offset = 0;
   #aggregate = false;
-  constructor(name, expression) {
+  constructor(name, expression, rename = name != null) {
     this.#name = name;
     this.#expression = expression;
+    this.#rename = rename;
   }
   toSQL(allowOrdered = false) {
     const columns = this.#select;
@@ -208,7 +210,7 @@ class TableBuilder {
           sql += ", ";
         }
         sql += s.expression;
-        if (s.name) {
+        if (s.name && s.name !== s.expression) {
           sql += " as ";
           sql += s.name;
         }
@@ -217,7 +219,7 @@ class TableBuilder {
     if (this.#expression) {
       sql += " from ";
       sql += this.#expression;
-      if (this.#name) {
+      if (this.#rename && this.#name !== this.#expression) {
         sql += " as ";
         sql += this.#name;
       }
@@ -229,7 +231,7 @@ class TableBuilder {
       }
       sql += " join ";
       sql += j.expression;
-      if (j.name) {
+      if (j.rename && j.name !== j.expression) {
         sql += " as ";
         sql += j.name;
       }
@@ -339,7 +341,7 @@ class TableBuilder {
     return this.#limit != null;
   }
   #paren() {
-    return new TableBuilder(this.#name, `(${this.toSQL(true)})`);
+    return new TableBuilder(null, `(${this.toSQL(true)})`);
   }
   as(name) {
     return new TableBuilder(name, `(${this.toSQL(true)})`);
@@ -385,12 +387,19 @@ class TableBuilder {
     if (this.#isSelected()) {
       return this.#paren().join(tr, on, d);
     }
-    const j = { name: tr.name, expression: tr.expression, direction: d };
+    const j = { name: tr.name, rename: tr.rename, expression: tr.expression, direction: d };
     if (on) {
       j.on = on;
     }
     this.#join.push(j);
     return this;
+  }
+  sugarJoin(nl, nr, tr, dw) {
+    const tlname = this.#name ?? "_l_";
+    const trname = tr.name ?? "_r_";
+    const trrename = (tr.name == null) || tr.rename;
+    return ((this.#name == null) ? this.as("_l_") : this)
+      .join({ name: trname, rename: trrename, expression: tr.expression }, `${tlname}.${nl} = ${trname}.${nr ?? nl}`, dw);
   }
   distinct(distinct) {
     if (distinct) {
@@ -699,7 +708,7 @@ ReturningClause
   = rs:(_ boundary "returning" _ rs:ValueWildCardReferences { return rs; })
   {
     return " returning " + rs.map(s => {
-      if (s.name) {
+      if (s.name && s.name !== s.expression) {
         return `${s.expression} as ${s.name}`;
       } else {
         return s.expression;
@@ -897,7 +906,7 @@ Table2
     return new TableBuilder(null, `(${vs})`);
   }
   / tr:TableReference {
-    return new TableBuilder(tr.name, tr.expression);
+    return new TableBuilder(tr.name, tr.expression, tr.rename);
   }
   ;
 
@@ -906,7 +915,7 @@ ValuesList
   {
     const values = "values " + [r1, ...rs].map(r => `(${r})`).join(", ");
     if (a != null) {
-      return `with \`$$v\`(${a.join(", ")}) as (${values}) select * from \`$$v\``;
+      return `select ${a.map(c => `null as ${c}`).join(", ")} where 0 union all ${values}`;
     }
     return values;
   }
@@ -933,8 +942,8 @@ Record
   }
 
 TableReference
-  = n:Name _ ":" _ e:TableExpression { return { name: n, expression: e }; }
-  / e:TableExpression { return { name: null, expression: e }; }
+  = n:Name _ ":" _ e:TableExpression { return { name: n, expression: e.expression, rename: true }; }
+  / e:TableExpression { return { name: e.name, expression: e.expression, rename: false }; }
   ;
 
 Filters
@@ -967,14 +976,17 @@ Filter
   / "select" boundary _ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
-  / dw:("left" / "right" / "full") __ "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
+  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on, dw);
   }
   / "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on);
   }
-  / "natural" __ "join" boundary _ tr:TableReference _ {
+  / "natural" __ "join" boundary _ tr:TableReference {
     return (tb) => tb.join(tr, null, "natural");
+  }
+  / dw:("left" / "right" / "full" / "inner" / "cross")? _ "-:" _ nl:Name _ nr:(":" _ nr:Name _ { return nr; })? ":>" _ tr:TableReference {
+    return (tb) => tb.sugarJoin(nl, nr, tr, dw);
   }
   / w:WindowClause {
     return (tb) => tb.window(w);
@@ -1021,15 +1033,15 @@ ValueWildCardReference
 
 TableExpression
   = "{" _ rs:ValueReferences _ "}" {
-    return `(${new TableBuilder(null, null).select(rs).toSQL(true)})`;
+    return { name: null, expression: `(${new TableBuilder(null, null).select(rs).toSQL(true)})` };
   }
-  / "(" _ t:Table _ ")" { return `(${t})`; }
-  / s:Name _ "." _ n:Name _ "(" _ ")" { return `${s}.${n}()`; }
-  / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return `${s}.${n}(${es})`; }
-  / s:Name _ "." _ t:Name { return `${s}.${t}`; }
-  / n:Name _ "(" _ ")" { return `${n}()`; }
-  / n:Name _ "(" _ es:Expressions _ ")" { return `${n}(${es})`; }
-  / Name
+  / "(" _ t:Table _ ")" { return { name: null, expression: `(${t})` }; }
+  / s:Name _ "." _ n:Name _ "(" _ ")" { return { name: n, expression: `${s}.${n}()` }; }
+  / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${s}.${n}(${es})` }; }
+  / s:Name _ "." _ t:Name { return { name: t, expression: `${s}.${t}` }; }
+  / n:Name _ "(" _ ")" { return { name: n, expression: `${n}()` }; }
+  / n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${n}(${es})` }; }
+  / n:Name { return { name: n, expression: n } }
   ;
 
 Expressions
