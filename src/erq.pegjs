@@ -488,6 +488,7 @@ Statement1
   / s:Release { return { type: "release", query: s }; }
   / s:Commit { return { type: "commit", query: s }; }
   / s:Rollback { return { type: "rollback", query: s }; }
+  / s:Analyze { return { type: "analyze", query: s }; }
   / t:Table { return { type: "select", query: t }; }
 
 Begin
@@ -520,6 +521,11 @@ Rollback
       return "rollback";
     }
   }
+
+Analyze
+  = "analyze" boundary _ s:Name _ "." _ n:Name { return `analyze ${s}.${n}`; }
+  / "analyze" boundary _ n:Name { return `analyze ${n}`; }
+  / "analyze" { return "analyze"; }
 
 LoadRawBlock
   = "load" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
