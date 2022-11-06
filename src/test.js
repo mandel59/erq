@@ -118,8 +118,8 @@ test('select table', t => {
     { type: 'select', query: `select * from t join u on t.x = u.y` }
   )
   t.deepEqual(
-    parser.parse(`t: (values(a, b, c) [{1, 2, 3}]) { j: pack t { a, b, c } } { unpack j { a, b } }`),
-    { type: 'select', query: `select j ->> '$."a"' as a, j ->> '$."b"' as b from (select json_object('a', t.a, 'b', t.b, 'c', t.c) as j from (select null as a, null as b, null as c where 0 union all values (1, 2, 3)) as t)` }
+    parser.parse(`t: (values(a, b, c) [{1, 2, 3}]) { j: pack { a, b, c } } { unpack j { a, b } }`),
+    { type: 'select', query: `select j->>'$."a"' as a, j->>'$."b"' as b from (select json_object('a', a, 'b', b, 'c', c) as j from (select null as a, null as b, null as c where 0 union all values (1, 2, 3)) as t)` }
   )
 });
 

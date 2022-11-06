@@ -1224,13 +1224,9 @@ Value
   )? ! (_ "." _ "*") { return ns != null ? `${n1}${ns}` : n1; }
   ;
 
-TableNameReference
-  = s:Name _ "." _ t:Name { return { name: t, expression: `${s}.${t}` }; }
-  / n:Name { return { name: n, expression: n } }
-
 PackName
-  = k:Name _ ":" _ c:Name { return [k, c]; }
-  / c:Name { return [c, c]; }
+  = k:Name _ ":" _ e:Expression { return [parseSQLIdentifier(k), e]; }
+  / e:Expression { return [e, e]; }
 
 UnpackName
   = c:Name _ ":" _ k:Name { return [k, c]; }
@@ -1245,10 +1241,9 @@ UnpackNameList
   / p1:UnpackName? { return p1 != null ? [p1] : []; }
 
 Pack
-  = "pack" boundary _ t:TableNameReference _ "{" _ ps:PackNameList _ "}" {
-    const te = t.expression;
-    return `json_object(${ps.map(([k, c]) => {
-      return `${intoSQLStringLiteral(parseSQLIdentifier(k))}, ${te}.${c}`;
+  = "pack" boundary _ "{" _ ps:PackNameList _ "}" {
+    return `json_object(${ps.map(([k, e]) => {
+      return `${intoSQLStringLiteral(k)}, ${e}`;
     }).join(", ")})`;
   }
 
@@ -1262,7 +1257,7 @@ Unpack
     return ps.map(([k, c]) => {
       return {
         name: c,
-        expression: `${e} ->> ${intoSQLStringLiteral(`$.${JSON.stringify(parseSQLIdentifier(k))}`)}`, sort: null };
+        expression: `${e}->>${intoSQLStringLiteral(`$.${JSON.stringify(parseSQLIdentifier(k))}`)}`, sort: null };
     });
   }
 
