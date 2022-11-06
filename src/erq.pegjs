@@ -374,6 +374,7 @@ class TableBuilder {
     for (const r of rs) {
       this.#select.push(r);
     }
+    this.#lastName = null;
     return this;
   }
   groupSelect(grs, rs) {
@@ -387,6 +388,7 @@ class TableBuilder {
     for (const r of rs) {
       this.#select.push(r);
     }
+    this.#lastName = null;
     return this;
   }
   window(w) {
