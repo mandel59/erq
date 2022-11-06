@@ -4,6 +4,18 @@ function parseSQLStringLiteral(l) {
   return l.substring(1, l.length - 1).replace(/''/g, "'");
 }
 
+function parseSQLIdentifier(l) {
+  if (l[0] === "`") {
+    return l.substring(1, l.length - 1).replace(/``/g, "`");
+  } else {
+    return l;
+  }
+}
+
+function intoSQLStringLiteral(s) {
+  return `'${s.replace(/'/g, "''")}'`;
+}
+
 function parseEscapedStringBody(b) {
   return b.replace(/''|\\u\{[0-9A-Fa-f]+\}|\\u[0-9A-Fa-f]{4}|\\x[0-9A-Fa-f]{2}|\\['"\/\\bfnrt]/g, function (s) {
     if (s === "''") return "'";
@@ -1000,8 +1012,8 @@ ValueReferences
   ;
 
 ValueWildCardReferences
-  = r1:ValueWildCardReference rs:(_ "," _ r:ValueWildCardReference { return r; })* {
-    return [r1, ...rs];
+  = r1:ValueWildCardReferenceOrUnpack rs:(_ "," _ r:ValueWildCardReferenceOrUnpack { return r; })* {
+    return [r1, ...rs].flat();
   }
 
 ValueReference
@@ -1029,6 +1041,11 @@ ValueWildCardReference
     return { name: null, expression: e, sort: null };
   }
   / ValueReference
+  ;
+
+ValueWildCardReferenceOrUnpack
+  = Unpack
+  / r:ValueWildCardReference { return [r]; }
   ;
 
 TableExpression
@@ -1196,6 +1213,7 @@ Value
   / "exists" boundary _ t:Table { return `exists (${t})` }
   / Literal
   / "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
+  / Pack
   / WindowFunctionCall
   / FilteredFunctionCall
   / FunctionCall
@@ -1205,6 +1223,48 @@ Value
     )? { return n3 != null ? `.${n2}.${n3}` : `.${n2}`; }
   )? ! (_ "." _ "*") { return ns != null ? `${n1}${ns}` : n1; }
   ;
+
+TableNameReference
+  = s:Name _ "." _ t:Name { return { name: t, expression: `${s}.${t}` }; }
+  / n:Name { return { name: n, expression: n } }
+
+PackName
+  = k:Name _ ":" _ c:Name { return [k, c]; }
+  / c:Name { return [c, c]; }
+
+UnpackName
+  = c:Name _ ":" _ k:Name { return [k, c]; }
+  / c:Name { return [c, c]; }
+
+PackNameList
+  = p1:PackName ps:(_ "," _ p:PackName { return p; })+ { return [p1, ...ps]; }
+  / p1:PackName? { return p1 != null ? [p1] : []; }
+
+UnpackNameList
+  = p1:UnpackName ps:(_ "," _ p:UnpackName { return p; })+ { return [p1, ...ps]; }
+  / p1:UnpackName? { return p1 != null ? [p1] : []; }
+
+Pack
+  = "pack" boundary _ t:TableNameReference _ "{" _ ps:PackNameList _ "}" {
+    const te = t.expression;
+    return `json_object(${ps.map(([k, c]) => {
+      return `${intoSQLStringLiteral(parseSQLIdentifier(k))}, ${te}.${c}`;
+    }).join(", ")})`;
+  }
+
+Unpack
+  = "unpack" boundary _ e:(
+    "(" _ e:Expression _ ")" { return `(${e})`; }
+    / n:Name { return n; }
+    / t:Name _ "." _ n:Name { return `${t}.${n}`; }
+    / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
+  ) _ "{" _ ps:UnpackNameList _ "}" {
+    return ps.map(([k, c]) => {
+      return {
+        name: c,
+        expression: `${e} ->> ${intoSQLStringLiteral(`$.${JSON.stringify(parseSQLIdentifier(k))}`)}`, sort: null };
+    });
+  }
 
 FilterClause
   = "filter" _ "(" _ "where" boundary _ e:Expression _ ")" { return e; }
