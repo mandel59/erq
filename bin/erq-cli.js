@@ -11,6 +11,7 @@ import { parse as parseCSV } from "csv-parse/sync";
 import iconv from "iconv-lite";
 import jsdom from "jsdom";
 import { NodeVM } from "vm2";
+import memoizedJsonHash from "@mandel59/memoized-json-hash";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
@@ -461,6 +462,14 @@ defineFunction("basename", { deterministic: true }, function (p, ext) {
 defineFunction("dirname", { deterministic: true }, function (p) {
   return dirname(p);
 });
+
+defineFunction("json_hash", { deterministic: true }, function (json) {
+  return memoizedJsonHash(JSON.parse(json));
+})
+
+defineFunction("json_hash", { deterministic: true }, function (json, algorithm) {
+  return memoizedJsonHash(JSON.parse(json), { algorithm });
+})
 
 // global states
 

@@ -17,6 +17,7 @@
     "test": "ava"
   },
   "dependencies": {
+    "@mandel59/memoized-json-hash": "^0.2.0",
     "better-sqlite3": "^7.6.2",
     "command-line-args": "^5.2.1",
     "command-line-usage": "^6.1.3",
