@@ -784,6 +784,7 @@ async function runCLICommand({ command, args }) {
       const f = vm.run(`module.exports = function(${ps.join(",")}) {\n${body}\n};`);
       db.function(fn, f);
       erqFunctions.add(fn);
+      console.error("ok");
     }
     else {
       console.error("unknown language: %s", tag);

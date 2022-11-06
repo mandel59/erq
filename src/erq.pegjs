@@ -569,7 +569,7 @@ CreateFunction
 
 FunctionParams
   = "(" _ ")" { return []; }
-  / "(" _ n1:Identifier ns:(_ "," _ n:Identifier { return n; }) _ ")" { return [n1, ...ns]; }
+  / "(" _ n1:Identifier ns:(_ "," _ n:Identifier { return n; })* _ ")" { return [n1, ...ns]; }
 
 TableDef
   = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })*
