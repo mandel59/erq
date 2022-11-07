@@ -371,7 +371,6 @@ async function parent() {
   process.on("SIGINT", handleSignal("SIGINT"));
   process.on("SIGTERM", handleSignal("SIGTERM"));
   process.on("SIGQUIT", handleSignal("SIGQUIT"));
-  process.on("SIGCONT", handleSignal("SIGCONT"));
 
   const syntax = readFileSync(new URL("../src/erq.pegjs", import.meta.url).pathname, "utf-8")
   const parser = peggy.generate(syntax, {
@@ -430,6 +429,14 @@ async function parent() {
     }
   }
   rl.on("SIGINT", handleSigint);
+
+  function handleSigcont() {
+    if (state === "read") {
+      // resume the stream
+      rl.prompt();
+    }
+  }
+  rl.on("SIGCONT", handleSigcont);
 
   // core routines
 
