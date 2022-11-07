@@ -430,13 +430,21 @@ async function parent() {
   }
   rl.on("SIGINT", handleSigint);
 
-  function handleSigcont() {
-    if (state === "read") {
-      // resume the stream
-      rl.prompt();
-    }
+  function handleSigtstp() {
+    child.kill("SIGSTOP");
+    rl.pause();
+    process.once("SIGCONT", () => {
+      child.kill("SIGCONT");
+      stdin.setRawMode(true);
+      if (state === "read" && isTTY) {
+        // resume the stream
+        rl.prompt();
+      }
+    });
+    stdin.setRawMode(false);
+    process.kill(process.pid, "SIGTSTP");
   }
-  rl.on("SIGCONT", handleSigcont);
+  rl.on("SIGTSTP", handleSigtstp)
 
   // core routines
 
