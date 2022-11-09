@@ -42,6 +42,7 @@ function saveHistory(history) {
 const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
   { name: 'load', alias: 'l', typeLabel: '{underline path}', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
+  { name: 'init', alias: 'i', type: String, typeLabel: '{underline path}', description: 'path to initialize Erq file' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
 ];
 
@@ -468,19 +469,31 @@ async function parent() {
     }
   }
 
+  if (options.init) {
+    input = readFileSync(options.init, "utf-8");
+    input += "\n;;";
+    while (input !== "") {
+      const sqls = parseErq();
+      if (sqls == null) {
+        break;
+      }
+      await runSqls(sqls);
+    }
+  }
+
   if (isTTY) { rl.prompt(); }
   rl.on("line", async (line) => {
     if (input !== "") {
       input += "\n";
     }
     input += line;
+    if (!isTTY) {
+      // slurp all input before run
+      return;
+    }
     if (state === "read") {
       state = "eval";
       try {
-        if (!isTTY) {
-          // slurp all input
-          return;
-        }
         while (input !== "") {
           const sqls = parseErq();
           if (sqls == null) {
@@ -488,12 +501,12 @@ async function parent() {
           }
           await runSqls(sqls);
         }
-        setPrompt();
-        if (isTTY) {
-          rl.prompt();
-        }
       } finally {
         state = "read";
+      }
+      setPrompt();
+      if (isTTY) {
+        rl.prompt();
       }
     }
   });
