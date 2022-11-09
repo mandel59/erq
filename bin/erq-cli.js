@@ -330,29 +330,6 @@ async function parent() {
     child.on("message", callback);
   });
 
-  /**
-   * @returns {Promise<{schema: string, name: string, type: string, ncol: number, wr: 0 | 1, strict: 0 | 1}[]>}
-   */
-  function getTables() {
-    return ipcCall("getTables", []);
-  }
-
-  /**
-   * @param {string} schema 
-   * @param {string} table 
-   * @returns {Promise<{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]>}
-   */
-  function getColumns(schema, table) {
-    return ipcCall("getColumns", [schema, table]);
-  }
-
-  /**
-   * @returns {Promise<{name: string}[]>}
-   */
-  function getPragmaNames() {
-    return ipcCall("getPragmaNames", []);
-  }
-
   async function runCLICommand({ command, args }) {
     return ipcCall("runCLICommand", [{ command, args }]);
   }
