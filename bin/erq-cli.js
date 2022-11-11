@@ -802,7 +802,7 @@ function child() {
 
   async function completer(line) {
     const m = reFQNamePart.exec(line);
-    let q = m[0];
+    const q = m[0];
     const isPragma = /pragma\s+\w*$/.test(line);
     if (isPragma) {
       return [getPragmaNames().filter(n => n.startsWith(q)), q];
@@ -812,6 +812,21 @@ function child() {
       const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
       const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
       const tableNames = tables.map(t => quoteSQLName(t.name));
+      let _getAllColumnNames;
+      const getAllColumnNames = () => {
+        if (_getAllColumnNames) return _getAllColumnNames;
+        return _getAllColumnNames = Array.from(new Set(tables.flatMap(t => {
+          try {
+            return getColumns(t.schema, t.name)
+              .filter(c => c.hidden !== 1)
+              .map(c => quoteSQLName(c.name));
+          } catch {
+            // If the view is invalid, getColumn throws an SqliteError.
+            // Ignore it.
+            return [];
+          }
+        })).values());
+      }
       // column completion
       {
         const m = reParseColumnName.exec(q);
@@ -820,9 +835,9 @@ function child() {
           const m2 = m[2] && unquoteSQLName(m[2]);
           const m3 = m[3] ? unquoteSQLName(m[3]) : "";
           // set sn as the schema name and tn as the table name.
-          const [sn, tn] = (m2 != null) ? [m1, m2] : [tables.find(t => t.name === m1)?.schema, m1];
+          const [sn, tn, cn] = (m2 != null) ? [m1, m2, m3] : [tables.find(t => t.name === m1)?.schema, m1, m3];
           if (schemas.includes(sn)) {
-            const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(m3));
+            const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
             if (m2 != null) {
               const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
               return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
@@ -830,23 +845,17 @@ function child() {
               const qtn = quoteSQLName(tn);
               return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
             }
+          } else {
+            const columnNames = getAllColumnNames().filter(name => name.startsWith(cn));
+            if (columnNames.length > 0) {
+              return [columnNames, q.replace(/^.*\./, "")];
+            }
           }
-          q = q.replace(/^.*\./, "");
         }
       }
       // other name completion
-      const columnNames = tables.flatMap(t => {
-        try {
-          return getColumns(t.schema, t.name)
-            .filter(c => c.hidden !== 1)
-            .map(c => quoteSQLName(c.name));
-        } catch {
-          // If the view is invalid, getColumn throws an SqliteError.
-          // Ignore it.
-          return [];
-        }
-      });
       {
+        const columnNames = getAllColumnNames();
         const qq = q.replace(/`/g, "");
         const matches
           = Array.from(new Set([
@@ -864,7 +873,7 @@ function child() {
         }
       }
     } catch (error) {
-      // ignore errors
+      // ignore errorsu   
       console.error(error);
     }
     return [[], q];
