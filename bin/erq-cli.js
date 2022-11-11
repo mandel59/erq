@@ -281,6 +281,9 @@ function defineUserFunctions(defineFunction, defineTable) {
 }
 
 async function parent() {
+  /** @type {string[] | undefined} */
+  let history;
+
   // ipc setups
 
   const child = fork(fileURLToPath(import.meta.url), process.argv.slice(2), {
@@ -511,8 +514,6 @@ async function parent() {
     }
   });
 
-  /** @type {string[] | undefined} */
-  let history;
   rl.on("history", (h) => {
     history = h;
   });
