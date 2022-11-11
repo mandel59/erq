@@ -582,28 +582,52 @@ FunctionParams
   / "(" _ n1:Identifier ns:(_ "," _ n:Identifier { return n; })* _ ")" { return [n1, ...ns]; }
 
 TableDef
-  = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })*
-  { return { def: text(), columns: [c1, ...cs] } }
+  = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })* cos:(_ "," _ c:TableConstraint { return c; })*
+  {
+    let def = c1.def;
+    for (const c of cs) def += `, ${c.def}`;
+    for (const co of cos) def += `, ${co.def}`;
+    return { def, columns: [c1, ...cs], constraints: cos };
+  }
 
 ColumnDef
-  = name:Name type:(_ t:TypeName { return t; })? constraints:(_ c:ColumnConstraint { return c; })*
-  { return { name, type, constraints }; }
+  = !("primary" __ "key" / "unique" / "check" / "foreign" __ "key") name:Name type:(_ t:TypeName { return t; })? constraints:(_ c:ColumnConstraint { return c; })*
+  {
+    let def = name;
+    if (type) name += ` ${type}`;
+    for (const c of constraints) name += ` ${c.def}`
+    return { def, name, type, constraints };
+  }
 
 ColumnConstraint
-  = name:("constraint" n:Name { return n; })? body:$ColumnConstraintBody
-  { return { name, body }}
+  = name:("constraint" n:Name { return n; })? body:ColumnConstraintBody
+  {
+    const def = name ? `constraint ${name} ${body}` : body;
+    return { def, name, body }
+  }
 
 ColumnConstraintBody
-  = "primary" __ "key" (__ ("asc"/"desc"))? boundary ConflictClause? (__ "autoincrement")?
-  / "not" __ "null" ConflictClause?
-  / "unique" ConflictClause?
-  / "check" _ "(" _ Expression _ ")"
-  / "default" _ ("(" _ Expression _ ")" / Literal / SignedNumber)
-  / "collate" boundary _ Name
-  / "as" _ "(" _ Expression _ ")" (__ ("stored" / "virtual"))?
+  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(__ "autoincrement" {return "autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
+  / "not" __ "null" cc:ConflictClause? { return `not null${cc ?? ""}`; }
+  / "unique" cc:ConflictClause? { return `unique${cc ?? ""}`; }
+  / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
+  / "default" _ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / SignedNumber) { return `default ${x}`; }
+  / "collate" boundary _ n:Name { return `collate ${n}`; }
+  / "as" _ "(" _ e:Expression _ ")" x:(__ x:("stored" / "virtual") { return ` ${x}`; })? { return `as (${e})${x}`; }
+
+TableConstraint
+  = name:("constraint" n:Name { return n; })? body:TableConstraintBody
+  {
+    const def = name ? `constraint ${name} ${body}` : body;
+    return { def, name, body }
+  }
+
+TableConstraintBody
+  = k:("primary" __ "key" { return "primary key"; } / "unique") _ cs:ColumnNameList cc:ConflictClause? { return `${k} (${cs.join(", ")})${cc ?? ""}`; }
+  / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
 
 ConflictClause
-  = __ "on" __ "conflict" __ ("rollback"/"abort"/"fail"/"ignore"/"replace")
+  = __ "on" __ "conflict" __ k:("rollback"/"abort"/"fail"/"ignore"/"replace") { return ` on conflict ${k}`; }
 
 Attach
   = "attach" boundary _ e:Expression _ "as" boundary _ n:Name {
