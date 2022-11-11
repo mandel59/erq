@@ -803,6 +803,7 @@ function child() {
   async function completer(line) {
     const m = reFQNamePart.exec(line);
     const q = m[0];
+    const qq = q.replace(/`/g, "");
     const isPragma = /pragma\s+\w*$/.test(line);
     if (isPragma) {
       return [getPragmaNames().filter(n => n.startsWith(q)), q];
@@ -845,10 +846,17 @@ function child() {
               const qtn = quoteSQLName(tn);
               return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
             }
+          } else if (schemas.includes(tn)) {
+            const ts = tableNames
+              .filter(name => name.startsWith(cn))
+              .map(name => `${quoteSQLName(tn)}.${name}`);
+            if (ts.length > 0) {
+              return [ts, q];
+            }
           } else {
-            const columnNames = getAllColumnNames().filter(name => name.startsWith(cn));
-            if (columnNames.length > 0) {
-              return [columnNames, q.replace(/^.*\./, "")];
+            const cs = getAllColumnNames().filter(name => name.startsWith(cn));
+            if (cs.length > 0) {
+              return [cs, q.replace(/^.*\./, "")];
             }
           }
         }
@@ -856,7 +864,6 @@ function child() {
       // other name completion
       {
         const columnNames = getAllColumnNames();
-        const qq = q.replace(/`/g, "");
         const matches
           = Array.from(new Set([
             ...schemas,
