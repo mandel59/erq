@@ -594,8 +594,8 @@ ColumnDef
   = !("primary" __ "key" / "unique" / "check" / "foreign" __ "key") name:Name type:(_ t:TypeName { return t; })? constraints:(_ c:ColumnConstraint { return c; })*
   {
     let def = name;
-    if (type) name += ` ${type}`;
-    for (const c of constraints) name += ` ${c.def}`
+    if (type) def += ` ${type}`;
+    for (const c of constraints) def += ` ${c.def}`
     return { def, name, type, constraints };
   }
 
