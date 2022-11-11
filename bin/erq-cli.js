@@ -847,7 +847,9 @@ function child() {
               return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
             }
           } else if (schemas.includes(tn)) {
-            const ts = tableNames
+            const ts = tables
+              .filter(t => t.schema === tn)
+              .map(t => quoteSQLName(t.name))
               .filter(name => name.startsWith(cn))
               .map(name => `${quoteSQLName(tn)}.${name}`);
             if (ts.length > 0) {
