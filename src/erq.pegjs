@@ -613,7 +613,7 @@ ColumnConstraintBody
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
   / "default" _ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / SignedNumber) { return `default ${x}`; }
   / "collate" boundary _ n:Name { return `collate ${n}`; }
-  / "as" _ "(" _ e:Expression _ ")" x:(__ x:("stored" / "virtual") { return ` ${x}`; })? { return `as (${e})${x}`; }
+  / "as" _ "(" _ e:Expression _ ")" x:(__ x:("stored" / "virtual") { return ` ${x}`; })? { return `as (${e})${x ?? ""}`; }
 
 TableConstraint
   = name:("constraint" n:Name { return n; })? body:TableConstraintBody
