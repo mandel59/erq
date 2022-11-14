@@ -607,7 +607,7 @@ ColumnConstraint
   }
 
 ColumnConstraintBody
-  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(__ "autoincrement" {return "autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
+  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(__ "autoincrement" {return " autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
   / "not" __ "null" cc:ConflictClause? { return `not null${cc ?? ""}`; }
   / "unique" cc:ConflictClause? { return `unique${cc ?? ""}`; }
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
@@ -1383,13 +1383,16 @@ FunctionCall
   ) { return `${n}(${rs}`; }
   ;
 
+NotTypeName
+  = ("constraint"/"primary"/"not"/"unique"/"check"/"default"/"collate"/"references"/"generated"/"as") boundary
+
 TypeName
-  = !(("constraint"/"primary"/"not"/"unique"/"check"/"default"/"collate"/"references"/"generated"/"as") boundary) x:(
-    n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
+  = !NotTypeName x:(
+    n1:Name ns:(_ !NotTypeName n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
     { return [n1, ...ns].join(" ") + `(${s1}, ${s2})` }
-    / n1:Name ns:(_ n:Name { return n; })* "(" _ s1:SignedNumber _ ")"
+    / n1:Name ns:(_ !NotTypeName n:Name { return n; })* "(" _ s1:SignedNumber _ ")"
     { return [n1, ...ns].join(" ") + `(${s1})` }
-    / n1:Name ns:(_ n:Name { return n; })*
+    / n1:Name ns:(_ !NotTypeName n:Name { return n; })*
     { return [n1, ...ns].join(" ") }
   )
   { return x; }
