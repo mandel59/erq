@@ -281,6 +281,8 @@ function defineUserFunctions(defineFunction, defineTable) {
 }
 
 async function parent() {
+  const isTTY = stdin.isTTY && stderr.isTTY;
+
   /** @type {string[] | undefined} */
   let history;
 
@@ -291,7 +293,7 @@ async function parent() {
   });
 
   child.on("exit", (code, signal) => {
-    if (history) {
+    if (isTTY && history) {
       saveHistory(history);
     }
     if (signal != null) {
@@ -334,6 +336,11 @@ async function parent() {
     child.on("message", callback);
   });
 
+  /**
+   * 
+   * @param {{ command: string, args: any[] }} param0 
+   * @returns {Promise<boolean>}
+   */
   async function runCLICommand({ command, args }) {
     return ipcCall("runCLICommand", [{ command, args }]);
   }
@@ -365,9 +372,65 @@ async function parent() {
   let state = "read";
   let input = "";
 
-  // readline setups
-
   await readyPromise;
+
+  for (const l of options.load) {
+    const ok = await runCLICommand({ command: "load", args: [l] });
+    if (!ok) {
+      ipcSend("quit", [1], null);
+      return;
+    }
+  }
+
+  if (options.init) {
+    input = readFileSync(options.init, "utf-8");
+    input += "\n;;";
+    while (input !== "") {
+      const sqls = parseErq();
+      if (sqls == null) {
+        break;
+      }
+      const ok = await runSqls(sqls);
+      if (!ok) {
+        ipcSend("quit", [1], null);
+        return;
+      }
+    }
+  }
+
+  function parseErq() {
+    try {
+      const sqls = parser.parse(input, { startRule: "cli_readline" });
+      input = "";
+      return sqls;
+    } catch (error) {
+      if (error.found === null) {
+        return null;
+      }
+      if (DEBUG) {
+        console.error(error);
+      } else {
+        console.error("%s: %s", error.name, error.message);
+      }
+      if (error && error.location) {
+        const start = error.location.start.offset;
+        const end = error.location.end.offset;
+        console.error(" at line %d column %d", error.location.start.line, error.location.start.column);
+        if (stderr.isTTY) {
+          console.error("---");
+          console.error(
+            '%s',
+            input.slice(0, start)
+            + '\x1b[1m\x1b[37m\x1b[41m'
+            + input.slice(start, end)
+            + '\x1b[0m' + input.slice(end));
+          console.error("---");
+        }
+      }
+      input = "";
+    }
+    return null;
+  }
 
   const historySize = process.env['ERQ_HISTORY_SIZE'] ? parseInt(process.env['ERQ_HISTORY_SIZE'], 10) : 1000;
   const rl = readline.createInterface({
@@ -380,8 +443,6 @@ async function parent() {
     history: loadHistory(),
     historySize,
   });
-
-  const isTTY = stdin.isTTY && stderr.isTTY;
 
   function setPrompt() {
     if (input === "") {
@@ -427,63 +488,6 @@ async function parent() {
   }
   rl.on("SIGTSTP", handleSigtstp)
 
-  // core routines
-
-  function parseErq() {
-    try {
-      const sqls = parser.parse(input, { startRule: "cli_readline" });
-      input = "";
-      return sqls;
-    } catch (error) {
-      if (error.found === null) {
-        return null;
-      }
-      if (DEBUG) {
-        console.error(error);
-      } else {
-        console.error("%s: %s", error.name, error.message);
-      }
-      if (error && error.location) {
-        const start = error.location.start.offset;
-        const end = error.location.end.offset;
-        console.error(" at line %d column %d", error.location.start.line, error.location.start.column);
-        if (stderr.isTTY) {
-          console.error("---");
-          console.error(
-            '%s',
-            input.slice(0, start)
-            + '\x1b[1m\x1b[37m\x1b[41m'
-            + input.slice(start, end)
-            + '\x1b[0m' + input.slice(end));
-          console.error("---");
-        }
-      }
-      input = "";
-    }
-    return null;
-  }
-
-  for (const l of options.load) {
-    try {
-      await runCLICommand({ command: "load", args: [l] });
-    } catch (error) {
-      console.error("%s: %s", error.name, error.message);
-      process.exit(1);
-    }
-  }
-
-  if (options.init) {
-    input = readFileSync(options.init, "utf-8");
-    input += "\n;;";
-    while (input !== "") {
-      const sqls = parseErq();
-      if (sqls == null) {
-        break;
-      }
-      await runSqls(sqls);
-    }
-  }
-
   if (isTTY) { rl.prompt(); }
   rl.on("line", async (line) => {
     if (input !== "") {
@@ -522,10 +526,14 @@ async function parent() {
       input += "\n;;";
       const sqls = await parseErq();
       if (sqls != null) {
-        await runSqls(sqls);
+        const ok = await runSqls(sqls);
+        if (!ok) {
+          ipcSend("quit", [1], null);
+        } else {
+          ipcSend("quit", [0], null);
+        }
       }
     }
-    child.kill("SIGTERM");
   });
 }
 
@@ -895,19 +903,35 @@ function child() {
   }
   ipcExport(interrupt);
 
+  /**
+   * @param {{command: string, args: any[]}} param0
+   * @returns {Promise<boolean>} ok status
+   */
   async function runCLICommand({ command, args }) {
+    try {
+      return await runCLICommandThrowing({ command, args });
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  }
+  async function runCLICommandThrowing({ command, args }) {
     if (command === "load") {
       if (args.length === 1) {
         db.loadExtension(args[0]);
+        return true;
       } else {
         console.error("usage: .load PATH");
+        return false;
       }
     }
     else if (command === "cd") {
       if (args.length === 1) {
         process.chdir(args[0]);
+        return true;
       } else {
         console.error("usage: .cd PATH");
+        return false;
       }
     }
     else if (command === "meta-load") {
@@ -955,36 +979,38 @@ function child() {
         }
         if (definition == null) {
           console.error("header is not defined");
-        } else {
-          const createTableSQL = `create table ${table} (${definition})`;
-          console.error(createTableSQL);
-          db.prepare(createTableSQL).run();
-          const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-          console.error(insertSQL);
-          const insert = db.prepare(insertSQL);
-          const insertMany = db.transaction(() => {
-            let i = 0;
-            for (const record of records) {
-              i++;
-              if (record.length === header.length) {
-                insert.run(record);
-              } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
-                insert.run(record.concat(...Array(header.length - record.length)));
-              } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
-                insert.run(record.slice(0, header.length));
-              } else {
-                throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
-              }
-            }
-          });
-          insertMany();
-          const t1 = performance.now();
-          const t = t1 - t0;
-          const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
-          console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+          return false;
         }
+        const createTableSQL = `create table ${table} (${definition})`;
+        console.error(createTableSQL);
+        db.prepare(createTableSQL).run();
+        const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+        console.error(insertSQL);
+        const insert = db.prepare(insertSQL);
+        const insertMany = db.transaction(() => {
+          let i = 0;
+          for (const record of records) {
+            i++;
+            if (record.length === header.length) {
+              insert.run(record);
+            } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
+              insert.run(record.concat(...Array(header.length - record.length)));
+            } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
+              insert.run(record.slice(0, header.length));
+            } else {
+              throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
+            }
+          }
+        });
+        insertMany();
+        const t1 = performance.now();
+        const t = t1 - t0;
+        const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+        console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+        return true;
       } else {
         console.error("unknown content type: %s", contentType);
+        return false;
       }
     }
     else if (command === "meta-create-function") {
@@ -1003,13 +1029,16 @@ function child() {
         db.function(fn, f);
         erqFunctions.add(fn);
         console.error("ok");
+        return true;
       }
       else {
         console.error("unknown language: %s", tag);
+        return false;
       }
     }
     else {
       console.error("unknown command: %s args: %s", command, JSON.stringify(args));
+      return false;
     }
   }
 
@@ -1018,7 +1047,8 @@ function child() {
     try {
       for (const statement of statements) {
         if (statement.type === "command") {
-          await runCLICommand(statement);
+          const ok = await runCLICommand(statement);
+          if (!ok) return false;
           continue;
         }
         const { type, query: sql, returning } = statement;
@@ -1034,6 +1064,7 @@ function child() {
           const columns = stmt.columns();
           const columnNames = columns.map(c => c.name);
           console.error(JSON.stringify(columnNames));
+          let interrupted = false;
           let i = 0;
           for (const r of stmt.iterate()) {
             i++;
@@ -1053,6 +1084,7 @@ function child() {
             }
             if (sigint) {
               console.error("Interrupted");
+              interrupted = true;
               break;
             }
           }
@@ -1060,6 +1092,7 @@ function child() {
           const t = t1 - t0;
           const rows = (i === 1) ? "1 row" : `${i} rows`;
           console.error("%s (%ss)", rows, (t / 1000).toFixed(3));
+          if (interrupted) return false;
         } else {
           const { changes, lastInsertRowid } = stmt.run();
           const t1 = performance.now();
@@ -1076,11 +1109,19 @@ function child() {
       }
     } catch (error) {
       console.error("%s: %s", error.name, error.message);
+      return false;
     } finally {
       sigint = false;
     }
+    return true;
   }
   ipcExport(runSqls);
+
+  async function quit(status) {
+    db.close();
+    process.exit(status);
+  }
+  ipcExport(quit);
 
   process.on("message", async (message) => {
     if (message == null || typeof message !== "object") return;
@@ -1098,11 +1139,6 @@ function child() {
       });
     }
   })
-
-  process.on("SIGTERM", () => {
-    db.close();
-    process.exit(0);
-  });
 
   process.send("ready");
 }
