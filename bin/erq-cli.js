@@ -17,9 +17,10 @@ import { fileURLToPath } from "node:url";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
+const isTTY = stdin.isTTY && stderr.isTTY;
 
 function loadHistory() {
-  if (ERQ_HISTORY) {
+  if (isTTY && ERQ_HISTORY) {
     try {
       return readFileSync(ERQ_HISTORY, "utf-8").split("\n").filter(line => line);
     } catch {
@@ -281,8 +282,6 @@ function defineUserFunctions(defineFunction, defineTable) {
 }
 
 async function parent() {
-  const isTTY = stdin.isTTY && stderr.isTTY;
-
   /** @type {string[] | undefined} */
   let history;
 
