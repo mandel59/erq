@@ -44,6 +44,7 @@ const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
   { name: 'load', alias: 'l', typeLabel: '{underline path}', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
   { name: 'init', alias: 'i', type: String, typeLabel: '{underline path}', description: 'path to initialize Erq file' },
+  { name: 'format', alias: 'f', type: String, typeLabel: '{underline mode}', description: 'output format' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
 ];
 
@@ -372,6 +373,14 @@ async function parent() {
   let input = "";
 
   await readyPromise;
+
+  if (options.format) {
+    const ok = await runCLICommand({ command: "format", args: [options.format] });
+    if (!ok) {
+      ipcSend("quit", [1], null);
+      return;
+    }
+  }
 
   for (const l of options.load) {
     const ok = await runCLICommand({ command: "load", args: [l] });
@@ -785,6 +794,9 @@ function child() {
    */
   async function callIpcMethod(method, params) {
     const methodFunc = ipcExported.get(method);
+    if (methodFunc == null) {
+      throw new Error(`method ${method} not found`)
+    }
     const result = await methodFunc(...params);
     return result;
   }
@@ -902,6 +914,12 @@ function child() {
   }
   ipcExport(interrupt);
 
+  // global state
+
+  /** @type {"dense" | "sparse"} */
+  let outputFormat = "dense";
+  let outputStream = stdout;
+
   /**
    * @param {{command: string, args: any[]}} param0
    * @returns {Promise<boolean>} ok status
@@ -914,6 +932,8 @@ function child() {
       return false;
     }
   }
+  ipcExport(runCLICommand);
+
   async function runCLICommandThrowing({ command, args }) {
     if (command === "load") {
       if (args.length === 1) {
@@ -932,6 +952,22 @@ function child() {
         console.error("usage: .cd PATH");
         return false;
       }
+    }
+    else if (command === "format") {
+      if (args.length === 1) {
+        if (args[0] === "array") {
+          outputFormat = "dense";
+          return true;
+        } else if (args[0] === "object") {
+          outputFormat = "sparse";
+          return true;
+        }
+      }
+      console.error("usage: .format MODE");
+      console.error("  MODE is one of:");
+      console.error("    array\tResults in ndjson (each record is an JSON array)");
+      console.error("    object\tResults in ndjson (each record is an JSON object)");
+      return false;
     }
     else if (command === "meta-load") {
       const t0 = performance.now();
@@ -1089,7 +1125,6 @@ function child() {
     }
   }
 
-  let outputStream = stdout;
   async function runSqls(statements) {
     try {
       for (const statement of statements) {
@@ -1113,26 +1148,54 @@ function child() {
           console.error(JSON.stringify(columnNames));
           let interrupted = false;
           let i = 0;
-          for (const r of stmt.iterate()) {
-            i++;
-            if (!outputStream.write(JSON.stringify(r.map(value => {
-              if (value != null && typeof value === "object") {
-                // convert Buffer object to Array object
-                return Array.from(value);
+          if (outputFormat === "dense") {
+            for (const r of stmt.iterate()) {
+              i++;
+              if (!outputStream.write(JSON.stringify(r.map(value => {
+                if (value != null && typeof value === "object") {
+                  // convert Buffer object to Array object
+                  return Array.from(value);
+                }
+                if (typeof value === "bigint") {
+                  return String(value);
+                }
+                return value;
+              })) + "\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              } else if (i % 100 === 0) {
+                await new Promise(resolve => setImmediate(() => resolve()));
               }
-              if (typeof value === "bigint") {
-                return String(value);
+              if (sigint) {
+                console.error("Interrupted");
+                interrupted = true;
+                break;
               }
-              return value;
-            })) + "\n")) {
-              await new Promise(resolve => outputStream.once("drain", () => resolve()));
-            } else if (i % 100 === 0) {
-              await new Promise(resolve => setImmediate(() => resolve()));
             }
-            if (sigint) {
-              console.error("Interrupted");
-              interrupted = true;
-              break;
+          } else if (outputFormat === "sparse") {
+            for (const r of stmt.iterate()) {
+              i++;
+              const kvs = r.map((value, j) => {
+                const k = columnNames[j];
+                if (value != null && typeof value === "object") {
+                  // convert Buffer object to Array object
+                  return [k, Array.from(value)];
+                }
+                if (typeof value === "bigint") {
+                  return [k, String(value)];
+                }
+                return [k, value];
+              });
+              const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
+              if (!outputStream.write(JSON.stringify(obj) + "\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              } else if (i % 100 === 0) {
+                await new Promise(resolve => setImmediate(() => resolve()));
+              }
+              if (sigint) {
+                console.error("Interrupted");
+                interrupted = true;
+                break;
+              }
             }
           }
           const t1 = performance.now();
@@ -1174,15 +1237,23 @@ function child() {
     if (message == null || typeof message !== "object") return;
     try {
       const { method, params, id } = message;
-      const result = await callIpcMethod(method, params);
-      if (id != null) {
-        process.send({ result, id });
+      try {
+        const result = await callIpcMethod(method, params);
+        if (id != null) {
+          process.send({ result, id });
+        }
+      } catch (error) {
+        console.error(error);
+        process.send({
+          error: { code: 1, message: String(error), data: {} },
+          id,
+        });
       }
     } catch (error) {
       console.error(error);
       process.send({
-        error: { code: 1, message: String(error), data: {} },
-        id,
+        error: { code: 2, message: String(error), data: {} },
+        id: null,
       });
     }
   })
