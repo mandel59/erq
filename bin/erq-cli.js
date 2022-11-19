@@ -946,9 +946,9 @@ function child() {
       const relax_column_count_less = options.relax_column_count_less ?? undefined;;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;;
       const encoding = options.encoding ?? "utf-8";
-      /** @type {string} */
-      const data = path ? iconv.decode(readFileSync(path), encoding) : content;
       if (format === "csv") {
+        /** @type {string} */
+        const data = path ? iconv.decode(readFileSync(path), encoding) : content;
         const csv = parseCSV(data, {
           bom: true,
           delimiter,
@@ -999,6 +999,54 @@ function child() {
             } else {
               throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
             }
+          }
+        });
+        insertMany();
+        const t1 = performance.now();
+        const t = t1 - t0;
+        const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+        console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+        return true;
+      } else if (format === "ndjson") {
+        /** @type {string} */
+        const data = path ? iconv.decode(readFileSync(path), encoding) : content;
+        const records = data.trim().split("\n").map(line => JSON.parse(line));
+        let header, definition;
+        if (def) {
+          header = columnNames;
+          definition = def;
+        } else {
+          const s = new Set()
+          for (const record of records) {
+            if (record == null || typeof record !== "object") {
+              s.add("value");
+            }
+            for (const key of Object.keys(record)) {
+              s.add(key);
+            }
+          }
+          header = Array.from(s);
+          definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+        }
+        const createTableSQL = `create table ${table} (${definition})`;
+        console.error(createTableSQL);
+        db.prepare(createTableSQL).run();
+        const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+        console.error(insertSQL);
+        const insert = db.prepare(insertSQL);
+        const insertMany = db.transaction(() => {
+          let i = 0;
+          for (let record of records) {
+            i++;
+            if (record == null || typeof record !== "object") {
+              record = { value: record };
+            }
+            insert.run(header.map(n => {
+              const v = record[n];
+              if (v == null) return null;
+              if (typeof v === "object") return JSON.stringify(v);
+              return v;
+            }));
           }
         });
         insertMany();
