@@ -42,6 +42,7 @@ function saveHistory(history) {
 
 const optionList = [
   { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
+  { name: 'version', alias: 'v', type: Boolean, description: 'show Version' },
   { name: 'load', alias: 'l', typeLabel: '{underline path}', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
   { name: 'init', alias: 'i', type: String, typeLabel: '{underline path}', description: 'path to initialize Erq file' },
   { name: 'format', alias: 'f', type: String, typeLabel: '{underline mode}', description: 'output format' },
@@ -63,9 +64,22 @@ function showUsage() {
   console.error(usage);
 }
 
+function showVersion() {
+  const packagejson = readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf-8");
+  const erqVersion = JSON.parse(packagejson).version;
+  const db = new Database(":memory:");
+  const sqliteVersion = db.prepare("select sqlite_version()").pluck().get();
+  console.log("Erq CLI version %s", erqVersion);
+  console.log("SQLite version %s", sqliteVersion);
+}
+
 const options = commandLineArgs(optionList);
 if (options.help) {
   showUsage();
+  process.exit();
+}
+if (options.version) {
+  showVersion();
   process.exit();
 }
 
@@ -360,7 +374,7 @@ async function parent() {
   process.on("SIGTERM", handleSignal("SIGTERM"));
   process.on("SIGQUIT", handleSignal("SIGQUIT"));
 
-  const syntax = readFileSync(new URL("../src/erq.pegjs", import.meta.url).pathname, "utf-8")
+  const syntax = readFileSync(fileURLToPath(new URL("../src/erq.pegjs", import.meta.url).href), "utf-8")
   const parser = peggy.generate(syntax, {
     allowedStartRules: ["start", "cli_readline"],
     trace: DEBUG,
