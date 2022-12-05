@@ -472,6 +472,7 @@ Statement
 MetaStatement
   = l:LoadRawBlock { return { type: "command", command: "meta-load", args: l }}
   / c:CreateFunction { return { type: "command", command: "meta-create-function", args:c } }
+  / c:CreateTableFromJson { return { type: "command", command: "meta-create-table-from-json", args:c } }
 
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
@@ -576,6 +577,10 @@ CreateFunction
   {
     return [n, ps, x];
   }
+
+CreateTableFromJson
+  = "create" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    boundary "from" __ "json" _ "(" _ e:Table _ ")" { return [table, d, e]; }
 
 FunctionParams
   = "(" _ ")" { return []; }

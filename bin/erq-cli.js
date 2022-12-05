@@ -935,6 +935,25 @@ function child() {
   let outputStream = stdout;
 
   /**
+   * 
+   * @param {string[]} header 
+   * @param {unknown} json 
+   */
+  function convertJsonToRecord(header, json) {
+    if (json == null || typeof json !== "object") {
+      json = { value: json };
+    }
+    return header.map(n => {
+      const v = json[n];
+      if (v == null) return null;
+      if (v === true) return 1;
+      if (v === false) return 0;
+      if (typeof v === "object") return JSON.stringify(v);
+      return v;
+    })
+  }
+
+  /**
    * @param {{command: string, args: any[]}} param0
    * @returns {Promise<boolean>} ok status
    */
@@ -1085,20 +1104,8 @@ function child() {
         console.error(insertSQL);
         const insert = db.prepare(insertSQL);
         const insertMany = db.transaction(() => {
-          let i = 0;
-          for (let record of records) {
-            i++;
-            if (record == null || typeof record !== "object") {
-              record = { value: record };
-            }
-            insert.run(header.map(n => {
-              const v = record[n];
-              if (v == null) return null;
-              if (v === true) return 1;
-              if (v === false) return 0;
-              if (typeof v === "object") return JSON.stringify(v);
-              return v;
-            }));
+          for (let json of records) {
+            insert.run(convertJsonToRecord(header, json))
           }
         });
         insertMany();
@@ -1134,6 +1141,49 @@ function child() {
         console.error("unknown language: %s", tag);
         return false;
       }
+    }
+    else if (command === "meta-create-table-from-json") {
+      const t0 = performance.now();
+      const [table, def, jsonsql] = args;
+      const columnNames = def && def.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
+      let header, definition;
+      if (def) {
+        header = columnNames;
+        definition = def;
+      } else {
+        const keys = db.prepare(`with t(v) as (${jsonsql}) `
+          + `select distinct ifnull(k.key, 'value') as key from t join json_each(t.v) as u join json_each(u.value) as k `
+          + `where json_type(t.v) = 'array' `
+          + `union select distinct ifnull(k.key, 'value') from t join json_each(t.v) as k `
+          + `where json_type(t.v) <> 'array'`).pluck().all();
+        header = keys.map(String);
+        definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+      }
+      const createTableSQL = `create table ${table} (${definition})`;
+      console.error(createTableSQL);
+      db.prepare(createTableSQL).run();
+      const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+      console.error(insertSQL);
+      const insert = db.prepare(insertSQL);
+      const records = db.prepare(jsonsql).pluck().all()
+      const insertMany = db.transaction(() => {
+        for (let json of records) {
+          const obj = JSON.parse(json)
+          if (Array.isArray(obj)) {
+            for (const o of obj) {
+              insert.run(convertJsonToRecord(header, o))
+            }
+          } else {
+            insert.run(convertJsonToRecord(header, obj))
+          }
+        }
+      });
+      insertMany();
+      const t1 = performance.now();
+      const t = t1 - t0;
+      const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+      console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+      return true;
     }
     else {
       console.error("unknown command: %s args: %s", command, JSON.stringify(args));
