@@ -478,6 +478,7 @@ Statement1
   = s:Attach { return { type: "attach", query: s }; }
   / s:Detach { return { type: "detach", query: s }; }
   / c:Create { return { type: "create", query: c }; }
+  / a:Alter { return { type: "alter", query: a }; }
   / d:Drop { return { type: "drop", query: d }; }
   / i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
   / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
@@ -692,6 +693,12 @@ Create
       return `create ${tv} ${qn} as with ${n} as (${t}) select * from ${n}`;
     }
   }
+
+Alter
+  = "alter" __ "table" boundary _ n:TableName _ "rename" __ "to" boundary _ d:Name { return `alter table ${n} rename to ${d}`; }
+  / "alter" __ "table" boundary _ n:TableName _ "rename" boundary _ c:Name _ boundary "to" boundary _ d:Name { return `alter table ${n} rename ${c} to ${d}`; }
+  / "alter" __ "table" boundary _ n:TableName _ "add" boundary _ c:Name { return `alter table ${n} add ${c}`; }
+  / "alter" __ "table" boundary _ n:TableName _ "drop" boundary _ c:Name { return `alter table ${n} drop ${c}`; }
 
 Insert
   = ts:WithClause* "insert" __ "into" boundary _ n:TableName _ a:ColumnNameList? t:Table
