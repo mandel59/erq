@@ -1094,6 +1094,8 @@ function child() {
             insert.run(header.map(n => {
               const v = record[n];
               if (v == null) return null;
+              if (v === true) return 1;
+              if (v === false) return 0;
               if (typeof v === "object") return JSON.stringify(v);
               return v;
             }));
