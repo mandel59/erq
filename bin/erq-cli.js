@@ -1152,10 +1152,11 @@ function child() {
         definition = def;
       } else {
         const keys = db.prepare(`with t(v) as (${jsonsql}) `
-          + `select distinct ifnull(k.key, 'value') as key from t join json_each(t.v) as u join json_each(u.value) as k `
+          + `select distinct key from `
+          + `(select ifnull(k.key, 'value') as key from t join json_each(t.v) as u join json_each(u.value) as k `
           + `where json_type(t.v) = 'array' `
-          + `union select distinct ifnull(k.key, 'value') from t join json_each(t.v) as k `
-          + `where json_type(t.v) <> 'array'`).pluck().all();
+          + `union all select ifnull(k.key, 'value') from t join json_each(t.v) as k `
+          + `where json_type(t.v) <> 'array')`).pluck().all();
         header = keys.map(String);
         definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
       }
