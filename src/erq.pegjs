@@ -479,8 +479,9 @@ Statement1
   / s:Detach { return { type: "detach", query: s }; }
   / c:Create { return { type: "create", query: c }; }
   / d:Drop { return { type: "drop", query: d }; }
-  / i:Insert r:ReturningClause? {  return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
+  / i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
   / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
+  / u:Update r:ReturningClause? { return r != null ? { type: "update", query: u + r, returning: true } : { type: "update", query: u }; }
   / d:Truncate { return { type: "delete", query: d }; }
   / s:Vacuum { return { type: "vacuum", query: s }; }
   / s:Pragma { return { type: "pragma", query: s }; }
@@ -721,6 +722,22 @@ Delete
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}delete from ${n} where ${e}`;
   }
+
+Update
+  = ts:WithClause*
+    "update" boundary _ n:TableName cond:(_ "[" _ cond:Expression _ "]" { return cond; })?
+    ss:(_ s:SetClause { return s; })*
+  {
+    const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
+    return `${withclause}update ${n} set ${ss.join(", ")}${cond ? ` where ${cond}` : ""}`
+  }
+
+SetClause
+  = "set" boundary _ l:UpdateLHS _ "=" _ e:Expression { return `${l} = ${e}`; }
+
+UpdateLHS
+  = "{" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ "}" _ { return `(${[an1, ...ans].join(", ")})`; }
+  / t:Name
 
 Truncate
   = "truncate" __ "table" boundary _ n:TableName
