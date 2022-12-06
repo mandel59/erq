@@ -697,7 +697,7 @@ Create
 Alter
   = "alter" __ "table" boundary _ n:TableName _ "rename" __ "to" boundary _ d:Name { return `alter table ${n} rename to ${d}`; }
   / "alter" __ "table" boundary _ n:TableName _ "rename" boundary _ c:Name _ boundary "to" boundary _ d:Name { return `alter table ${n} rename ${c} to ${d}`; }
-  / "alter" __ "table" boundary _ n:TableName _ "add" boundary _ c:Name { return `alter table ${n} add ${c}`; }
+  / "alter" __ "table" boundary _ n:TableName _ "add" boundary _ d:ColumnDef { return `alter table ${n} add ${d.def}`; }
   / "alter" __ "table" boundary _ n:TableName _ "drop" boundary _ c:Name { return `alter table ${n} drop ${c}`; }
 
 Insert
