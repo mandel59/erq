@@ -780,7 +780,7 @@ PragmaValue
   / SQLStringLiteral
 
 ReturningClause
-  = rs:(_ boundary "returning" _ "{" _ rs:ValueWildCardReferences _ "}" { return rs; })
+  = rs:(_ boundary "returning" _ rs:ValueWildCardReferences { return rs; })
   {
     return " returning " + rs.map(s => {
       if (s.name && s.name !== s.expression) {
@@ -790,6 +790,7 @@ ReturningClause
       }
     }).join(", ");
   }
+
 
 ModuleArguments
   = "(" ModuleArguments ")"
