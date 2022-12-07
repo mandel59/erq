@@ -480,9 +480,6 @@ Statement1
   / c:Create { return { type: "create", query: c }; }
   / a:Alter { return { type: "alter", query: a }; }
   / d:Drop { return { type: "drop", query: d }; }
-  / i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
-  / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
-  / u:Update r:ReturningClause? { return r != null ? { type: "update", query: u + r, returning: true } : { type: "update", query: u }; }
   / d:Truncate { return { type: "delete", query: d }; }
   / s:Vacuum { return { type: "vacuum", query: s }; }
   / s:Pragma { return { type: "pragma", query: s }; }
@@ -492,6 +489,12 @@ Statement1
   / s:Commit { return { type: "commit", query: s }; }
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
+  / TriggerStatement
+
+TriggerStatement
+  = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
+  / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
+  / u:Update r:ReturningClause? { return r != null ? { type: "update", query: u + r, returning: true } : { type: "update", query: u }; }
   / t:Table { return { type: "select", query: t }; }
 
 Begin
@@ -683,6 +686,16 @@ Create
       return `create table ${n} (${td.def})`;
     }
   }
+  / "create" __ "trigger"
+    ine:(__ "if" __ "not" __ "exists" { return " if not exists"; })? boundary
+    _ trig:TableName
+    _ boundary triggerPhase:("before"/"after"/"instead" __ "of" { return "instead of"; })
+    __ triggerMethod:("delete"/"insert"/"update" __ "of" __ cns:NameList { return `update of ${cns.join(", ")}`; })
+    _ boundary "on" boundary _ tn:Name when:(_ "when" _ when:Expression { return ` when ${when}`; })?
+    _ "{" ss:(_ s:TriggerStatement _ ";;" { return `${s.query};`; })+ _ "}"
+  {
+    return `create trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.join("")} end`;
+  }
   / tv:("table" / "view") boundary _ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
     const [s, n] = x;
@@ -865,7 +878,10 @@ WindowClause
   { return { name: n, window: w }; }
 
 ColumnNameList
-  = "(" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ ")" _ { return [an1, ...ans]; }
+  = "(" _ ns:NameList _ ")" _ { return ns; }
+
+NameList
+  = an1:Name ans:(_ "," _ an:Name { return an; })* { return [an1, ...ans]; }
 
 TableUnion
   = t1:Table1
