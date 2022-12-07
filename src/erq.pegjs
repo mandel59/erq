@@ -1335,9 +1335,9 @@ Pack
 Unpack
   = "unpack" boundary _ e:(
     "(" _ e:Expression _ ")" { return `(${e})`; }
-    / n:Name { return n; }
-    / t:Name _ "." _ n:Name { return `${t}.${n}`; }
     / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
+    / t:Name _ "." _ n:Name { return `${t}.${n}`; }
+    / n:Name { return n; }
   ) _ "{" _ ps:UnpackNameList _ "}" {
     return ps.map(([k, c]) => {
       return {
