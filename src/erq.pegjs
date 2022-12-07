@@ -1085,8 +1085,8 @@ Filter
   ;
 
 ValueReferences
-  = r1:ValueReference rs:(_ "," _ r:ValueReference { return r; })* {
-    return [r1, ...rs];
+  = r1:ValueReferenceOrUnpack rs:(_ "," _ r:ValueReferenceOrUnpack { return r; })* {
+    return [r1, ...rs].flat();
   }
   ;
 
@@ -1120,6 +1120,11 @@ ValueWildCardReference
     return { name: null, expression: e, sort: null };
   }
   / ValueReference
+  ;
+
+ValueReferenceOrUnpack
+  = Unpack
+  / r:ValueReference { return [r]; }
   ;
 
 ValueWildCardReferenceOrUnpack

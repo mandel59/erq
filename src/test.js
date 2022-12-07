@@ -121,6 +121,10 @@ test('select table', t => {
     parser.parse(`t: (values(a, b, c) [{1, 2, 3}]) { j: pack { a, b, c } } { unpack j { a, b } }`),
     { type: 'select', query: `select j->>'$."a"' as a, j->>'$."b"' as b from (select json_object('a', a, 'b', b, 'c', c) as j from (select null as a, null as b, null as c where 0 union all values (1, 2, 3)) as t)` }
   )
+  t.deepEqual(
+    parser.parse(`t: (values(a, b, c) [{1, 2, 3}]) { j: pack { a, b, c } } { unpack j { a, b } => count(*) }`),
+    { type: 'select', query: `select j->>'$."a"' as a, j->>'$."b"' as b, count(*) from (select json_object('a', a, 'b', b, 'c', c) as j from (select null as a, null as b, null as c where 0 union all values (1, 2, 3)) as t) group by (j->>'$."a"'), (j->>'$."b"')` }
+  )
 });
 
 test('create table', t => {
