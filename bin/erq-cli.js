@@ -410,7 +410,8 @@ async function parent() {
     while (input !== "") {
       const sqls = parseErq();
       if (sqls == null) {
-        break;
+        ipcSend("quit", [1], null);
+        return;
       }
       const ok = await runSqls(sqls);
       if (!ok) {
@@ -547,13 +548,15 @@ async function parent() {
     if (input !== null) {
       input += "\n;;";
       const sqls = await parseErq();
-      if (sqls != null) {
-        const ok = await runSqls(sqls);
-        if (!ok) {
-          ipcSend("quit", [1], null);
-        } else {
-          ipcSend("quit", [0], null);
-        }
+      if (sqls == null) {
+        ipcSend("quit", [1], null);
+        return;
+      }
+      const ok = await runSqls(sqls);
+      if (!ok) {
+        ipcSend("quit", [1], null);
+      } else {
+        ipcSend("quit", [0], null);
       }
     }
   });
