@@ -1,0 +1,595 @@
+Erq {
+
+  CliReadline
+    = (Statement? ";;")*
+
+  Statement
+    = Statement1
+
+  Statement1
+    = Explain
+    | Statement0
+
+  Explain
+    = keyword<"explain"> (keyword<"query"> keyword<"plan">)? Statement0
+
+  Statement0
+    = Attach
+    | Detach
+    | Create
+    | Drop
+    | TriggerStatement
+
+  TriggerStatement
+    = Insert ReturningClause? -- insert
+    | Delete ReturningClause? -- delete
+    | Update ReturningClause? -- update
+    | Select
+
+  Attach = keyword<"attach"> Value keyword<"as"> SchemaName
+
+  Detach = keyword<"detach"> SchemaName
+
+  Create
+    = CreateTable
+    | CreateView
+    | CreateIndex
+    | CreateTrigger
+
+  IfExists
+    = keyword<"if"> keyword<"exists">
+
+  IfNotExists
+    = keyword<"if"> keyword<"not"> keyword<"exists">
+
+  CreateTable
+    = keyword<"create"> keyword<"temporary">? keyword<"table"> IfNotExists? TableName CreateTableDef
+
+  CreateTableDef
+    = keyword<"as"> Table -- defAs
+    | "(" NonemptyListOf<ColumnDef, ","> ("," TableConstraint)* ")" -- defSchema
+
+  ColumnDef
+    = ~keyword<("primary"|"unique"|"check"|"foreign")> name Type? ColumnConstraint*
+
+  ColumnConstraint
+    = (keyword<"constraint"> name)? ColumnConstraintBody
+
+  ColumnConstraintBody
+    = keyword<"primary"> keyword<"key"> SortOrder? ConflictClause? keyword<"autoincrement">? -- primaryKey
+    | keyword<"not"> keyword<"null"> ConflictClause? -- notNull
+    | keyword<"unique"> ConflictClause? -- unique
+    | keyword<"check"> "(" Value ")" -- check
+    | keyword<"default"> DefaultValue -- default
+    | keyword<"collate"> name -- collate
+    | keyword<"generated">? keyword<"as"> "(" Value ")" GeneratedColumnType? -- generatedAs
+
+  DefaultValue
+    = "(" Value ")" -- expr
+    | Literal
+    | SignedNumber
+
+  GeneratedColumnType
+    = keyword<"stored"> -- stored
+    | keyword<"virtual"> -- virtual
+
+  SortOrder
+    = keyword<"asc"> -- asc
+    | keyword<"desc"> -- desc
+
+  notTypeName
+    = keyword<("constraint"|"primary"|"not"|"unique"|"check"|"default"|"collate"|"references"|"generated"|"as")>
+
+  typeName
+    = ~notTypeName name
+
+  SignedNumber
+    = ("-"|"+")? numericLiteral
+
+  Type
+    = typeName+ ( "(" SignedNumber ("," SignedNumber)? ")" )?
+
+  TableConstraint
+    = keyword<"primary"> keyword<"key"> ColumnNameList ConflictClause? -- primaryKey
+    | keyword<"unique"> ColumnNameList ConflictClause? -- unique
+    | keyword<"check"> "(" Value ")" -- check
+
+  ConflictClause
+    = keyword<"on"> keyword<"conflict"> OnConflictMethod
+
+  OnConflictMethod
+    = keyword<"rollback"> -- rollback
+    | keyword<"abort"> -- abort
+    | keyword<"fail"> -- fail
+    | keyword<"ignore"> -- ignore
+    | keyword<"replace"> -- replace
+
+  CreateView
+    = keyword<"create"> keyword<"temporary">? keyword<"view"> IfNotExists? TableName keyword<"as"> Table
+
+  CreateIndex
+    = keyword<"create"> keyword<"index"> IfNotExists? TableName keyword<"on"> name "(" NonemptyListOf<IndexedColumn, ","> ")"
+
+  IndexedColumn
+    = Value SortOrder?
+
+  CreateTrigger
+    = keyword<"create"> keyword<"trigger"> IfNotExists? TableName TriggerPhase TriggerMethod keyword<"on"> name ForEachRow? WhenClause? "{" NonemptyListOf<TriggerStatement, ";;"> "}"
+
+  TriggerPhase
+    = keyword<"before"> -- before
+    | keyword<"after"> -- after
+    | keyword<"instead"> keyword<"of"> -- insteadOf
+
+  TriggerMethod
+    = keyword<"delete"> -- delete
+    | keyword<"insert"> -- insert
+    | keyword<"update"> (keyword<"of"> NonemptyListOf<name, ",">)? -- update
+
+  ForEachRow
+    = keyword<"for"> keyword<"each"> keyword<"row">
+
+  Drop
+    = DropTable
+    | DropView
+    | DropIndex
+    | DropTrigger
+
+  DropTable
+    = keyword<"drop"> keyword<"temporary">? keyword<"table"> IfExists? TableName
+
+  DropView
+    = keyword<"drop"> keyword<"temporary">? keyword<"view"> IfExists? TableName
+
+  DropIndex
+    = keyword<"drop"> keyword<"index"> IfExists? TableName
+
+  DropTrigger
+    = keyword<"drop"> keyword<"trigger"> IfExists? TableName
+
+  Insert
+    = WithClause* keyword<"insert"> keyword<"into"> TableName ColumnNameList? Table -- insertInto
+    | WithClause* TableName ColumnNameList? op<"<-"> Table -- arrowInsert
+
+  Delete
+    = WithClause* keyword<"delete"> keyword<"from">? TableName WhereClause+
+
+  Update
+    = WithClause* keyword<"update"> TableName WhereClause* SetClause+
+
+  SetClause
+    = keyword<"set"> UpdateLhs op<"="> Value
+
+  UpdateLhs
+    = "{" NonemptyListOf<name, ","> "}" -- rowValueRef
+    | name
+
+  ColumnNameList = "(" NonemptyListOf<name, ","> ")"
+
+  ReturningClause
+    = keyword<"returning"> "{" NonemptyListOf<ColumnMapping, ","> "}" -- returning
+    | keyword<"returning"> NonemptyListOf<ColumnMapping, ","> -- returningWithoutBrace
+
+  Select
+    = Table
+
+  Table
+    = Table5
+
+  Table5
+    = WithClause* Table4
+
+  WithClause
+    = keyword<"with"> name ColumnNameList keyword<"as"> "(" Table ")"
+
+  Table4
+    = Table4 OrderClause -- order
+    | Table4 DistinctClause -- distinct
+    | Table4 LimitOffsetClause -- limitOffset
+    | Table4 AsClause -- as
+    | Table4 TableOperator -- tableOperator
+    | Table3
+
+  OrderClause
+    = keyword<"order"> keyword<"by"> "[" NonemptyListOf<OrderClauseItem, ","> "]"
+
+  OrderClauseItem
+    = Value SortOrder?
+
+  DistinctClause
+    = keyword<"distinct">
+
+  LimitOffsetClause
+    = keyword<"limit"> Value (keyword<"offset"> Value)? -- limitOffset
+    | keyword<"offset"> Value keyword<"limit"> Value -- offsetLimit
+
+  AsClause
+    = keyword<"as"> name
+
+  Table3
+    = Table3 ";" Table2 -- union
+    | Table2
+
+  Table2
+    = Table2 TableOperator -- tableOperator
+    | keyword<"from">? Table1 -- fromTable
+
+  TableOperator
+    = WhereClause -- where
+    | SelectClause -- select
+    | JoinOperator Table1 OnClause? -- join
+    | NaturalJoinOperator Table1 -- naturalJoin
+    | SugarJoinOperator Table1 -- sugarJoin
+    | WindowClause -- window
+
+  WindowClause
+    = keyword<"window"> name keyword<"as"> WindowDefn
+
+  WhereClause
+    = keyword<"where">? "[" Value "]" -- where
+    | keyword<"where"> Value -- whereWithoutBracket
+
+  SelectClause
+    = keyword<"select">? SelectClauseBody -- select
+    | GroupByClause? keyword<"select"> NonemptyListOf<ColumnMapping, ","> -- selectWithoutBrace
+
+  SelectClauseBody
+    = "{" NonemptyListOf<ColumnMapping, ","> op<"=>"> ListOf<ColumnMapping, ","> "}" -- aggregation
+    | "{" op<"=>"> NonemptyListOf<ColumnMapping, ","> "}" -- aggregationWithoutGroup
+    | GroupByClause? "{" NonemptyListOf<ColumnMapping, ","> "}" -- selection
+
+  GroupByClause
+    = keyword<"group"> keyword<"by"> "[" ListOf<Value, ","> "]"
+
+  JoinOperator
+    = keyword<("left"|"right"|"full"|"inner"|"cross")>? keyword<"join">
+
+  NaturalJoinOperator
+    = keyword<"natural"> keyword<"join">
+
+  SugarJoinOperator
+    = "-:" name (":" name)? ":>"
+
+  OnClause
+    = keyword<"on"> Value
+
+  Table1
+    = (name ":")? Table0
+
+  Table0
+    = "(" Table ")" -- paren
+    | SelectClause -- select
+    | Values
+    | TableName ( "(" ListOf<Value, ","> ")" )? -- tableReference
+
+  ColumnMapping
+    = ColumnAssignment
+    | WildCard
+
+  ColumnAssignment
+    = (name ":")? Value ColumnAssignmentOption*
+
+  WildCard
+    = (TableName ".")? op<"*">
+
+  ColumnAssignmentOption
+    = SortOrder
+
+  Values
+    = keyword<"values"> ColumnNameList "[" ListOf<Value, ","> "]" -- valuesWithColumnNameList
+    | keyword<"values"> "[" NonemptyListOf<Value, ","> "]" -- valuesWithoutColumnNameList
+
+  Value
+    = Value12
+
+  Value12
+    = Value12 keyword<"or"> Value11 -- or
+    | Value11
+
+  Value11
+    = Value11 keyword<"and"> Value10 -- and
+    | Value10
+
+  Value10
+    = keyword<"not"> Value10 -- not
+    | Value9
+
+  Value9
+    = Value8 op<("==" | "=")> Value8 -- eq
+    | Value8 op<("!=" | "<>")> Value8 -- neq
+    | Value8 keyword<"is"> keyword<"not"> Value8 -- isnot
+    | Value8 keyword<"is"> Value8 -- is
+    | Value8 keyword<"between"> Value8 keyword<"and"> Value8 -- between
+    | Value8 keyword<"not"> keyword<"match"> Value8 -- notmatch
+    | Value8 keyword<"not"> keyword<"like"> Value8 -- notlike
+    | Value8 keyword<"not"> keyword<"regexp"> Value8 -- notregexp
+    | Value8 keyword<"not"> keyword<"glob"> Value8 -- notglob
+    | Value8 keyword<"not"> keyword<"in"> InRhsOperand -- notin
+    | Value8 keyword<"match"> Value8 -- match
+    | Value8 keyword<"like"> Value8 -- like
+    | Value8 keyword<"regexp"> Value8 -- regexp
+    | Value8 keyword<"glob"> Value8 -- glob
+    | Value8 keyword<"in"> InRhsOperand -- in
+    | Value8
+
+  InRhsOperand
+    = "[" NonemptyListOf<Value, ","> "]" -- list
+    | Table
+
+  Value8
+    = Value8 op<"<="> Value7 -- le
+    | Value8 op<"<"> Value7 -- lt
+    | Value8 op<">="> Value7 -- ge
+    | Value8 op<">"> Value7 -- gt
+    | Value7
+
+  Value7
+    = Value6
+
+  Value6
+    = Value6 op<"&"> Value5 -- bitwiseAnd
+    | Value6 op<"|"> Value5 -- bitwiseOr
+    | Value6 op<"<<"> Value5 -- leftShift
+    | Value6 op<">>"> Value5 -- rightShift
+    | Value5
+
+  Value5
+    = Value5 op<"+"> Value4 -- add
+    | Value5 op<"-"> Value4 -- sub
+    | Value4
+
+  Value4
+    = Value4 op<"*"> Value3 -- mul
+    | Value4 op<"/"> Value3 -- div
+    | Value4 op<"%"> Value3 -- mod
+    | Value3
+
+  Value3
+    = Value3 op<"||"> Value2 -- concat
+    | Value3 op<"->"> Value2 -- extract
+    | Value3 op<"->>"> Value2 -- extractValue
+    | Value2
+
+  Value2
+    = Value2 keyword<"collate"> name -- collate
+    | Value1
+
+  Value1
+    = op<"~"> Value0 -- bitwiseNot
+    | op<"+"> Value0 -- pos
+    | op<"-"> Value0 -- neg
+    | Value0
+
+  Value0
+    = CaseExpression
+    | IfExpression
+    | "(" Value ")" -- paren
+    | "{" NonemptyListOf<Value, ","> "}" -- rowValue
+    | &keyword<("with"|"from"|"values")> Table -- subquery
+    | Literal
+    | FunctionCall
+    | ColumnName
+
+  CaseExpression
+    = keyword<"case"> (~keyword<"when"> Value)? WhenClause+ ElseClause? keyword<"end"> -- case
+
+  IfExpression
+    = keyword<"if"> Value keyword<"then"> Value ElseClause? keyword<"end"> -- if
+
+  WhenClause
+    = keyword<"when"> Value keyword<"then"> Value
+
+  ElseClause
+    = keyword<"else"> Value
+
+  FunctionCall
+    = FilterClause? OverClause? name "(" FunctionArgs ")"
+
+  FilterClause
+    = "[" Value "]"
+
+  OverClause
+    = keyword<"over"> (WindowDefn | name)
+
+  WindowDefn
+    = "(" WindowDefnName? WindowDefnPartition? ")"
+
+  WindowDefnName
+    = ~keyword<("partition"|"order"|"range"|"rows"|"groups")> name
+
+  WindowDefnPartition
+    = keyword<"partition"> keyword<"by"> NonemptyListOf<Value, ",">
+
+  WindowDefnOrderBy
+    = keyword<"order"> keyword<"by"> WindowDefnOrderingTerms WindowDefnFrameSpec
+
+  WindowDefnOrderingTerms
+    = Value (keyword<"collate"> name)? SortOrder? (keyword<"nulls"> keyword<("first"|"last")>)?
+
+  WindowDefnFrameSpec
+    = keyword<("range"|"rows"|"groups")> WindowDefnFrameSpecRange
+
+  WindowDefnFrameSpecRange
+    = keyword<"between"> WindowDefnFrameSpecRangeStart keyword<"and"> WindowDefnFrameSpecRangeEnd -- range
+    | WindowDefnFrameSpecRangeStart
+  
+  WindowDefnFrameSpecRangeStart
+    = keyword<"unbounded"> keyword<"preceding">
+    | keyword<"current"> keyword<"row">
+    | Value keyword<("preceding" | "following")>
+
+  WindowDefnFrameSpecRangeEnd
+    = keyword<"unbounded"> keyword<"following">
+    | keyword<"current"> keyword<"row">
+    | Value keyword<("preceding" | "following")>
+
+  FunctionArgs
+    = "*" -- wildcard
+    | keyword<"distinct"> Value -- distinctArg
+    | ListOf<Value, ","> -- args
+
+  ColumnName
+    = TableName "." name -- table
+    | name -- column
+
+  TableName
+    = SchemaName "." name -- schema
+    | name -- table
+
+  SchemaName
+    = name
+
+  name
+    = quotedName
+    | identifier
+
+  quotedName
+    = ("`" quotedNameComponent* "`")+
+
+  quotedNameComponent
+    = "``"
+    | ~"`" any
+
+  Literal
+    = keyword<"true">
+    | keyword<"false">
+    | keyword<"null">
+    | stringLiteral
+    | numericLiteral
+
+  identifier
+    = identifierStart identifierContinue*
+
+  identifierSymbol
+    = "_"
+
+  identifierStart
+    = letter
+    | identifierSymbol
+
+  identifierContinue
+    = alnum
+    | identifierSymbol
+
+  parenSymbol
+    = "("
+    | ")"
+    | "{"
+    | "}"
+    | "["
+    | "]"
+
+  separatorSymbol
+    = ","
+    | "."
+    | ";"
+    | ":"
+
+  quotationSymbol
+    = "'"
+    | "\""
+    | "`"
+
+  symbol
+    = ~(space | alnum | identifierSymbol | parenSymbol | separatorSymbol | quotationSymbol) any
+
+  continueNotKeyword
+    = ~(alnum | identifierSymbol)
+
+  continueNotSymbol
+    = ~symbol
+
+  keyword<x>
+    = x continueNotKeyword
+
+  op<x>
+    = x continueNotSymbol
+
+  stringLiteral
+    = ("'" sqlStringLiteralComponent* "'")+ -- sql
+    | escapedStringLiteral
+    | jsonStringLiteral
+
+  sqlStringLiteralComponent
+    = "''" -- apos
+    | ~"'" any -- char
+
+  escapedStringLiteral
+    = caseInsensitive<"e"> "'" escapedStringComponent* "'"
+
+  escapedStringComponent
+    = "\\'" -- apos
+    | "\\\"" -- quot
+    | "\\\\" -- backslash
+    | "\\/" -- slash
+    | "\\b" -- bs
+    | "\\f" -- ff
+    | "\\n" -- lf
+    | "\\r" -- cr
+    | "\\t" -- ht
+    | "\\x" hexDigit hexDigit -- latin1
+    | "\\u{" hexDigit+ "}" -- unicode
+    | "\\u" hexDigit hexDigit hexDigit hexDigit -- ucs2
+    | "\\u(" applySyntactic<Value> ")" -- unicodeCalc
+    | "\\(" applySyntactic<Value> ")" -- calc
+    | "\\%" formatOptions "(" applySyntactic<Value> ")" -- formatCalc
+    | "''" -- aposSql
+    | "%" -- percent
+    | ~("\\" | "'") any -- char
+
+  jsonStringLiteral
+    = "\"" jsonStringComponent* "\""
+
+  jsonStringComponent
+    = "\\\"" -- quot
+    | "\\\\" -- backslash
+    | "\\/" -- slash
+    | "\\b" -- bs
+    | "\\f" -- ff
+    | "\\n" -- lf
+    | "\\r" -- cr
+    | "\\t" -- ht
+    | "\\u" hexDigit hexDigit hexDigit hexDigit -- utf16codeunit
+    | ~("\\" | "\"" | "\x00".."\x1f") any -- char
+
+  formatOptions
+    = formatFlag* formatWidth? formatPrecision? formatType
+  formatFlag = "-" | "+" | " " | "0" | "#" | "," | "!"
+  formatWidth = decimalNaturalNumber
+  formatPrecision = "." digit+
+  formatType
+    = "d"
+    | "i"
+    | "u"
+    | "f"
+    | "e"
+    | "E"
+    | "g"
+    | "G"
+    | "x"
+    | "X"
+    | "o"
+    | "s"
+    | "c"
+    | "q"
+    | "Q"
+    | "w"
+
+  decimalNaturalNumber
+    = ("1".."9") digit*
+
+  numericLiteral
+    = "0x" hexDigit+ continueNotKeyword -- hex
+    | digit+ ("." digit*)? exponent? continueNotKeyword -- decimal
+    | "." digit+ exponent? continueNotKeyword -- dotDecimal
+
+  exponent
+    = caseInsensitive<"e"> digit+
+
+  comment
+    = "/*" (~"*/" any)* "*/" -- multiLineComment
+    | "--" (~"\n" any)* -- singleLineComment
+
+  space := ... | comment
+
+}
