@@ -28,6 +28,9 @@ semantics.addAttribute("sql", {
   },
   numericLiteral(arg0) {
     return this.sourceString;
+  },
+  blobLiteral(arg0, arg1, arg2, arg3) {
+    return this.sourceString;
   }
 });
 
