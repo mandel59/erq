@@ -1,7 +1,7 @@
 import semantics from "./index"
 
-export type Type = { evaluate?: () => string };
-semantics.addOperation("evaluate", {
+export type Type = { value: unknown };
+semantics.addAttribute("value", {
   stringLiteral_sql(arg0, arg1, arg2) {
     return arg1.sourceString.replace(/''/g, "'");
   },

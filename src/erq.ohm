@@ -465,6 +465,7 @@ Erq {
     = keyword<"true">
     | keyword<"false">
     | keyword<"null">
+    | blobLiteral
     | stringLiteral
     | numericLiteral
 
@@ -516,6 +517,9 @@ Erq {
   op<x>
     = x continueNotSymbol
 
+  hex2Digits = hexDigit hexDigit
+  hex4Digits = hexDigit hexDigit hexDigit hexDigit
+
   stringLiteral
     = ("'" sqlStringLiteralComponent* "'")+ -- sql
     | escapedStringLiteral
@@ -538,9 +542,9 @@ Erq {
     | "\\n" -- lf
     | "\\r" -- cr
     | "\\t" -- ht
-    | "\\x" hexDigit hexDigit -- latin1
+    | "\\x" hex2Digits -- latin1
     | "\\u{" hexDigit+ "}" -- unicode
-    | "\\u" hexDigit hexDigit hexDigit hexDigit -- ucs2
+    | "\\u" hex4Digits -- ucs2
     | "\\u(" applySyntactic<Value> ")" -- unicodeCalc
     | "\\(" applySyntactic<Value> ")" -- calc
     | "\\%" formatOptions "(" applySyntactic<Value> ")" -- formatCalc
@@ -560,7 +564,7 @@ Erq {
     | "\\n" -- lf
     | "\\r" -- cr
     | "\\t" -- ht
-    | "\\u" hexDigit hexDigit hexDigit hexDigit -- utf16codeunit
+    | "\\u" hex4Digits -- utf16codeunit
     | ~("\\" | "\"" | "\x00".."\x1f") any -- char
 
   formatOptions
@@ -585,6 +589,9 @@ Erq {
     | "q"
     | "Q"
     | "w"
+
+  blobLiteral
+    = caseInsensitive<"x"> "'" hex2Digits* "'"
 
   decimalNaturalNumber
     = ("1".."9") digit*

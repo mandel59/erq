@@ -1,9 +1,11 @@
-import { MatchResult } from "ohm-js"
-import ErqGrammar, { ErqActionDict, ErqSemantics } from "../erq.ohm-bundle";
+import { MatchResult, Node } from "ohm-js"
+import ErqGrammar, { ErqActionDict } from "../erq.ohm-bundle";
+
+type ExtendNodeWith<X, N extends Node> = N & X;
 
 type ExtendArgsWith<X, F, R>
-  = F extends (this: infer This, ...args: infer Args) => any
-  ? (this: This & X, ...args: { [K in keyof Args]: Args[K] & X }) => R
+  = F extends (this: infer This extends Node, ...args: infer Args extends Node[]) => any
+  ? (this: ExtendNodeWith<X, This>, ...args: { [K in keyof Args]: ExtendNodeWith<X, Args[K]> }) => R
   : undefined;
 
 export type ErqActionDictExtendedWith<X, R> = {
@@ -18,16 +20,17 @@ export interface ErqSemanticsExtendedWith<X extends Record<string, any>> {
   addAttribute<KX extends keyof X>(name: KX, actionDict: ErqActionDictExtendedWith<X, X[KX]>): this;
 }
 
-const semantics = ErqGrammar.createSemantics() as ErqSemanticsExtendedWith<Extension>;
-
+const semantics = ErqGrammar.createSemantics() as unknown as ExtendedSemantics;
 export default semantics;
 
-export interface ErqSemanticsExtention { }
+export type ExtendedSemantics = ErqSemanticsExtendedWith<Extension>;
 
-type Extension
+export type Extension
   = import("./value").Type
   & import("./sql").Type
   ;
+
+export type ExtendedNode = ExtendNodeWith<Extension, Node>;
 
 import "./value";
 import "./sql";
