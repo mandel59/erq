@@ -410,18 +410,29 @@ Erq {
     = keyword<("range"|"rows"|"groups")> WindowDefnFrameSpecRange
 
   WindowDefnFrameSpecRange
-    = keyword<"between"> WindowDefnFrameSpecRangeStart keyword<"and"> WindowDefnFrameSpecRangeEnd -- range
+    = WindowDefnFrameSpecRangeBetween
     | WindowDefnFrameSpecRangeStart
-  
+
+  WindowDefnFrameSpecRangeBetween
+    = keyword<"between"> WindowDefnFrameSpecRangeStart keyword<"and"> WindowDefnFrameSpecRangeEnd
+
   WindowDefnFrameSpecRangeStart
-    = keyword<"unbounded"> keyword<"preceding">
-    | keyword<"current"> keyword<"row">
-    | Value keyword<("preceding" | "following")>
+    = UnboundedPreceding
+    | CurrentRow
+    | ValuePreceding
+    | ValueFollowing
 
   WindowDefnFrameSpecRangeEnd
-    = keyword<"unbounded"> keyword<"following">
-    | keyword<"current"> keyword<"row">
-    | Value keyword<("preceding" | "following")>
+    = UnboundedFollowing
+    | CurrentRow
+    | ValuePreceding
+    | ValueFollowing
+
+  UnboundedPreceding = keyword<"unbounded"> keyword<"preceding">
+  UnboundedFollowing = keyword<"unbounded"> keyword<"following">
+  CurrentRow = keyword<"current"> keyword<"row">
+  ValuePreceding = Value keyword<"preceding">
+  ValueFollowing = Value keyword<"following">
 
   FunctionArgs
     = "*" -- wildcard
@@ -590,6 +601,6 @@ Erq {
     = "/*" (~"*/" any)* "*/" -- multiLineComment
     | "--" (~"\n" any)* -- singleLineComment
 
-  space := ... | comment
+  space += comment
 
 }
