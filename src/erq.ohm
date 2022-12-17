@@ -462,9 +462,7 @@ Erq {
     | ~"`" any
 
   Literal
-    = keyword<"true">
-    | keyword<"false">
-    | keyword<"null">
+    = keyword<"null"> -- null
     | blobLiteral
     | stringLiteral
     | numericLiteral

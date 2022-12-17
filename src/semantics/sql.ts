@@ -7,6 +7,9 @@ export type Type = {
 };
 
 semantics.addAttribute("sql", {
+  Literal_null(arg0) {
+    return "null";
+  },
   stringLiteral_sql(arg0, arg1, arg2) {
     return this.sourceString;
   },
