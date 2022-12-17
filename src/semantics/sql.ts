@@ -10,6 +10,12 @@ semantics.addAttribute("sql", {
   Literal_null(arg0) {
     return "null";
   },
+  Literal_true(arg0) {
+    return "true";
+  },
+  Literal_false(arg0) {
+    return "false";
+  },
   stringLiteral_sql(arg0, arg1, arg2) {
     return this.sourceString;
   },

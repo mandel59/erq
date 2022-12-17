@@ -27,6 +27,14 @@ test("numeric literals", t => {
   t.deepEqual(semantics(grammar.match(String.raw`001`, "Literal")).sql, `001`);
 });
 
-test("null literal", t => {
+test("constant literals", t => {
   t.deepEqual(semantics(grammar.match(String.raw`null`, "Literal")).sql, `null`);
+  t.deepEqual(semantics(grammar.match(String.raw`true`, "Literal")).sql, `true`);
+  t.deepEqual(semantics(grammar.match(String.raw`false`, "Literal")).sql, `false`);
+  t.deepEqual(semantics(grammar.match(String.raw`Null`, "Literal")).sql, `null`);
+  t.deepEqual(semantics(grammar.match(String.raw`True`, "Literal")).sql, `true`);
+  t.deepEqual(semantics(grammar.match(String.raw`False`, "Literal")).sql, `false`);
+  t.deepEqual(semantics(grammar.match(String.raw`NULL`, "Literal")).sql, `null`);
+  t.deepEqual(semantics(grammar.match(String.raw`TRUE`, "Literal")).sql, `true`);
+  t.deepEqual(semantics(grammar.match(String.raw`FALSE`, "Literal")).sql, `false`);
 });
