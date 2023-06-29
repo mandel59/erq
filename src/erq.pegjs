@@ -248,6 +248,11 @@ class TableBuilder {
         sql += " as ";
         sql += j.name;
       }
+      if (j.using) {
+        sql += " using (";
+        sql += j.using.join(", ");
+        sql += ")";
+      }
       if (j.on) {
         sql += " on ";
         sql += j.on;
@@ -406,6 +411,16 @@ class TableBuilder {
     if (on) {
       j.on = on;
     }
+    this.#lastName = j.name;
+    this.#join.push(j);
+    return this;
+  }
+  joinUsing(tr, u, d) {
+    if (this.#isSelected()) {
+      return this.#paren().joinUsing(tr, u, d);
+    }
+    const j = { name: tr.name, rename: tr.rename, expression: tr.expression, direction: d };
+    j.using = u;
     this.#lastName = j.name;
     this.#join.push(j);
     return this;
@@ -1067,8 +1082,14 @@ Filter
   / "select" boundary _ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
+  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" boundary _ tr:TableReference _ boundary "using" _ "(" _ u:NameList _ ")" {
+    return (tb) => tb.joinUsing(tr, u, dw);
+  }
   / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on, dw);
+  }
+  / "join" boundary _ tr:TableReference _ boundary "using" _ "(" _ u:NameList _ ")" {
+    return (tb) => tb.joinUsing(tr, u);
   }
   / "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on);
