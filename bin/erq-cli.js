@@ -1244,8 +1244,8 @@ function child() {
           let interrupted = false;
           let i = 0;
 
-          /** @type {(r: any[], outputStream: NodeJS.WriteStream) => boolean} */
-          const formatter = (format === "sparse") ? (r, outputStream) => {
+          /** @type {(r: any[], outputStream: NodeJS.WriteStream) => Promise<boolean>} */
+          const formatter = (format === "sparse") ? async (r, outputStream) => {
             const kvs = r.map((value, j) => {
               const k = columnNames[j];
               if (value != null && typeof value === "object") {
@@ -1260,17 +1260,24 @@ function child() {
             const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
             return outputStream.write(JSON.stringify(obj) + "\n");
           } : (format === "eqp") ? createEqpFormatter()
-            : (format === "raw") ? (r, outputStream) => {
+            : (format === "raw") ? async (r, outputStream) => {
               for (const v of r) {
-                if (v != null && typeof v === "object") {
+                if (v == null) {
+                  continue;
+                } else if (typeof v === "object") {
                   // write raw buffer
-                  return outputStream.write(v);
+                  if (!outputStream.write(v)) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
                 } else {
-                  return outputStream.write(String(v));
+                  if (!outputStream.write(String(v))) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
                 }
               }
+              return true;
             }
-              : (r, outputStream) => {
+              : async (r, outputStream) => {
                 // default dense format
                 return outputStream.write(JSON.stringify(r.map(value => {
                   if (value != null && typeof value === "object") {
@@ -1286,7 +1293,7 @@ function child() {
 
           for (const r of stmt.iterate()) {
             i++;
-            if (!formatter(r, outputStream)) {
+            if (!(await formatter(r, outputStream))) {
               await new Promise(resolve => outputStream.once("drain", () => resolve()));
             } else if (i % 100 === 0) {
               await new Promise(resolve => setImmediate(() => resolve()));
@@ -1367,7 +1374,7 @@ function child() {
  */
 function createEqpFormatter() {
   const nodes = [];
-  return ([id, parent, _notused, detail], outputStream) => {
+  return async ([id, parent, _notused, detail], outputStream) => {
     while (nodes.length > 0 && nodes[nodes.length - 1] !== parent) {
       nodes.pop()
     }
