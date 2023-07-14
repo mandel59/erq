@@ -781,6 +781,7 @@ function child() {
     try {
       const tables = getTables();
       const modules = getAllModules();
+      const pragmas = getPragmaNames();
       const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
       const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
       const tableNames = tables.map(t => quoteSQLName(t.name)).concat(modules.map(m => quoteSQLName(m)));
@@ -808,10 +809,7 @@ function child() {
           const m3 = m[3] ? unquoteSQLName(m[3]) : "";
           // set sn as the schema name and tn as the table name.
           const [sn, tn, cn] = (m2 != null) ? [m1, m2, m3] : [tables.find(t => t.name === m1)?.schema, m1, m3];
-          if (modules.includes(tn)) {
-            const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
-            return [columns.map(c => `${tn}.${quoteSQLName(c.name)}`), q];
-          } else if (schemas.includes(sn)) {
+          if (schemas.includes(sn)) {
             const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
             if (m2 != null) {
               const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
@@ -829,6 +827,12 @@ function child() {
             if (ts.length > 0) {
               return [ts, q];
             }
+          } else if (modules.includes(tn)) {
+            const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
+            return [columns.map(c => `${tn}.${quoteSQLName(c.name)}`), q];
+          } else if (tn.startsWith("pragma_") && pragmas.includes(tn.slice("pragma_".length))) {
+            const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
+            return [columns.map(c => `${tn}.${quoteSQLName(c.name)}`), q];
           } else {
             const cs = getAllColumnNames().filter(name => name.startsWith(cn));
             if (cs.length > 0) {
@@ -848,7 +852,8 @@ function child() {
             ...tableNamesFQ,
             ...modules,
             ...columnNames,
-            ...functionNames]).values())
+            ...functionNames,
+            ...pragmas.map(p => `pragma_${p}`)]).values())
             .filter(n => {
               return n.replace(/`/g, "").startsWith(qq);
             })
