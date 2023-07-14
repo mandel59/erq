@@ -1203,7 +1203,12 @@ function child() {
           if (!ok) return false;
           continue;
         }
-        const { type, query: sql, returning } = statement;
+        const {
+          type,
+          query: sql,
+          returning,
+          format = outputFormat,
+        } = statement;
         if (sigint) {
           break;
         }
@@ -1215,13 +1220,33 @@ function child() {
           // stmt.safeIntegers(true);
           const columns = stmt.columns();
           const columnNames = columns.map(c => c.name);
-          console.error(JSON.stringify(columnNames));
+          if (format !== "eqp") {
+            console.error(JSON.stringify(columnNames));
+          }
+          if (format === "eqp") {
+            console.log("* QUERY PLAN")
+          }
           let interrupted = false;
           let i = 0;
-          if (outputFormat === "dense") {
-            for (const r of stmt.iterate()) {
-              i++;
-              if (!outputStream.write(JSON.stringify(r.map(value => {
+
+          const formatter = (format === "sparse") ? (r) => {
+            const kvs = r.map((value, j) => {
+              const k = columnNames[j];
+              if (value != null && typeof value === "object") {
+                // convert Buffer object to Array object
+                return [k, Array.from(value)];
+              }
+              if (typeof value === "bigint") {
+                return [k, String(value)];
+              }
+              return [k, value];
+            });
+            const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
+            return JSON.stringify(obj) + "\n";
+          } : (format === "eqp") ? createEqpFormatter()
+            : (r) => {
+              // default dense format
+              return JSON.stringify(r.map(value => {
                 if (value != null && typeof value === "object") {
                   // convert Buffer object to Array object
                   return Array.from(value);
@@ -1230,44 +1255,24 @@ function child() {
                   return String(value);
                 }
                 return value;
-              })) + "\n")) {
-                await new Promise(resolve => outputStream.once("drain", () => resolve()));
-              } else if (i % 100 === 0) {
-                await new Promise(resolve => setImmediate(() => resolve()));
-              }
-              if (sigint) {
-                console.error("Interrupted");
-                interrupted = true;
-                break;
-              }
+              })) + "\n"
+            };
+
+          for (const r of stmt.iterate()) {
+            i++;
+            const line = formatter(r);
+            if (!outputStream.write(line)) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            } else if (i % 100 === 0) {
+              await new Promise(resolve => setImmediate(() => resolve()));
             }
-          } else if (outputFormat === "sparse") {
-            for (const r of stmt.iterate()) {
-              i++;
-              const kvs = r.map((value, j) => {
-                const k = columnNames[j];
-                if (value != null && typeof value === "object") {
-                  // convert Buffer object to Array object
-                  return [k, Array.from(value)];
-                }
-                if (typeof value === "bigint") {
-                  return [k, String(value)];
-                }
-                return [k, value];
-              });
-              const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
-              if (!outputStream.write(JSON.stringify(obj) + "\n")) {
-                await new Promise(resolve => outputStream.once("drain", () => resolve()));
-              } else if (i % 100 === 0) {
-                await new Promise(resolve => setImmediate(() => resolve()));
-              }
-              if (sigint) {
-                console.error("Interrupted");
-                interrupted = true;
-                break;
-              }
+            if (sigint) {
+              console.error("Interrupted");
+              interrupted = true;
+              break;
             }
           }
+
           const t1 = performance.now();
           const t = t1 - t0;
           const rows = (i === 1) ? "1 row" : `${i} rows`;
@@ -1329,4 +1334,23 @@ function child() {
   })
 
   process.send("ready");
+}
+
+/**
+ * Format EXPLAIN QUERY PLAN output.
+ * @returns 
+ */
+function createEqpFormatter() {
+  const nodes = [];
+  return ([id, parent, _notused, detail]) => {
+    while (nodes.length > 0 && nodes[nodes.length - 1] !== parent) {
+      nodes.pop()
+    }
+    nodes.push(id);
+    let s = ""
+    for (let i = 0; i < nodes.length; i++) {
+      s += "   "
+    }
+    return s + "* " + detail + "\n";
+  }
 }
