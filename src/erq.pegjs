@@ -504,7 +504,10 @@ Statement1
   / s:Commit { return { type: "commit", query: s }; }
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
-  / TriggerStatement
+  / t:TriggerStatement f:FormattingClause? { return f ? { ...t, format: f } : t; }
+
+FormattingClause
+  = _ boundary "output" __ f:("dense"/"sparse"/"raw") { return f; }
 
 TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }

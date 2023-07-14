@@ -1229,7 +1229,8 @@ function child() {
           let interrupted = false;
           let i = 0;
 
-          const formatter = (format === "sparse") ? (r) => {
+          /** @type {(r: any[], outputStream: NodeJS.WriteStream) => boolean} */
+          const formatter = (format === "sparse") ? (r, outputStream) => {
             const kvs = r.map((value, j) => {
               const k = columnNames[j];
               if (value != null && typeof value === "object") {
@@ -1242,26 +1243,35 @@ function child() {
               return [k, value];
             });
             const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
-            return JSON.stringify(obj) + "\n";
+            return outputStream.write(JSON.stringify(obj) + "\n");
           } : (format === "eqp") ? createEqpFormatter()
-            : (r) => {
-              // default dense format
-              return JSON.stringify(r.map(value => {
-                if (value != null && typeof value === "object") {
-                  // convert Buffer object to Array object
-                  return Array.from(value);
+            : (format === "raw") ? (r, outputStream) => {
+              for (const v of r) {
+                if (v != null && typeof v === "object") {
+                  // write raw buffer
+                  return outputStream.write(v);
+                } else {
+                  return outputStream.write(String(v));
                 }
-                if (typeof value === "bigint") {
-                  return String(value);
-                }
-                return value;
-              })) + "\n"
-            };
+              }
+            }
+              : (r, outputStream) => {
+                // default dense format
+                return outputStream.write(JSON.stringify(r.map(value => {
+                  if (value != null && typeof value === "object") {
+                    // convert Buffer object to Array object
+                    return Array.from(value);
+                  }
+                  if (typeof value === "bigint") {
+                    return String(value);
+                  }
+                  return value;
+                })) + "\n")
+              };
 
           for (const r of stmt.iterate()) {
             i++;
-            const line = formatter(r);
-            if (!outputStream.write(line)) {
+            if (!formatter(r, outputStream)) {
               await new Promise(resolve => outputStream.once("drain", () => resolve()));
             } else if (i % 100 === 0) {
               await new Promise(resolve => setImmediate(() => resolve()));
@@ -1342,7 +1352,7 @@ function child() {
  */
 function createEqpFormatter() {
   const nodes = [];
-  return ([id, parent, _notused, detail]) => {
+  return ([id, parent, _notused, detail], outputStream) => {
     while (nodes.length > 0 && nodes[nodes.length - 1] !== parent) {
       nodes.pop()
     }
@@ -1351,6 +1361,6 @@ function createEqpFormatter() {
     for (let i = 0; i < nodes.length; i++) {
       s += "   "
     }
-    return s + "* " + detail + "\n";
+    return outputStream.write(s + "* " + detail + "\n");
   }
 }
