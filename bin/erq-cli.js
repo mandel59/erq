@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import process, { stdin, stdout, stderr } from "node:process";
-import { readFileSync, writeFileSync, readdirSync, readlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname } from "node:path"
 import readline from "node:readline";
 import commandLineArgs from "command-line-args";
@@ -262,6 +262,90 @@ function defineUserFunctions(defineFunction, defineTable) {
           e.name,
         ]
       }
+    }
+  });
+
+  defineTable("fs_stat", {
+    parameters: ["_path"],
+    columns: [
+      "dev",
+      "ino",
+      "mode",
+      "nlink",
+      "uid",
+      "gid",
+      "rdev",
+      "size",
+      "blksize",
+      "blocks",
+      "atime_ms",
+      "mtime_ms",
+      "ctime_ms",
+      "birthtime_ms",
+      "atime_ns",
+      "mtime_ns",
+      "ctime_ns",
+      "birthtime_ns",
+      "atime",
+      "mtime",
+      "ctime",
+      "birthtime",
+    ],
+    safeIntegers: true,
+    rows: function* (path) {
+      if (path == null) {
+        return;
+      }
+      const {
+        dev,
+        ino,
+        mode,
+        nlink,
+        uid,
+        gid,
+        rdev,
+        size,
+        blksize,
+        blocks,
+        atimeMs,
+        mtimeMs,
+        ctimeMs,
+        birthtimeMs,
+        atimeNs,
+        mtimeNs,
+        ctimeNs,
+        birthtimeNs,
+        atime,
+        mtime,
+        ctime,
+        birthtime,
+      } = statSync(path, {
+        bigint: true,
+      });
+      yield [
+        dev,
+        ino,
+        mode,
+        nlink,
+        uid,
+        gid,
+        rdev,
+        size,
+        blksize,
+        blocks,
+        atimeMs,
+        mtimeMs,
+        ctimeMs,
+        birthtimeMs,
+        atimeNs,
+        mtimeNs,
+        ctimeNs,
+        birthtimeNs,
+        atime.toISOString(),
+        mtime.toISOString(),
+        ctime.toISOString(),
+        birthtime.toISOString(),
+      ];
     }
   });
 
@@ -578,186 +662,6 @@ async function parent() {
 }
 
 function child() {
-  // builtin functions
-
-  const sqliteFunctionsList = `
-  // built-in scalar SQL functions
-  abs(X)
-  changes()
-  char(X1,X2,...,XN)
-  coalesce(X,Y,...)
-  format(FORMAT,...)
-  glob(X,Y)
-  hex(X)
-  ifnull(X,Y)
-  iif(X,Y,Z)
-  instr(X,Y)
-  last_insert_rowid()
-  length(X)
-  like(X,Y)
-  like(X,Y,Z)
-  likelihood(X,Y)
-  likely(X)
-  // load_extension(X)
-  // load_extension(X,Y)
-  lower(X)
-  ltrim(X)
-  ltrim(X,Y)
-  max(X,Y,...)
-  min(X,Y,...)
-  nullif(X,Y)
-  printf(FORMAT,...)
-  quote(X)
-  random()
-  randomblob(N)
-  replace(X,Y,Z)
-  round(X)
-  round(X,Y)
-  rtrim(X)
-  rtrim(X,Y)
-  sign(X)
-  soundex(X)
-  sqlite_compileoption_get(N)
-  sqlite_compileoption_used(X)
-  sqlite_offset(X)
-  sqlite_source_id()
-  sqlite_version()
-  substr(X,Y)
-  substr(X,Y,Z)
-  substring(X,Y)
-  substring(X,Y,Z)
-  total_changes()
-  trim(X)
-  trim(X,Y)
-  typeof(X)
-  unicode(X)
-  unlikely(X)
-  upper(X)
-  zeroblob(N)
-  // date and time functions
-  date(time-value, modifier, modifier, ...)
-  time(time-value, modifier, modifier, ...)
-  datetime(time-value, modifier, modifier, ...)
-  julianday(time-value, modifier, modifier, ...)
-  unixepoch(time-value, modifier, modifier, ...)
-  strftime(format, time-value, modifier, modifier, ...)
-  // built-in aggregate functions
-  avg(X)
-  count(*)
-  count(X)
-  group_concat(X)
-  group_concat(X,Y)
-  max(X)
-  min(X)
-  sum(X)
-  // window functions
-  row_number()
-  rank()
-  dense_rank()
-  percent_rank()
-  cume_dist()
-  ntile(N)
-  lag(expr)
-  lag(expr, offset)
-  lag(expr, offset, default)
-  lead(expr)
-  lead(expr, offset)
-  lead(expr, offset, default)
-  first_value(expr)
-  last_value(expr)
-  nth_value(expr, N)
-  // built-in mathematical functions
-  acos(X)
-  acosh(X)
-  asin(X)
-  asinh(X)
-  atan(X)
-  atan2(Y,X)
-  atanh(X)
-  ceil(X)
-  ceiling(X)
-  cos(X)
-  cosh(X)
-  degrees(X)
-  exp(X)
-  floor(X)
-  ln(X)
-  log(B,X)
-  log(X)
-  log10(X)
-  log2(X)
-  mod(X,Y)
-  pi()
-  pow(X,Y)
-  power(X,Y)
-  radians(X)
-  sin(X)
-  sinh(X)
-  sqrt(X)
-  tan(X)
-  tanh(X)
-  trunc(X)
-  // JSON scalar functions
-  json(json)
-  json_array(value1,value2,...)
-  json_array_length(json)
-  json_array_length(json,path)
-  json_extract(json,path,...)
-  json_insert(json,path,value,...)
-  json_object(label1,value1,...)
-  json_patch(json1,json2)
-  json_remove(json,path,...)
-  json_replace(json,path,value,...)
-  json_set(json,path,value,...)
-  json_type(json)
-  json_type(json,path)
-  json_valid(json)
-  json_quote(value)
-  // JSON aggregate functions
-  json_group_array(value)
-  json_group_object(name,value)
-  // JSON table-valued functions
-  json_each(json)
-  json_each(json,path)
-  json_tree(json)
-  json_tree(json,path)
-  // FTS3 and FTS4 extensions
-  fts3()
-  fts4()
-  offsets(X)
-  snippet(X)
-  matchinfo(X)
-  // FTS5 extension
-  fts5()
-  bm25(X)
-  highlight(X,Y,Z,W)
-  snippet(X)
-  // R*Tree module
-  rtree()
-  rtreecheck(R)
-  rtreecheck(S,R)
-  // geopoly interface to the R*Tree module
-  geopoly()
-  geopoly_overlap(P1,P2)
-  geopoly_within(P1,P2)
-  geopoly_area(P)
-  geopoly_blob(P)
-  geopoly_json(P)
-  geopoly_svg(P,...)
-  geopoly_bbox(P)
-  geopoly_group_bbox(P)
-  geopoly_contains_point(P,X,Y)
-  geopoly_xform(P,A,B,C,D,E,F)
-  geopoly_regular(X,Y,R,N)
-  geopoly_ccw(J)
-  `
-
-  const erqFunctions = new Set(
-    sqliteFunctionsList
-      .replace(/\/\/[^\n]*\n/g, "\n")
-      .match(/\w+\(/g)
-      .map(x => x.substring(0, x.length - 1)));
-
   const patName = "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}][\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}]*"
   const patQuot = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*`"
   const patPart = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*"
@@ -800,7 +704,6 @@ function child() {
     /** @type {BetterSqlite3.VirtualTableOptions} */ options
   ) {
     db.table(name, options);
-    erqFunctions.add(name);
   }
 
   function defineFunction(
@@ -809,7 +712,6 @@ function child() {
     /** @type {(...params: any[]) => any} */ func
   ) {
     db.function(name, options, func);
-    erqFunctions.add(name);
   }
 
   defineUserFunctions(defineFunction, defineTable);
@@ -839,7 +741,24 @@ function child() {
     return tables;
   }
 
+  function getAllModules() {
+    /** @type {string[]} */
+    const names = db.prepare("select name from pragma_module_list where name not glob 'pragma_*'").pluck().all();
+    return names;
+  }
+
+  function getAllFunctionNames() {
+    /** @type {string[]} */
+    const names = db.prepare("select name from pragma_function_list").pluck().all();
+    return names.map(name => quoteSQLName(name));
+  }
+
   function getColumns(schema, table) {
+    if (schema == null) {
+      /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
+      const columns = db.prepare(`pragma table_xinfo(${quoteSQLName(table)})`).all();
+      return columns;
+    }
     /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
     const columns = db.prepare(`pragma ${quoteSQLName(schema)}.table_xinfo(${quoteSQLName(table)})`).all();
     return columns;
@@ -861,9 +780,10 @@ function child() {
     }
     try {
       const tables = getTables();
+      const modules = getAllModules();
       const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
       const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
-      const tableNames = tables.map(t => quoteSQLName(t.name));
+      const tableNames = tables.map(t => quoteSQLName(t.name)).concat(modules.map(m => quoteSQLName(m)));
       let _getAllColumnNames;
       const getAllColumnNames = () => {
         if (_getAllColumnNames) return _getAllColumnNames;
@@ -888,7 +808,10 @@ function child() {
           const m3 = m[3] ? unquoteSQLName(m[3]) : "";
           // set sn as the schema name and tn as the table name.
           const [sn, tn, cn] = (m2 != null) ? [m1, m2, m3] : [tables.find(t => t.name === m1)?.schema, m1, m3];
-          if (schemas.includes(sn)) {
+          if (modules.includes(tn)) {
+            const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
+            return [columns.map(c => `${tn}.${quoteSQLName(c.name)}`), q];
+          } else if (schemas.includes(sn)) {
             const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
             if (m2 != null) {
               const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
@@ -917,13 +840,15 @@ function child() {
       // other name completion
       {
         const columnNames = getAllColumnNames();
+        const functionNames = getAllFunctionNames();
         const matches
           = Array.from(new Set([
             ...schemas,
             ...tableNames,
             ...tableNamesFQ,
+            ...modules,
             ...columnNames,
-            ...erqFunctions]).values())
+            ...functionNames]).values())
             .filter(n => {
               return n.replace(/`/g, "").startsWith(qq);
             })
@@ -1151,7 +1076,6 @@ function child() {
         });
         const f = vm.run(`module.exports = function(${ps.join(",")}) {\n${body}\n};`);
         db.function(fn, f);
-        erqFunctions.add(fn);
         console.error("ok");
         return true;
       }
