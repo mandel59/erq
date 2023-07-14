@@ -1544,11 +1544,14 @@ EscapedStringBody
       / '"' { return ['"']; }
       / "\\" { return ["\\"]; }
       / "/" { return ["/"]; }
+      / "a" { return ["%s", "char(7)"]; }
       / "b" { return ["%s", "char(8)"]; }
+      / "e" { return ["%s", "char(27)"]; }
       / "f" { return ["%s", "char(12)"]; }
       / "n" { return ["%s", "char(10)"]; }
       / "r" { return ["%s", "char(13)"];; }
       / "t" { return ["%s", "char(9)"]; }
+      / "v" { return ["%s", "char(11)"]; }
       / "x" x:$([0-9A-Fa-f][0-9A-Fa-f]) { return ["%s", `char(0x${x})`]; }
       / "u{" x:$([0-9A-Fa-f]+) "}" { return ["%s", `char(0x${x})`]; }
       / "u" x:$([0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]) { return ["%s", `char(0x${x})`]; }
