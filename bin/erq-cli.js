@@ -294,6 +294,21 @@ function defineUserFunctions(defineFunction, defineTable) {
   defineFunction("json_hash", { deterministic: true }, function (json, algorithm) {
     return memoizedJsonHash(JSON.parse(json), { algorithm });
   })
+
+  defineFunction("atob", { deterministic: true }, function (base64) {
+    if (base64 == null) return null;
+    if (typeof base64 !== "string") throw new TypeError("atob(base64) type of base64 must be text");
+    return Buffer.from(base64, "base64");
+  })
+
+  defineFunction("btoa", { deterministic: true }, function (buffer) {
+    if (buffer == null) return null;
+    if (typeof buffer === "string") {
+      buffer = Buffer.from(buffer, "utf-8")
+    }
+    if (!Buffer.isBuffer(buffer)) throw new TypeError("btoa(buffer) type of buffer must be text or blob");
+    return buffer.toString("base64");
+  })
 }
 
 async function parent() {
