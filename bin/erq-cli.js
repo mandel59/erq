@@ -96,8 +96,9 @@ if (process.connected) {
 /**
  * @param {(name: string, options: Database.RegistrationOptions, func: (...params: any[]) => any) => void} defineFunction 
  * @param {(name: string, options: BetterSqlite3.VirtualTableOptions) => void} defineTable 
+ * @param {(name: string, options: BetterSqlite3.AggregateOptions) => void} defineAggregate
  */
-function defineUserFunctions(defineFunction, defineTable) {
+function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
   defineTable("string_split", {
     parameters: ["_string", "_delimiter"],
     columns: ["value"],
@@ -714,7 +715,14 @@ function child() {
     db.function(name, options, func);
   }
 
-  defineUserFunctions(defineFunction, defineTable);
+  function defineAggregate(
+    /** @type {string} */ name,
+    /** @type {Database.AggregateOptions} */ options,
+  ) {
+    db.aggregate(name, options);
+  }
+
+  defineUserFunctions(defineFunction, defineTable, defineAggregate);
 
   /** @type {Map<string, (...args: any[]) => Promise<any>>} */
   const ipcExported = new Map();
