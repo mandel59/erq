@@ -394,6 +394,47 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
     if (!Buffer.isBuffer(buffer)) throw new TypeError("btoa(buffer) type of buffer must be text or blob");
     return buffer.toString("base64");
   })
+
+  function bigintFlooredDivision(a, b) {
+    // ECMAScript's / operator is defined by the quotient of truncated division.
+    // This function defines the quotient of floored division.
+    if (a < 0n) {
+      return (a + 1n) / b - 1n;
+    } else {
+      return a / b;
+    }
+  }
+
+  defineFunction("bin", { deterministic: true, safeIntegers: true }, function (value, size) {
+    if (size == null || value == null) return null;
+    if (typeof size !== "number" && typeof size !== "bigint") throw new TypeError("bin(value,size) size must be a number");
+    if (typeof size === "number" || typeof value === "number") {
+      const s = Number(size);
+      return Math.floor(Number(value) / s) * s;
+    } else if (typeof value === "bigint") {
+      const s = size;
+      return bigintFlooredDivision(value, s) * s;
+    } else {
+      throw new TypeError("bin(value,size) value must be a number or an integer");
+    }
+  })
+
+  defineFunction("bin", { deterministic: true, safeIntegers: true }, function (value, size, offset) {
+    if (size == null || value == null || offset == null) return null;
+    if (typeof size !== "number" && typeof size !== "bigint") throw new TypeError("bin(value,size) size must be a number");
+    if (typeof offset !== "number" && typeof offset !== "bigint") throw new TypeError("bin(value,size) offset must be a number");
+    if (typeof size === "number" || typeof value === "number" || typeof offset === "number") {
+      const s = Number(size);
+      const o = Number(offset);
+      return Math.floor((Number(value) - o) / s) * s + o;
+    } else if (typeof value === "bigint") {
+      const s = size;
+      const o = offset;
+      return bigintFlooredDivision(value - o, s) * s + o;
+    } else {
+      throw new TypeError("bin(value,size) value must be a number");
+    }
+  })
 }
 
 async function parent() {
