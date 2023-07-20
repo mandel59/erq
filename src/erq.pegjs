@@ -498,7 +498,7 @@ MetaStatement
   / c:CreateTableFromJson { return { type: "command", command: "meta-create-table-from-json", args:c } }
 
 ForStatement
-  = "for" _ a:ForVarAssignments _ boundary "of" boundary _ t:Table _ boundary "do" boundary _ body:BlockStatement
+  = "for" _ a:ForVarAssignments _ boundary "of" boundary _ t:Table _ boundary ("do" boundary _)? body:BlockStatement
   {
     return {
       type: "for",
