@@ -435,6 +435,68 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
       throw new TypeError("bin(value,size) value must be a number");
     }
   })
+
+  defineTable("range", {
+    parameters: ["_start", "_end", "_step"],
+    columns: ["value"],
+    safeIntegers: true,
+    rows: function* (start, end, step) {
+      if (start == null || end == null) {
+        return;
+      }
+      if (typeof start === "bigint" && typeof end === "bigint" && (step == null || typeof step === "bigint")) {
+        const st = step ?? 1n;
+        if (st === 0n) {
+          throw new Error("range(start,end,step) step must not be zero");
+        }
+        if (st < 0n) {
+          for (let i = start; i >= end; i += st) {
+            yield [i];
+          }
+        } else {
+          for (let i = start; i <= end; i += st) {
+            yield [i];
+          }
+        }
+      } else {
+        const s = Number(start);
+        const e = Number(end);
+        const st = Number(step ?? 1);
+        for (let i = s; i <= e; i += st) {
+          yield [i];
+        }
+      }
+    }
+  })
+
+  defineTable("linear_space", {
+    parameters: ["_start", "_end", "_num"],
+    columns: ["value"],
+    rows: function* (start, end, num) {
+      if (start == null || end == null || num == null) {
+        return;
+      }
+      const s = Number(start);
+      const e = Number(end);
+      const n = Math.floor(Number(num));
+      if (n < 0) {
+        throw new Error("linear_space(start,end,num) num must not be negative");
+      }
+      if (n === 0) {
+        return;
+      }
+      if (n === 1) {
+        yield [s];
+        return;
+      }
+      const m = n - 1;
+      for (let i = 0; i < n; ++i) {
+        const r = i / m;
+        const v = e * r + s * (1 - r);
+        yield [v];
+      }
+    }
+  })
 }
 
 async function parent() {
