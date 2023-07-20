@@ -952,11 +952,12 @@ function child() {
 
   /**
    * @param {{command: string, args: any[]}} param0
+   * @param {Map<string, any>} env
    * @returns {Promise<boolean>} ok status
    */
-  async function runCLICommand({ command, args }) {
+  async function runCLICommand({ command, args }, env) {
     try {
-      return await runCLICommandThrowing({ command, args });
+      return await runCLICommandThrowing({ command, args }, env);
     } catch (error) {
       console.error(error);
       return false;
@@ -964,7 +965,12 @@ function child() {
   }
   ipcExport(runCLICommand);
 
-  async function runCLICommandThrowing({ command, args }) {
+  /**
+   * @param {{command: string, args: any[]}} param0
+   * @param {Map<string, any>} env
+   * @returns {Promise<boolean>} ok status
+   */
+  async function runCLICommandThrowing({ command, args }, env) {
     if (command === "load") {
       if (args.length === 1) {
         db.loadExtension(args[0]);
@@ -1001,7 +1007,20 @@ function child() {
     }
     else if (command === "meta-load") {
       const t0 = performance.now();
-      const { table, def, columns: columnNames, path, contentType, content, options } = args;
+      const { def, columns: columnNames, contentType, content, options } = args;
+      let table = args.table;
+      if (Array.isArray(table)) {
+        const [s, v] = table;
+        if (s != null) {
+          table = `${s}.${quoteSQLName(env.get(v.slice(1)))}`
+        } else {
+          table = quoteSQLName(env.get(v.slice(1)));
+        }
+      }
+      let path = args.path
+      if (args.variable != null) {
+        path ??= env.get(args.variable.slice(1));
+      }
       const nullValue = options.nullValue ?? "";
       const delimiter = options.delimiter ?? ",";
       const quote = options.quote ?? '"';
@@ -1014,7 +1033,7 @@ function child() {
       const encoding = options.encoding ?? "utf-8";
       if (format === "csv") {
         /** @type {string} */
-        const data = path ? iconv.decode(readFileSync(path), encoding) : content;
+        const data = path != null ? iconv.decode(readFileSync(path), encoding) : content;
         const csv = parseCSV(data, {
           bom: true,
           delimiter,
@@ -1192,7 +1211,7 @@ function child() {
     try {
       for (const statement of statements) {
         if (statement.type === "command") {
-          const ok = await runCLICommand(statement);
+          const ok = await runCLICommand(statement, env);
           if (!ok) return false;
           continue;
         }
@@ -1208,7 +1227,7 @@ function child() {
           }).join(", ")} from (${sourceTable})`
           console.error(sourceSql);
           const stmt = db.prepare(sourceSql);
-          for (const row of stmt.iterate(Object.fromEntries(env.entries()))) {
+          for (const row of stmt.all(Object.fromEntries(env.entries()))) {
             const env2 = new Map(env.entries());
             for (const { variable } of assignments) {
               const v = variable.slice(1);

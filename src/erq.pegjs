@@ -585,8 +585,11 @@ Analyze
   / "analyze" { return "analyze"; }
 
 LoadRawBlock
-  = "load" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
-    boundary "from" _ x:(RawBlock/ParsedStringLiteral) opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
+  = "load" __ "table" boundary _ table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    boundary "from" _ x:(
+      RawBlock
+      / ParsedStringLiteral
+      / v:Variable { return { variable: v }; }) opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
   {
     const def = d && d.def;
     const columns = d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
@@ -600,7 +603,7 @@ LoadRawBlock
         path,
         options,
       };
-    } else {
+    } else if ("rawblock" in x) {
       const contentType = x.rawblock[0];
       const content = x.rawblock[1];
       return {
@@ -609,6 +612,15 @@ LoadRawBlock
         columns,
         contentType,
         content,
+        options,
+      };
+    } else if ("variable" in x) {
+      const variable = x.variable;
+      return {
+        table,
+        def,
+        columns,
+        variable,
         options,
       };
     }
@@ -885,6 +897,18 @@ Drop
       return `drop ${tv} if exists ${n}`;
     } else {
       return `drop ${tv} ${n}`;
+    }
+  }
+
+TableNameWithVariable
+  = s:Name _ "." _ v:Variable { return [s, v]; }
+  / v:Variable { return [null, v]; }
+  / x:TableName1 {
+    const [s, n] = x;
+    if (s != null) {
+      return `${s}.${n}`;
+    } else {
+      return n;
     }
   }
 
