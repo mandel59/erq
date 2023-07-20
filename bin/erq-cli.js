@@ -1209,7 +1209,6 @@ function child() {
           console.error(sourceSql);
           const stmt = db.prepare(sourceSql);
           for (const row of stmt.iterate(Object.fromEntries(env.entries()))) {
-            console.error("row", row)
             const env2 = new Map(env.entries());
             for (const { variable } of assignments) {
               const v = variable.slice(1);
