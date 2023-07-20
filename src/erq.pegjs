@@ -16,6 +16,13 @@ function intoSQLStringLiteral(s) {
   return `'${s.replace(/'/g, "''")}'`;
 }
 
+function intoSQLIdentifier(n) {
+  if (keywords.has(n.toUpperCase())) {
+    return `\`${n}\``;
+  }
+  return n;
+}
+
 function parseEscapedStringBody(b) {
   return b.replace(/''|\\u\{[0-9A-Fa-f]+\}|\\u[0-9A-Fa-f]{4}|\\x[0-9A-Fa-f]{2}|\\['"\/\\bfnrt]/g, function (s) {
     if (s === "''") return "'";
@@ -482,12 +489,38 @@ Statement
   = MetaStatement
   / "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", format: "eqp", query: `explain query plan ${s.query}` }; }
   / "explain" boundary _ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
+  / ForStatement
   / Statement1
 
 MetaStatement
   = l:LoadRawBlock { return { type: "command", command: "meta-load", args: l }}
   / c:CreateFunction { return { type: "command", command: "meta-create-function", args:c } }
   / c:CreateTableFromJson { return { type: "command", command: "meta-create-table-from-json", args:c } }
+
+ForStatement
+  = "for" _ a:ForVarAssignments _ boundary "of" boundary _ t:Table _ boundary "do" boundary _ body:BlockStatement
+  {
+    return {
+      type: "for",
+      assignments: a,
+      sourceTable: t,
+      bodyStatements: body,
+    };
+  }
+
+ForVarAssignments
+  = ForVarAssignment|.., _ "," _|
+
+ForVarAssignment
+  = v:Variable _ "=" _ e:Expression { return { variable: v, name: intoSQLIdentifier(v.slice(1)), expression: e }; }
+  / v:Variable { return { variable: v, name: intoSQLIdentifier(v.slice(1)) }; }
+
+Variable
+  = $("@" Identifier)
+
+BlockStatement
+  = s:Statement { return [s]; }
+  / "(" ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
 
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
@@ -1319,6 +1352,7 @@ Value
   / &(("from" / "with" / "values") boundary) t:Table { return `(${t})` }
   / "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
   / "exists" boundary _ t:Table { return `exists (${t})` }
+  / Variable
   / Literal
   / "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
   / Pack
@@ -1497,10 +1531,7 @@ Identifier "identifier"
       [_A-Za-z0-9\u0100-\uffff])*) & {
     return reIdent.test(n);
   } {
-    if (keywords.has(n.toUpperCase())) {
-      return `\`${n}\``;
-    }
-    return n;
+    return intoSQLIdentifier(n);
   }
   ;
 

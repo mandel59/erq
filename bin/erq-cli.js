@@ -1188,12 +1188,36 @@ function child() {
     }
   }
 
-  async function runSqls(statements) {
+  async function runSqls(statements, env = new Map()) {
     try {
       for (const statement of statements) {
         if (statement.type === "command") {
           const ok = await runCLICommand(statement);
           if (!ok) return false;
+          continue;
+        }
+        if (statement.type === "for") {
+          const {
+            assignments,
+            sourceTable,
+            bodyStatements,
+          } = statement
+          const sourceSql = `select ${assignments.map(({ name, expression }) => {
+            if (expression == null) return name;
+            return `${expression} as ${name}`
+          }).join(", ")} from (${sourceTable})`
+          console.error(sourceSql);
+          const stmt = db.prepare(sourceSql);
+          for (const row of stmt.iterate(Object.fromEntries(env.entries()))) {
+            console.error("row", row)
+            const env2 = new Map(env.entries());
+            for (const { variable } of assignments) {
+              const v = variable.slice(1);
+              env2.set(v, row[v]);
+            }
+            const ok = await runSqls(bodyStatements, env2);
+            if (!ok) return false;
+          }
           continue;
         }
         const {
@@ -1269,7 +1293,7 @@ function child() {
                 })) + "\n")
               };
 
-          for (const r of stmt.iterate()) {
+          for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
             i++;
             if (!(await formatter(r, outputStream))) {
               await new Promise(resolve => outputStream.once("drain", () => resolve()));
@@ -1289,7 +1313,7 @@ function child() {
           console.error("%s (%ss)", rows, (t / 1000).toFixed(3));
           if (interrupted) return false;
         } else {
-          const { changes, lastInsertRowid } = stmt.run();
+          const { changes, lastInsertRowid } = stmt.run(Object.fromEntries(env.entries()));
           const t1 = performance.now();
           const t = t1 - t0;
           const rows = (changes === 1) ? "1 row" : `${changes} rows`;
