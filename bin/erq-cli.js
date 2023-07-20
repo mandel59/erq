@@ -1227,8 +1227,8 @@ function child() {
           }).join(", ")} from (${sourceTable})`
           console.error(sourceSql);
           const stmt = db.prepare(sourceSql);
+          const env2 = new Map(env.entries());
           for (const row of stmt.all(Object.fromEntries(env.entries()))) {
-            const env2 = new Map(env.entries());
             for (const { variable } of assignments) {
               const v = variable.slice(1);
               env2.set(v, row[v]);
