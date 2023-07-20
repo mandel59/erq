@@ -585,7 +585,9 @@ Analyze
   / "analyze" { return "analyze"; }
 
 LoadRawBlock
-  = "load" __ "table" boundary _ table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+  = "load" __ "table"
+    ifNotExists:(__ "if" __ "not" __ "exists" { return true; })?
+    boundary _ table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
     boundary "from" _ x:(
       RawBlock
       / ParsedStringLiteral
@@ -597,6 +599,7 @@ LoadRawBlock
     if (typeof x === "string") {
       const path = typeof x === "string" ? x : null;
       return {
+        ifNotExists,
         table,
         def,
         columns,
@@ -607,6 +610,7 @@ LoadRawBlock
       const contentType = x.rawblock[0];
       const content = x.rawblock[1];
       return {
+        ifNotExists,
         table,
         def,
         columns,
@@ -617,6 +621,7 @@ LoadRawBlock
     } else if ("variable" in x) {
       const variable = x.variable;
       return {
+        ifNotExists,
         table,
         def,
         columns,

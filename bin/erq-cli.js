@@ -1007,7 +1007,7 @@ function child() {
     }
     else if (command === "meta-load") {
       const t0 = performance.now();
-      const { def, columns: columnNames, contentType, content, options } = args;
+      const { ifNotExists, def, columns: columnNames, contentType, content, options } = args;
       let table = args.table;
       if (Array.isArray(table)) {
         const [s, v] = table;
@@ -1015,6 +1015,14 @@ function child() {
           table = `${s}.${quoteSQLName(env.get(v.slice(1)))}`
         } else {
           table = quoteSQLName(env.get(v.slice(1)));
+        }
+      }
+      if (ifNotExists) {
+        const exists = db.prepare(`select exists (select * from sqlite_master where name = ?)`)
+          .pluck()
+          .get(unquoteSQLName(table));
+        if (exists) {
+          return true;
         }
       }
       let path = args.path
