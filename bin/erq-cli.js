@@ -1226,9 +1226,16 @@ function child() {
             return `${expression} as ${name}`
           }).join(", ")} from (${sourceTable})`
           console.error(sourceSql);
+          const t0 = performance.now();
           const stmt = db.prepare(sourceSql);
           const env2 = new Map(env.entries());
-          for (const row of stmt.all(Object.fromEntries(env.entries()))) {
+          const t1 = performance.now();
+          const records = stmt.all(Object.fromEntries(env.entries()));
+          const t = t1 - t0;
+          const i = records.length;
+          const rows = (i === 1) ? "1 row" : `${i} rows`;
+          console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
+          for (const row of records) {
             for (const { variable } of assignments) {
               const v = variable.slice(1);
               env2.set(v, row[v]);
