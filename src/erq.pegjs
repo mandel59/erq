@@ -591,42 +591,45 @@ LoadRawBlock
     boundary "from" _ x:(
       RawBlock
       / ParsedStringLiteral
-      / v:Variable { return { variable: v }; }) opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
+      / v:Variable { return { variable: v }; }
+      / "(" e:Expression ")" { return { sql: `select ${e}` }; })
+    opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
   {
     const def = d && d.def;
     const columns = d && d.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
     const options = Object.fromEntries(opt ?? []);
+    const base = {
+      ifNotExists,
+      table,
+      def,
+      columns,
+      options,
+    };
     if (typeof x === "string") {
       const path = typeof x === "string" ? x : null;
       return {
-        ifNotExists,
-        table,
-        def,
-        columns,
+        ...base,
         path,
-        options,
       };
     } else if ("rawblock" in x) {
       const contentType = x.rawblock[0];
       const content = x.rawblock[1];
       return {
-        ifNotExists,
-        table,
-        def,
-        columns,
+        ...base,
         contentType,
         content,
-        options,
       };
     } else if ("variable" in x) {
       const variable = x.variable;
       return {
-        ifNotExists,
-        table,
-        def,
-        columns,
+        ...base,
         variable,
-        options,
+      };
+    } else if ("sql" in x) {
+      const sql = x.sql;
+      return {
+        ...base,
+        sql,
       };
     }
   }

@@ -1069,7 +1069,7 @@ function child() {
     }
     else if (command === "meta-load") {
       const t0 = performance.now();
-      const { ifNotExists, def, columns: columnNames, contentType, content, options } = args;
+      const { ifNotExists, def, columns: columnNames, contentType, options } = args;
       let table = args.table;
       if (Array.isArray(table)) {
         const [s, v] = table;
@@ -1101,6 +1101,10 @@ function child() {
       const relax_column_count_less = options.relax_column_count_less ?? undefined;;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;;
       const encoding = options.encoding ?? "utf-8";
+      let content = args.content;
+      if (args.sql != null) {
+        content = db.prepare(args.sql).pluck().get();
+      }
       if (format === "csv") {
         /** @type {string} */
         const data = path != null ? iconv.decode(readFileSync(path), encoding) : content;
