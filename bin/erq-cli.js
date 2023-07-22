@@ -1338,7 +1338,13 @@ function child() {
         const stmt = db.prepare(sql);
         if (typeof format === "object" && format.type === "vega") {
           stmt.raw(false);
+          const t0 = performance.now();
           const values = stmt.all(Object.fromEntries(env.entries()));
+          const t1 = performance.now();
+          const t = t1 - t0;
+          const i = values.length;
+          const rows = (i === 1) ? "1 row" : `${i} rows`;
+          console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
           const spec = { ...format.view, data: { values } };
           if (format.outputSpec) {
             if (!outputStream.write(JSON.stringify(spec))) {
