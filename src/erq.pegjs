@@ -582,39 +582,60 @@ VegaEncoding
   }
 
 VegaEncodingChannel
-  = c:Name _ ":" _ f:Name __ t:VegaMeasurementType __ os:VegaChannelOptions {
+  = c:Name _ ":" _ f:(VegaAggregatedField / VegaField) os:VegaChannelOptions {
     return [unquoteSQLName(c), {
-      field: unquoteSQLName(f),
-      type: t,
+      field: f.field,
+      ...(f.op ? { aggregate: f.op } : null),
       ...Object.fromEntries(os),
     }];
   }
 
 VegaChannelOptions
-  = VegaChannelOption|.., __|
+  = _ os:VegaChannelOption|.., __| { return os; }
 
 VegaChannelOption
-  = VegaSorting
+  = VegaMeasurementType
+  / VegaSorting
+  / VegaBinning
 
 VegaMeasurementType
-  = "quantitative"
-  / "q" { return "quantitative"; }
-  / "nominal"
-  / "n" { return "nominal"; }
-  / "ordinal"
-  / "o" { return "ordinal"; }
-  / "temporal"
-  / "t" { return "temporal"; }
-  / "geojson"
-  / "g" { return "geojson"; }
+  = "quantitative" { return ["type", "quantitative"]; }
+  / "q" { return ["type", "quantitative"]; }
+  / "nominal" { return ["type", "nominal"]; }
+  / "n" { return ["type", "nominal"]; }
+  / "ordinal" { return ["type", "ordinal"]; }
+  / "o" { return ["type", "ordinal"]; }
+  / "temporal" { return ["type", "temporal"]; }
+  / "t" { return ["type", "temporal"]; }
+  / "geojson" { return ["type", "geojson"]; }
+  / "g" { return ["type", "geojson"]; }
 
 VegaSorting
-  = "sort" _ "(" _ c:Name _ o:(
+  = "sort" _ "(" _ ("channel" / "chan") __ c:Name _ o:(
       "asc" { return "ascending"; }
       / "desc" { return "descending"; }
     ) _ ")" { return ["sort", { encoding: c, order: o }] }
+  / "sort" _ "(" _ f:(VegaAggregatedField / VegaField) _ o:(
+      "asc" { return "ascending"; }
+      / "desc" { return "descending"; }
+    ) _ ")" { return ["sort", { ...f, order: o }] }
   / "asc" { return ["sort", "ascending"]; }
   / "desc" { return ["sort", "descending"]; }
+
+VegaBinning
+  = "binned" { return ["bin", "binned"]; }
+  / "bin" { return ["bin", true]; }
+
+VegaAggregatedField
+  = op:Name _ "(" _ f:Name _ ")" {
+    return {
+      op: unquoteSQLName(op),
+      field: unquoteSQLName(f),
+    };
+  }
+
+VegaField
+  = f:Name { return { field: unquoteSQLName(f) }; }
 
 TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
