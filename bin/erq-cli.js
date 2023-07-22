@@ -1336,7 +1336,7 @@ function child() {
         if (typeof format === "object" && format.type === "vega") {
           stmt.raw(false);
           const values = stmt.all(Object.fromEntries(env.entries()));
-          const spec = { data: { values }, ...format.view };
+          const spec = { ...format.view, data: { values } };
           if (format.outputSpec) {
             if (!outputStream.write(JSON.stringify(spec))) {
               await new Promise(resolve => outputStream.once("drain", () => resolve()));
