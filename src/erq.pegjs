@@ -1723,10 +1723,12 @@ Literal "literal"
 StringLiteral
   = SQLStringLiteral
   / &"E'" e:EscapedString { return e; }
+  / s:JSONString { return intoSQLStringLiteral(s); }
 
 ParsedStringLiteral
   = l:SQLStringLiteral { return parseSQLStringLiteral(l); }
   / "E'" e:$EscapedStringBody "'" { return parseEscapedStringBody(e); }
+  / s:JSONString { return s; }
 
 SQLStringLiteral
   = $("'" ("''" / [^'])* "'")+
