@@ -1337,6 +1337,15 @@ function child() {
           stmt.raw(false);
           const values = stmt.all(Object.fromEntries(env.entries()));
           const spec = { data: { values }, ...format.view };
+          if (format.outputSpec) {
+            if (!outputStream.write(JSON.stringify(spec))) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+            if (!outputStream.write("\n")) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+            continue;
+          }
           const vgSpec = vegaLite.compile(spec).spec;
           const vgView = new vega.View(vega.parse(vgSpec), {
             logger: vega.logger(vega.Warn, 'error'),

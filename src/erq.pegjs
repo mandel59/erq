@@ -558,10 +558,11 @@ FormattingClause
   ) { return f; }
 
 Vega
-  = "vega" __ ("with" __)? v:VegaView {
+  = "vega" __ s:("spec" __)? ("with" __)? v:VegaView {
     return {
       "type": "vega",
       "view": v,
+      "outputSpec": Boolean(s),
     };
   }
 
