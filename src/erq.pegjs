@@ -1,5 +1,7 @@
 {{
 
+const merge = require("lodash.merge");
+
 function unquoteSQLName(quot) {
   if (quot[0] === "`") {
     if (quot[quot.length - 1] === "`") {
@@ -570,7 +572,7 @@ FormattingClause
   ) { return f; }
 
 Vega
-  = "vega" __ s:("spec" __)? ("with" __)? v:VegaView {
+  = "vega" __ ("lite" __)? s:("spec" __)? ("with" __)? v:VegaView {
     return {
       "type": "vega",
       "view": v,
@@ -579,19 +581,26 @@ Vega
   }
 
 VegaView
-  = m:VegaMark _ "," _ e:VegaEncoding {
-    return {
-      mark: m,
-      encoding: e,
-    };
+  = opts:VegaViewOption|1.., _ "," _| {
+    return merge(...opts);
   }
 
+VegaViewOption
+  = VegaMark
+  / VegaEncoding
+  / VegaViewJsonOption
+
 VegaMark
-  = "mark" __ m:Name { return m; }
+  = "mark" __ m:Name { return { mark: { type: m } }; }
 
 VegaEncoding
   = "encoding" _ "{" _ cs:VegaEncodingChannel|.., _ "," _| _ "}" {
-    return Object.fromEntries(cs);
+    return { encoding: Object.fromEntries(cs) };
+  }
+
+VegaViewJsonOption
+  = "options" _ obj:JSONObject {
+    return obj;
   }
 
 VegaEncodingChannel
@@ -608,6 +617,7 @@ VegaChannelOptions
 
 VegaChannelOption
   = VegaMeasurementType
+  / VegaTimeUnitOption
   / VegaSorting
   / VegaBinning
 
@@ -622,6 +632,31 @@ VegaMeasurementType
   / "t" boundary { return ["type", "temporal"]; }
   / "geojson" boundary { return ["type", "geojson"]; }
   / "g" boundary { return ["type", "geojson"]; }
+
+VegaTimeUnitOption
+  = binned:"binned"?
+    utc:"utc"?
+    us:VegaTimeUnit|1..|
+    boundary {
+    const options = [];
+    if (binned) { options.push("binned"); }
+    if (utc) { options.push("utc"); }
+    options.push(...us);
+    return ["timeUnit", options.join("")];
+  }
+
+VegaTimeUnit
+  = "year"
+  / "quarter"
+  / "month"
+  / "date"
+  / "week"
+  / "dayofyear"
+  / "day"
+  / "hours"
+  / "minutes"
+  / "seconds"
+  / "milliseconds"
 
 VegaSorting
   = "sort" _ "(" _ ("channel" / "chan") __ c:Name _ o:(
@@ -1775,3 +1810,34 @@ boundary "boundary" = & {
 }
 
 __ = _ boundary
+
+JSONValue
+  = JSONObject
+  / JSONArray
+  / JSONString
+  / JSONNumber
+  / "true" { return true; }
+  / "false" { return false; }
+  / "null" { return null; }
+
+JSONObject
+  = "{" _ kvs:JSONObjectEntry|.., _ "," _| _ "}" {
+    return Object.fromEntries(kvs);
+  } 
+
+JSONObjectEntry
+  = k:JSONString _ ":" _ v:JSONValue { return [k, v]; }
+
+JSONArray
+  = "[" _ vs:JSONValue|.., _ "," _| _ "]" { return vs; }
+
+JSONString
+  = s:$("\"" JSONStringBody* "\"") { return JSON.parse(s); }
+
+JSONStringBody
+  = "\\u" [0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]
+  / "\\" ["\\/bfnrt]
+  / [^\u0000-\u001f"\\]
+
+JSONNumber
+  = n:$("-"? [0-9]+ ("." [0-9]+)? ([eE] [+-]? [0-9]+)?) { return JSON.parse(n); }
