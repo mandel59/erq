@@ -612,16 +612,16 @@ VegaChannelOption
   / VegaBinning
 
 VegaMeasurementType
-  = "quantitative" { return ["type", "quantitative"]; }
-  / "q" { return ["type", "quantitative"]; }
-  / "nominal" { return ["type", "nominal"]; }
-  / "n" { return ["type", "nominal"]; }
-  / "ordinal" { return ["type", "ordinal"]; }
-  / "o" { return ["type", "ordinal"]; }
-  / "temporal" { return ["type", "temporal"]; }
-  / "t" { return ["type", "temporal"]; }
-  / "geojson" { return ["type", "geojson"]; }
-  / "g" { return ["type", "geojson"]; }
+  = "quantitative" boundary { return ["type", "quantitative"]; }
+  / "q" boundary { return ["type", "quantitative"]; }
+  / "nominal" boundary { return ["type", "nominal"]; }
+  / "n" boundary { return ["type", "nominal"]; }
+  / "ordinal" boundary { return ["type", "ordinal"]; }
+  / "o" boundary { return ["type", "ordinal"]; }
+  / "temporal" boundary { return ["type", "temporal"]; }
+  / "t" boundary { return ["type", "temporal"]; }
+  / "geojson" boundary { return ["type", "geojson"]; }
+  / "g" boundary { return ["type", "geojson"]; }
 
 VegaSorting
   = "sort" _ "(" _ ("channel" / "chan") __ c:Name _ o:(
@@ -632,8 +632,10 @@ VegaSorting
       "asc" { return "ascending"; }
       / "desc" { return "descending"; }
     ) _ ")" { return ["sort", { ...f, order: o }] }
-  / "asc" { return ["sort", "ascending"]; }
-  / "desc" { return ["sort", "descending"]; }
+  / "sort" _ "[" _ vs:ParsedStringLiteral|.., _ "," _| "]" { return ["sort", vs]; }
+  / "asc" boundary { return ["sort", "ascending"]; }
+  / "desc" boundary { return ["sort", "descending"]; }
+  / "nosort" boundary { return ["sort", null]; }
 
 VegaBinning
   = "binned" { return ["bin", "binned"]; }
