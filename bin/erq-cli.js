@@ -1068,6 +1068,9 @@ function child() {
       console.error("    array\tResults in ndjson (each record is an JSON array)");
       console.error("    object\tResults in ndjson (each record is an JSON object)");
       return false;
+    } else if (command === "meta-set-output") {
+      outputFormat = args[0];
+      return true;
     }
     else if (command === "meta-load") {
       const t0 = performance.now();

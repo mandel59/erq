@@ -506,6 +506,7 @@ MetaStatement
   = l:LoadRawBlock { return { type: "command", command: "meta-load", args: l }}
   / c:CreateFunction { return { type: "command", command: "meta-create-function", args:c } }
   / c:CreateTableFromJson { return { type: "command", command: "meta-create-table-from-json", args:c } }
+  / f:SetOutputFormat { return { type: "command", command: "meta-set-output", args:[f] } }
 
 ForStatement
   = "for" _ a:ForVarAssignments _ boundary "of" boundary _ t:Table _ boundary ("do" boundary _)? body:BlockStatement
@@ -548,6 +549,13 @@ Statement1
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
   / t:TriggerStatement f:FormattingClause? { return f ? { ...t, format: f } : t; }
+
+SetOutputFormat
+  = "set" __ "format" __ f:(
+    "dense"
+    / "sparse"
+    / Vega
+  ) { return f; }
 
 FormattingClause
   = _ boundary "output" __ f:(
