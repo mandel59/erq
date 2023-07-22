@@ -637,10 +637,12 @@ VegaEncodingChannel
       / VegaRepeatField
       / a:VegaAggregatedField { return { aggregate: a.op, field: a.field } }
       / VegaField)
-      os:VegaChannelOptions {
+      os:VegaChannelOptions
+      jos:(_ j:JSONObject { return j; })? {
     return [unquoteSQLName(c), {
       ...f,
       ...Object.fromEntries(os),
+      ...jos,
     }];
   }
 
