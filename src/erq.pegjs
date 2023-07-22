@@ -634,6 +634,7 @@ VegaViewJsonOption
 VegaEncodingChannel
   = c:Name _ ":" _ f:(
       VegaDatum
+      / VegaValueEncoding
       / VegaRepeatField
       / a:VegaAggregatedField { return { aggregate: a.op, field: a.field } }
       / VegaField)
@@ -722,6 +723,10 @@ VegaAggregatedField
 VegaDatum
   = "datum" _ "(" _ v:("row" / "column" / "layer" / "repeat") _ ")"
     { return { datum: { repeat: v } }; }
+
+VegaValueEncoding
+  = "value" _ "(" _ v:(ParsedStringLiteral / JSONValue) _ ")"
+    { return { value: v }; }
 
 VegaRepeatField
   = "repeat" _ "(" _ v:("row" / "column" / "layer" / "repeat") _ ")"
