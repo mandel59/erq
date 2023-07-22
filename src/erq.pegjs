@@ -53,6 +53,10 @@ function parseEscapedStringBody(b) {
   });
 }
 
+function escapeVegaField(f) {
+  return f.replace(/[\[\]\\.]/g, "\\$&");
+}
+
 const keywords = new Set([
   "ABORT",
   "ACTION",
@@ -586,7 +590,8 @@ VegaView
   }
 
 VegaViewOption
-  = VegaMark
+  = VegaRepeat
+  / VegaMark
   / VegaEncoding
   / VegaViewJsonOption
 
@@ -598,16 +603,43 @@ VegaEncoding
     return { encoding: Object.fromEntries(cs) };
   }
 
+VegaRepeat
+  = "repeat" boundary _ d:VegaRepeatDefVars _ "(" _ v:VegaView _ ")"
+    { return { repeat: d, spec: v }; }
+  / "repeat" boundary _ d:VegaRepeatDef _ n:VegaRepeatColumns? "(" _ v:VegaView _ ")"
+    { return { repeat: d, spec: v, columns: n }; }
+
+VegaRepeatColumns
+  = "columns" _ n:JSONNumber _ { return n; }
+
+VegaRepeatDefVars
+  = ds:VegaRepeatDefVar|1.., _ "," _| { return merge(...ds); }
+
+VegaRepeatDefVar
+  = dir:("row" / "column" / "layer")
+      _ "(" _ fs:VegaField|1.., _ "," _| _ ")" {
+      return { [dir]: fs.map(f => f.field) };
+    }
+
+VegaRepeatDef
+  = "(" _ fs:VegaField|1.., _ "," _| _ ")" {
+      return fs.map(f => f.field);
+    }
+
 VegaViewJsonOption
   = "options" _ obj:JSONObject {
     return obj;
   }
 
 VegaEncodingChannel
-  = c:Name _ ":" _ f:(VegaAggregatedField / VegaField) os:VegaChannelOptions {
+  = c:Name _ ":" _ f:(
+      VegaDatum
+      / VegaRepeatField
+      / a:VegaAggregatedField { return { aggregate: a.op, field: a.field } }
+      / VegaField)
+      os:VegaChannelOptions {
     return [unquoteSQLName(c), {
-      field: f.field,
-      ...(f.op ? { aggregate: f.op } : null),
+      ...f,
       ...Object.fromEntries(os),
     }];
   }
@@ -663,7 +695,7 @@ VegaSorting
       "asc" { return "ascending"; }
       / "desc" { return "descending"; }
     ) _ ")" { return ["sort", { encoding: c, order: o }] }
-  / "sort" _ "(" _ f:(VegaAggregatedField / VegaField) _ o:(
+  / "sort" _ "(" _ f:(VegaRepeatField / VegaAggregatedField / VegaField) _ o:(
       "asc" { return "ascending"; }
       / "desc" { return "descending"; }
     ) _ ")" { return ["sort", { ...f, order: o }] }
@@ -677,15 +709,25 @@ VegaBinning
   / "bin" { return ["bin", true]; }
 
 VegaAggregatedField
-  = op:Name _ "(" _ f:Name _ ")" {
+  = "count" _ "(" _ ("*" _)? ")" { return { op: "count" }; }
+  / op:Name _ "(" _ f:VegaField _ ")" {
     return {
       op: unquoteSQLName(op),
-      field: unquoteSQLName(f),
+      field: f.field,
     };
   }
 
+VegaDatum
+  = "datum" _ "(" _ v:("row" / "column" / "layer" / "repeat") _ ")"
+    { return { datum: { repeat: v } }; }
+
+VegaRepeatField
+  = "repeat" _ "(" _ v:("row" / "column" / "layer" / "repeat") _ ")"
+    { return { field: { repeat: v } }; }
+  / "repeat" boundary { return { field: { repeat: "repeat" } }; }
+
 VegaField
-  = f:Name { return { field: unquoteSQLName(f) }; }
+  = f:Name { return { field: escapeVegaField(unquoteSQLName(f)) }; }
 
 TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
