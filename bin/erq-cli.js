@@ -1382,6 +1382,57 @@ function child() {
           let interrupted = false;
           let i = 0;
 
+          /**
+           * @returns {(r: any[], outputStream: NodeJS.WriteStream) => Promise<boolean>}
+           */
+          function createFormatter(format) {
+            if (format === "sparse") return async (r, outputStream) => {
+              const kvs = r.map((value, j) => {
+                const k = columnNames[j];
+                if (value != null && typeof value === "object") {
+                  // convert Buffer object to Array object
+                  return [k, Array.from(value)];
+                }
+                if (typeof value === "bigint") {
+                  return [k, String(value)];
+                }
+                return [k, value];
+              });
+              const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
+              return outputStream.write(JSON.stringify(obj) + "\n");
+            }; if (format === "eqp") return createEqpFormatter();
+            if (format === "raw") return async (r, outputStream) => {
+              for (const v of r) {
+                if (v == null) {
+                  continue;
+                } else if (typeof v === "object") {
+                  // write raw buffer
+                  if (!outputStream.write(v)) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                } else {
+                  if (!outputStream.write(String(v))) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                }
+              }
+              return true;
+            }
+            return async (r, outputStream) => {
+              // default dense format
+              return outputStream.write(JSON.stringify(r.map(value => {
+                if (value != null && typeof value === "object") {
+                  // convert Buffer object to Array object
+                  return Array.from(value);
+                }
+                if (typeof value === "bigint") {
+                  return String(value);
+                }
+                return value;
+              })) + "\n")
+            };
+          }
+
           const formatter = createFormatter(format);
 
           for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
@@ -1459,57 +1510,6 @@ function child() {
   })
 
   process.send("ready");
-}
-
-/**
- * @returns {(r: any[], outputStream: NodeJS.WriteStream) => Promise<boolean>}
- */
-function createFormatter(format) {
-  if (format === "sparse") return async (r, outputStream) => {
-    const kvs = r.map((value, j) => {
-      const k = columnNames[j];
-      if (value != null && typeof value === "object") {
-        // convert Buffer object to Array object
-        return [k, Array.from(value)];
-      }
-      if (typeof value === "bigint") {
-        return [k, String(value)];
-      }
-      return [k, value];
-    });
-    const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
-    return outputStream.write(JSON.stringify(obj) + "\n");
-  }; if (format === "eqp") return createEqpFormatter();
-  if (format === "raw") return async (r, outputStream) => {
-    for (const v of r) {
-      if (v == null) {
-        continue;
-      } else if (typeof v === "object") {
-        // write raw buffer
-        if (!outputStream.write(v)) {
-          await new Promise(resolve => outputStream.once("drain", () => resolve()));
-        }
-      } else {
-        if (!outputStream.write(String(v))) {
-          await new Promise(resolve => outputStream.once("drain", () => resolve()));
-        }
-      }
-    }
-    return true;
-  }
-  return async (r, outputStream) => {
-    // default dense format
-    return outputStream.write(JSON.stringify(r.map(value => {
-      if (value != null && typeof value === "object") {
-        // convert Buffer object to Array object
-        return Array.from(value);
-      }
-      if (typeof value === "bigint") {
-        return String(value);
-      }
-      return value;
-    })) + "\n")
-  };
 }
 
 /**

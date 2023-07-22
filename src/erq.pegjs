@@ -554,6 +554,8 @@ SetOutputFormat
   = "set" __ "format" __ f:(
     "dense"
     / "sparse"
+    / "array" { return "dense"; }
+    / "object" { return "sparse"; }
     / Vega
   ) { return f; }
 
@@ -561,6 +563,8 @@ FormattingClause
   = _ boundary "output" __ f:(
     "dense"
     / "sparse"
+    / "array" { return "dense"; }
+    / "object" { return "sparse"; }
     / "raw"
     / Vega
   ) { return f; }
