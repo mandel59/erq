@@ -591,6 +591,7 @@ VegaView
 
 VegaViewOption
   = VegaRepeat
+  / VegaCompose
   / VegaMark
   / VegaEncoding
   / VegaViewJsonOption
@@ -611,6 +612,12 @@ VegaRepeat
 
 VegaRepeatColumns
   = "columns" _ n:JSONNumber _ { return n; }
+
+VegaCompose
+  = op:("layer" / "hconcat" / "vconcat" / "concat") _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
+    { return { [op]: vs }; }
+  / "concat" __ "columns" __ n:JSONNumber _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
+    { return { concat: vs, columns: n }; }
 
 VegaRepeatDefVars
   = ds:VegaRepeatDefVar|1.., _ "," _| { return merge(...ds); }
