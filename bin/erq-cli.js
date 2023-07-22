@@ -12,6 +12,8 @@ import iconv from "iconv-lite";
 import jsdom from "jsdom";
 import { NodeVM } from "vm2";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
+import vega from "vega"
+import vegaLite from "vega-lite"
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -1331,6 +1333,29 @@ function child() {
         console.error(sql);
         const t0 = performance.now();
         const stmt = db.prepare(sql);
+        if (typeof format === "object" && format.type === "vega") {
+          stmt.raw(false);
+          const values = stmt.all(Object.fromEntries(env.entries()));
+          const spec = { data: { values }, ...format.view };
+          const vgSpec = vegaLite.compile(spec).spec;
+          const vgView = new vega.View(vega.parse(vgSpec), {
+            logger: vega.logger(vega.Warn, 'error'),
+            renderer: 'none',
+          }).finalize();
+          const canvas = await vgView.toCanvas();
+          const png = canvas.toBuffer();
+          const size = png.length;
+          if (!outputStream.write(`\x1b]1337;File=inline=1;size=${size}:`)) {
+            await new Promise(resolve => outputStream.once("drain", () => resolve()));
+          }
+          if (!outputStream.write(png.toString("base64"))) {
+            await new Promise(resolve => outputStream.once("drain", () => resolve()));
+          }
+          if (!outputStream.write('\x07\n')) {
+            await new Promise(resolve => outputStream.once("drain", () => resolve()));
+          }
+          continue;
+        }
         if (type === "select" || type === "pragma" || returning) {
           stmt.raw(true);
           // stmt.safeIntegers(true);
@@ -1345,52 +1370,7 @@ function child() {
           let interrupted = false;
           let i = 0;
 
-          /** @type {(r: any[], outputStream: NodeJS.WriteStream) => Promise<boolean>} */
-          const formatter = (format === "sparse") ? async (r, outputStream) => {
-            const kvs = r.map((value, j) => {
-              const k = columnNames[j];
-              if (value != null && typeof value === "object") {
-                // convert Buffer object to Array object
-                return [k, Array.from(value)];
-              }
-              if (typeof value === "bigint") {
-                return [k, String(value)];
-              }
-              return [k, value];
-            });
-            const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
-            return outputStream.write(JSON.stringify(obj) + "\n");
-          } : (format === "eqp") ? createEqpFormatter()
-            : (format === "raw") ? async (r, outputStream) => {
-              for (const v of r) {
-                if (v == null) {
-                  continue;
-                } else if (typeof v === "object") {
-                  // write raw buffer
-                  if (!outputStream.write(v)) {
-                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
-                  }
-                } else {
-                  if (!outputStream.write(String(v))) {
-                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
-                  }
-                }
-              }
-              return true;
-            }
-              : async (r, outputStream) => {
-                // default dense format
-                return outputStream.write(JSON.stringify(r.map(value => {
-                  if (value != null && typeof value === "object") {
-                    // convert Buffer object to Array object
-                    return Array.from(value);
-                  }
-                  if (typeof value === "bigint") {
-                    return String(value);
-                  }
-                  return value;
-                })) + "\n")
-              };
+          const formatter = createFormatter(format);
 
           for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
             i++;
@@ -1467,6 +1447,57 @@ function child() {
   })
 
   process.send("ready");
+}
+
+/**
+ * @returns {(r: any[], outputStream: NodeJS.WriteStream) => Promise<boolean>}
+ */
+function createFormatter(format) {
+  if (format === "sparse") return async (r, outputStream) => {
+    const kvs = r.map((value, j) => {
+      const k = columnNames[j];
+      if (value != null && typeof value === "object") {
+        // convert Buffer object to Array object
+        return [k, Array.from(value)];
+      }
+      if (typeof value === "bigint") {
+        return [k, String(value)];
+      }
+      return [k, value];
+    });
+    const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
+    return outputStream.write(JSON.stringify(obj) + "\n");
+  }; if (format === "eqp") return createEqpFormatter();
+  if (format === "raw") return async (r, outputStream) => {
+    for (const v of r) {
+      if (v == null) {
+        continue;
+      } else if (typeof v === "object") {
+        // write raw buffer
+        if (!outputStream.write(v)) {
+          await new Promise(resolve => outputStream.once("drain", () => resolve()));
+        }
+      } else {
+        if (!outputStream.write(String(v))) {
+          await new Promise(resolve => outputStream.once("drain", () => resolve()));
+        }
+      }
+    }
+    return true;
+  }
+  return async (r, outputStream) => {
+    // default dense format
+    return outputStream.write(JSON.stringify(r.map(value => {
+      if (value != null && typeof value === "object") {
+        // convert Buffer object to Array object
+        return Array.from(value);
+      }
+      if (typeof value === "bigint") {
+        return String(value);
+      }
+      return value;
+    })) + "\n")
+  };
 }
 
 /**

@@ -1,5 +1,15 @@
 {{
 
+function unquoteSQLName(quot) {
+  if (quot[0] === "`") {
+    if (quot[quot.length - 1] === "`") {
+      return quot.substring(1, quot.length - 1).replace(/``/g, "`");
+    }
+    return quot.substring(1).replace(/``/g, "`");
+  }
+  return quot;
+}
+
 function parseSQLStringLiteral(l) {
   return l.substring(1, l.length - 1).replace(/''/g, "'");
 }
@@ -540,7 +550,71 @@ Statement1
   / t:TriggerStatement f:FormattingClause? { return f ? { ...t, format: f } : t; }
 
 FormattingClause
-  = _ boundary "output" __ f:("dense"/"sparse"/"raw") { return f; }
+  = _ boundary "output" __ f:(
+    "dense"
+    / "sparse"
+    / "raw"
+    / Vega
+  ) { return f; }
+
+Vega
+  = "vega" __ ("with" __)? v:VegaView {
+    return {
+      "type": "vega",
+      "view": v,
+    };
+  }
+
+VegaView
+  = m:VegaMark _ "," _ e:VegaEncoding {
+    return {
+      mark: m,
+      encoding: e,
+    };
+  }
+
+VegaMark
+  = "mark" __ m:Name { return m; }
+
+VegaEncoding
+  = "encoding" _ "{" _ cs:VegaEncodingChannel|.., _ "," _| _ "}" {
+    return Object.fromEntries(cs);
+  }
+
+VegaEncodingChannel
+  = c:Name _ ":" _ f:Name __ t:VegaMeasurementType __ os:VegaChannelOptions {
+    return [unquoteSQLName(c), {
+      field: unquoteSQLName(f),
+      type: t,
+      ...Object.fromEntries(os),
+    }];
+  }
+
+VegaChannelOptions
+  = VegaChannelOption|.., __|
+
+VegaChannelOption
+  = VegaSorting
+
+VegaMeasurementType
+  = "quantitative"
+  / "q" { return "quantitative"; }
+  / "nominal"
+  / "n" { return "nominal"; }
+  / "ordinal"
+  / "o" { return "ordinal"; }
+  / "temporal"
+  / "t" { return "temporal"; }
+  / "geojson"
+  / "g" { return "geojson"; }
+
+VegaSorting
+  = "sort" _ "(" _ c:Name _ o:(
+      "asc" { return "ascending"; }
+      / "desc" { return "descending"; }
+    ) _ ")" { return ["sort", { encoding: c, order: o }] }
+  / "asc" { return ["sort", "ascending"]; }
+  / "desc" { return ["sort", "descending"]; }
 
 TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
