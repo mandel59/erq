@@ -723,6 +723,8 @@ VegaAggregatedField
 VegaDatum
   = "datum" _ "(" _ v:("row" / "column" / "layer" / "repeat") _ ")"
     { return { datum: { repeat: v } }; }
+  / "datum" _ "(" _ v:(ParsedStringLiteral / JSONValue) _ ")"
+    { return { datum: v }; }
 
 VegaValueEncoding
   = "value" _ "(" _ v:(ParsedStringLiteral / JSONValue) _ ")"
