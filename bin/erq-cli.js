@@ -1260,7 +1260,7 @@ function child() {
       const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
       console.error(insertSQL);
       const insert = db.prepare(insertSQL);
-      const records = db.prepare(jsonsql).pluck().all()
+      const records = db.prepare(jsonsql).pluck().all(Object.fromEntries(env.entries()))
       let ct = 0
       const insertMany = db.transaction(() => {
         for (let json of records) {
