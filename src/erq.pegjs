@@ -592,6 +592,7 @@ VegaView
 VegaViewOption
   = VegaRepeat
   / VegaCompose
+  / VegaResolve
   / VegaMark
   / VegaEncoding
   / VegaViewJsonOption
@@ -620,6 +621,13 @@ VegaCompose
     { return { [op]: vs }; }
   / "concat" __ "columns" __ n:JSONNumber _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
     { return { concat: vs, columns: n }; }
+
+VegaResolve
+  = "resolve" __
+    b:("scale" / "axis" / "legend") __
+    c:Name __
+    d:("independent" / "shared")
+    { return { resolve: { [b]: { [c]: d } } }; }
 
 VegaRepeatDefVars
   = ds:VegaRepeatDefVar|1.., _ "," _| { return merge(...ds); }
