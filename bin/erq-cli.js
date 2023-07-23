@@ -1261,22 +1261,25 @@ function child() {
       console.error(insertSQL);
       const insert = db.prepare(insertSQL);
       const records = db.prepare(jsonsql).pluck().all()
+      let ct = 0
       const insertMany = db.transaction(() => {
         for (let json of records) {
           const obj = JSON.parse(json)
           if (Array.isArray(obj)) {
             for (const o of obj) {
               insert.run(convertJsonToRecord(header, o))
+              ct++;
             }
           } else {
             insert.run(convertJsonToRecord(header, obj))
+            ct++;
           }
         }
       });
       insertMany();
       const t1 = performance.now();
       const t = t1 - t0;
-      const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+      const rows = (ct === 1) ? "1 row" : `${ct} rows`;
       console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
       return true;
     }
