@@ -868,8 +868,10 @@ CreateFunction
   }
 
 CreateTableFromJson
-  = "create" __ "table" boundary _ table:TableName _ d:("(" _ td:TableDef _ ")" _ { return td; })?
-    boundary "from" __ "json" _ "(" _ e:Table _ ")" { return [table, d, e]; }
+  = "create" __ "table"
+    ine:(__ "if" __ "not" __ "exists")? boundary _
+    table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    boundary "from" __ "json" _ "(" _ e:Table _ ")" { return [table, d, e, Boolean(ine)]; }
 
 FunctionParams
   = "(" _ ")" { return []; }

@@ -799,6 +799,18 @@ function child() {
     return quot;
   }
 
+  function resolveTable(table, env) {
+    if (Array.isArray(table)) {
+      const [s, v] = table;
+      if (s != null) {
+        table = `${s}.${quoteSQLName(env.get(v.slice(1)))}`
+      } else {
+        table = quoteSQLName(env.get(v.slice(1)));
+      }
+    }
+    return table;
+  }
+
   const dbpath = options.db ?? ":memory:";
   const db = new Database(dbpath);
   console.error("Connected to %s", dbpath);
@@ -1035,6 +1047,12 @@ function child() {
    * @returns {Promise<boolean>} ok status
    */
   async function runCLICommandThrowing({ command, args }, env) {
+    function tableExists(table) {
+      return db.prepare(`select exists (select * from sqlite_master where name = ?)`)
+        .pluck()
+        .get(unquoteSQLName(table));
+    }
+    const vars = Object.fromEntries(env.entries());
     if (command === "load") {
       if (args.length === 1) {
         db.loadExtension(args[0]);
@@ -1075,22 +1093,9 @@ function child() {
     else if (command === "meta-load") {
       const t0 = performance.now();
       const { ifNotExists, def, columns: columnNames, contentType, options } = args;
-      let table = args.table;
-      if (Array.isArray(table)) {
-        const [s, v] = table;
-        if (s != null) {
-          table = `${s}.${quoteSQLName(env.get(v.slice(1)))}`
-        } else {
-          table = quoteSQLName(env.get(v.slice(1)));
-        }
-      }
-      if (ifNotExists) {
-        const exists = db.prepare(`select exists (select * from sqlite_master where name = ?)`)
-          .pluck()
-          .get(unquoteSQLName(table));
-        if (exists) {
-          return true;
-        }
+      const table = resolveTable(args.table, env);
+      if (ifNotExists && tableExists(table)) {
+        return true;
       }
       let path = args.path
       if (args.variable != null) {
@@ -1238,7 +1243,11 @@ function child() {
     }
     else if (command === "meta-create-table-from-json") {
       const t0 = performance.now();
-      const [table, def, jsonsql] = args;
+      const [tableWithVariable, def, jsonsql, ifNotExists] = args;
+      const table = resolveTable(tableWithVariable, env);
+      if (ifNotExists && tableExists(table)) {
+        return true;
+      }
       const columnNames = def && def.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
       let header, definition;
       if (def) {
@@ -1250,7 +1259,7 @@ function child() {
           + `(select ifnull(k.key, 'value') as key from t join json_each(t.v) as u join json_each(u.value) as k `
           + `where json_type(t.v) = 'array' `
           + `union all select ifnull(k.key, 'value') from t join json_each(t.v) as k `
-          + `where json_type(t.v) <> 'array')`).pluck().all();
+          + `where json_type(t.v) <> 'array')`).pluck().all(vars);
         header = keys.map(String);
         definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
       }
@@ -1260,7 +1269,7 @@ function child() {
       const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
       console.error(insertSQL);
       const insert = db.prepare(insertSQL);
-      const records = db.prepare(jsonsql).pluck().all(Object.fromEntries(env.entries()))
+      const records = db.prepare(jsonsql).pluck().all(vars);
       let ct = 0
       const insertMany = db.transaction(() => {
         for (let json of records) {
