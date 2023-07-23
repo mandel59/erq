@@ -597,7 +597,9 @@ VegaViewOption
   / VegaViewJsonOption
 
 VegaMark
-  = "mark" __ m:Name { return { mark: { type: m } }; }
+  = "mark" __ m:Name
+    props:(_ props:JSONObject { return props; })?
+    { return { mark: { type: m, ...props } }; }
 
 VegaEncoding
   = "encoding" _ "{" _ cs:VegaEncodingChannel|.., _ "," _| _ "}" {
