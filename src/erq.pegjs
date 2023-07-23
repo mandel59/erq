@@ -719,7 +719,7 @@ VegaSorting
       "asc" { return "ascending"; }
       / "desc" { return "descending"; }
     ) _ ")" { return ["sort", { ...f, order: o }] }
-  / "sort" _ "[" _ vs:ParsedStringLiteral|.., _ "," _| "]" { return ["sort", vs]; }
+  / "sort" _ "[" _ vs:(ParsedStringLiteral / JSONValue)|.., _ "," _| "]" { return ["sort", vs]; }
   / "asc" boundary { return ["sort", "ascending"]; }
   / "desc" boundary { return ["sort", "descending"]; }
   / "nosort" boundary { return ["sort", null]; }
