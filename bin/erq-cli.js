@@ -1346,7 +1346,7 @@ function child() {
           const rows = (i === 1) ? "1 row" : `${i} rows`;
           console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
           const spec = { ...format.view, data: { values } };
-          if (format.outputSpec) {
+          if (format.format === "spec") {
             if (!outputStream.write(JSON.stringify(spec))) {
               await new Promise(resolve => outputStream.once("drain", () => resolve()));
             }
@@ -1360,6 +1360,16 @@ function child() {
             logger: vega.logger(vega.Warn, 'error'),
             renderer: 'none',
           }).finalize();
+          if (format.format === "svg") {
+            const svg = await vgView.toSVG();
+            if (!outputStream.write(svg)) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+            if (!outputStream.write("\n")) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+            continue;
+          }
           const canvas = await vgView.toCanvas();
           const png = canvas.toBuffer();
           const size = png.length;
