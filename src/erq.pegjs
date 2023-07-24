@@ -1,6 +1,14 @@
 {{
 
-const merge = require("lodash.merge");
+const mergeWith = require("lodash.mergewith");
+
+function merge(x, ...args) {
+  return mergeWith(x, ...args, (a, b) => {
+    if (Array.isArray(a)) {
+      return a.concat(b);
+    }
+  });
+}
 
 function unquoteSQLName(quot) {
   if (quot[0] === "`") {
