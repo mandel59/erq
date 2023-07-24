@@ -798,9 +798,11 @@ VegaPredicate3
     { return { field: escapeVegaField(unquoteSQLName(f)), valid: true }; }
   / f:Name _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| _ "]"
     { return { field: escapeVegaField(unquoteSQLName(f)), oneOf: vs }; }
+  / f:Name _ t:VegaTimeUnit _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| _ "]"
+    { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, oneOf: vs }; }
   / f:Name _ "between" boundary _ a:VegaValue _ "and" boundary _ b:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), range: [a, b] }; }
-  / f:Name _ t:VegaTimeUnit _ "between" boundary a:VegaValue _ "and" boundary b:VegaValue
+  / f:Name _ t:VegaTimeUnit _ "between" boundary _ a:VegaValue _ "and" boundary _ b:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, range: [a, b] }; }
   / f:Name _ ("<>"/"!=") _ value:VegaValue
     { return { not: { field: escapeVegaField(unquoteSQLName(f)), equal: value } }; }
