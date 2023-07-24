@@ -774,6 +774,7 @@ VegaTransform
 
 VegaTransformMethod
   = "[" _ filter:VegaPredicate _ "]" { return [{ filter }]; }
+  / "[" _ e:VegaExpression _ "]" { return [{ filter: e }]; }
   / "{" _ cs:VegaCalculateField|1.., _ "," _| _ "}" { return cs; }
   / "apply" _ obj:JSONObject { return [obj]; }
 
@@ -793,6 +794,10 @@ VegaPredicate2
 
 VegaPredicate3
   = "(" _ p:VegaPredicate _ ")" { return p; }
+  / "valid" _ "(" _ f:Name _ ")"
+    { return { field: escapeVegaField(unquoteSQLName(f)), valid: true }; }
+  / f:Name _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| _ "]"
+    { return { field: escapeVegaField(unquoteSQLName(f)), oneOf: vs }; }
   / f:Name _ "between" boundary _ a:VegaValue _ "and" boundary _ b:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), range: [a, b] }; }
   / f:Name _ t:VegaTimeUnit _ "between" boundary a:VegaValue _ "and" boundary b:VegaValue
@@ -831,9 +836,14 @@ VegaExpression1
   / VegaExpression2
 
 VegaExpression2
-  = e1:VegaExpression3 _ op:VegaExpressionBinOp _ e2:VegaExpression2
-    { return `${e1} ${op} ${e2}`; }
+  = e:VegaExpression3 _ "between" boundary _ e1:VegaExpression3 _ "and" boundary _ e2:VegaExpression3
+    { return `${e} >= ${e1} && ${e} <= ${e2}`; }
   / VegaExpression3
+
+VegaExpression3
+  = e1:VegaExpression4 _ op:VegaExpressionBinOp _ e2:VegaExpression3
+    { return `${e1} ${op} ${e2}`; }
+  / VegaExpression4
 
 VegaExpressionBinOp
   = "==" { return "==="; }
@@ -846,7 +856,7 @@ VegaExpressionBinOp
   / "=" { return "==="; }
   / [-+*/%|^&<>]
 
-VegaExpression3
+VegaExpression4
   = !("--"/"++") op:[-~+!] _ e:VegaExpressionValue { return `${op}${e}`; }
   / VegaExpressionValue
 
