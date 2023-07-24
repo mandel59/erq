@@ -822,17 +822,23 @@ VegaCompareOperator
   / ">" { return "gt"; }
 
 VegaValue
-  = EscapedString
-  / JSONValue
+  = v:EscapedString &(_ !VegaExpressionBinOp) { return v; }
+  / v:JSONValue &(_ !VegaExpressionBinOp) { return v; }
+  / e:VegaExpression3 { return { expr: e }; }
 
 VegaExpression
-  = es:VegaExpression1|2.., _ "or" _|
+  = es:VegaExpression0|2.., _ "or" _|
     { return es.join(" || "); }
+  / VegaExpression0
+
+VegaExpression0
+  = es:VegaExpression1|2.., _ "and" _|
+    { return es.join(" && "); }
   / VegaExpression1
 
 VegaExpression1
-  = es:VegaExpression2|2.., _ "and" _|
-    { return es.join(" && "); }
+  = "not" boundary _ e:VegaExpression2
+    { return `!(${e})`; }
   / VegaExpression2
 
 VegaExpression2
