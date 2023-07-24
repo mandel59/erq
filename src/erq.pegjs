@@ -862,6 +862,7 @@ VegaExpressionBinOp
   / "<="
   / "<>" { return "!=="; }
   / "=" { return "==="; }
+  / "||" { return "+"; }
   / [-+*/%|^&<>]
 
 VegaExpression4
