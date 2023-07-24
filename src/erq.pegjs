@@ -2041,6 +2041,7 @@ JSONObject
 
 JSONObjectEntry
   = k:JSONString _ ":" _ v:JSONValue { return [k, v]; }
+  / k:Name _ ":" _ v:JSONValue { return [unquoteSQLName(k), v]; }
 
 JSONArray
   = "[" _ vs:JSONValue|.., _ "," _| _ "]" { return vs; }
