@@ -873,12 +873,12 @@ VegaExpressionValue
   = "(" _ e:VegaExpression _ ")" { return `(${e})`; }
   / f:$([A-Za-z_][A-Za-z0-9_]*) _ "(" _ es:VegaExpression|.., _ "," _| _ ")"
     { return `${f}(${es.join(", ")})`; }
-  / VegaConstant
   / "datum" _ "." _ f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
   / "event" _ "." _ f:Name { return `event[${JSON.stringify(unquoteSQLName(f))}]`; }
-  / f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
   / s:ParsedStringLiteral { return JSON.stringify(s); }
   / v:JSONValue { return JSON.stringify(v); }
+  / VegaConstant
+  / f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
 
 VegaConstant
   = "NaN" boundary { return "NaN"; }
