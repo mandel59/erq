@@ -14,7 +14,8 @@
     "erq": "bin/erq-cli.js"
   },
   "scripts": {
-    "test": "ava"
+    "test": "ava",
+    "prepare": "peggy -o dist/erq.cjs --allowed-start-rules start,cli_readline src/erq.pegjs"
   },
   "dependencies": {
     "@mandel59/memoized-json-hash": "^0.2.0",

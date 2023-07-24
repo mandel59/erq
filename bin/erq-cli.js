@@ -16,6 +16,7 @@ import vega from "vega"
 import vegaLite from "vega-lite"
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import parser from "../dist/erq.cjs";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
@@ -579,11 +580,11 @@ async function parent() {
   process.on("SIGTERM", handleSignal("SIGTERM"));
   process.on("SIGQUIT", handleSignal("SIGQUIT"));
 
-  const syntax = readFileSync(fileURLToPath(new URL("../src/erq.pegjs", import.meta.url).href), "utf-8")
-  const parser = peggy.generate(syntax, {
-    allowedStartRules: ["start", "cli_readline"],
-    trace: DEBUG,
-  });
+  // const syntax = readFileSync(fileURLToPath(new URL("../src/erq.pegjs", import.meta.url).href), "utf-8")
+  // const parser = peggy.generate(syntax, {
+  //   allowedStartRules: ["start", "cli_readline"],
+  //   trace: DEBUG,
+  // });
 
   // global states
 

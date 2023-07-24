@@ -603,6 +603,7 @@ VegaViewOption
   / VegaResolve
   / VegaMark
   / VegaEncoding
+  / VegaTransform
   / VegaViewJsonOption
 
 VegaMark
@@ -694,18 +695,22 @@ VegaMeasurementType
   / "g" boundary { return ["type", "geojson"]; }
 
 VegaTimeUnitOption
-  = binned:"binned"?
-    utc:"utc"?
-    us:VegaTimeUnit|1..|
-    boundary {
-    const options = [];
-    if (binned) { options.push("binned"); }
-    if (utc) { options.push("utc"); }
-    options.push(...us);
-    return ["timeUnit", options.join("")];
-  }
+  = t:VegaTimeUnit { return ["timeUnit", t]; }
 
 VegaTimeUnit
+  = binned:"binned"?
+    utc:"utc"?
+    us:VegaTimeUnitComponent|1..|
+    boundary
+    {
+      const options = [];
+      if (binned) { options.push("binned"); }
+      if (utc) { options.push("utc"); }
+      options.push(...us);
+      return options.join("");
+    }
+
+VegaTimeUnitComponent
   = "year"
   / "quarter"
   / "month"
@@ -762,6 +767,111 @@ VegaRepeatField
 
 VegaField
   = f:Name { return { field: escapeVegaField(unquoteSQLName(f)) }; }
+
+VegaTransform
+  = "transform" _ ms:VegaTransformMethod|1.., _|
+    { return { transform: [].concat(...ms) }; }
+
+VegaTransformMethod
+  = "[" _ filter:VegaPredicate _ "]" { return [{ filter }]; }
+  / "{" _ cs:VegaCalculateField|1.., _ "," _| _ "}" { return cs; }
+  / "apply" _ obj:JSONObject { return [obj]; }
+
+VegaPredicate
+  = ps:VegaPredicate1|2.., _ "or" _|
+    { return {"or": ps}; }
+  / VegaPredicate1
+
+VegaPredicate1
+  = ps:VegaPredicate2|2.., _ "and" _|
+    { return {"and": ps}; }
+  / VegaPredicate2
+
+VegaPredicate2
+  = "not" boundary _ p:VegaPredicate2 { return {"not": p}; }
+  / VegaPredicate3
+
+VegaPredicate3
+  = "(" _ p:VegaPredicate _ ")" { return p; }
+  / f:Name _ "between" boundary _ a:VegaValue _ "and" boundary _ b:VegaValue
+    { return { field: escapeVegaField(unquoteSQLName(f)), range: [a, b] }; }
+  / f:Name _ t:VegaTimeUnit _ "between" boundary a:VegaValue _ "and" boundary b:VegaValue
+    { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, range: [a, b] }; }
+  / f:Name _ ("<>"/"!=") _ value:VegaValue
+    { return { not: { field: escapeVegaField(unquoteSQLName(f)), equal: value } }; }
+  / f:Name _ op:VegaCompareOperator _ value:VegaValue
+    { return { field: escapeVegaField(unquoteSQLName(f)), [op]: value }; }
+  / f:Name _ t:VegaTimeUnit _ ("<>"/"!=") _ value:VegaValue
+    { return { not: { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, [op]: value } }; }
+  / f:Name _ t:VegaTimeUnit _ op:VegaCompareOperator _ value:VegaValue
+    { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, [op]: value }; }
+
+VegaCalculateField
+  = f:Name _ ":" _ e:VegaExpression { return { calculate: e, as: escapeVegaField(unquoteSQLName(f)) }; }
+
+VegaCompareOperator
+  = "=" { return "equal"; }
+  / "<=" { return "lte"; }
+  / ">=" { return "gte"; }
+  / "<" { return "lt"; }
+  / ">" { return "gt"; }
+
+VegaValue
+  = EscapedString
+  / JSONValue
+
+VegaExpression
+  = es:VegaExpression1|2.., _ "or" _|
+    { return es.join(" || "); }
+  / VegaExpression1
+
+VegaExpression1
+  = es:VegaExpression2|2.., _ "and" _|
+    { return es.join(" && "); }
+  / VegaExpression2
+
+VegaExpression2
+  = e1:VegaExpression3 _ op:VegaExpressionBinOp _ e2:VegaExpression2
+    { return `${e1} ${op} ${e2}`; }
+  / VegaExpression3
+
+VegaExpressionBinOp
+  = "==" { return "==="; }
+  / "!=" { return "!=="; }
+  / ">>>"
+  / ">>"
+  / ">="
+  / "<="
+  / "<>" { return "!=="; }
+  / "=" { return "==="; }
+  / [-+*/%|^&<>]
+
+VegaExpression3
+  = !("--"/"++") op:[-~+!] _ e:VegaExpressionValue { return `${op}${e}`; }
+  / VegaExpressionValue
+
+VegaExpressionValue
+  = "(" _ e:VegaExpression _ ")" { return `(${e})`; }
+  / f:$([A-Za-z_][A-Za-z0-9_]*) _ "(" _ es:VegaExpression|.., _ "," _| _ ")"
+    { return `${f}(${es.join(", ")})`; }
+  / VegaConstant
+  / "datum" _ "." _ f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
+  / "event" _ "." _ f:Name { return `event[${JSON.stringify(unquoteSQLName(f))}]`; }
+  / f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
+  / s:ParsedStringLiteral { return JSON.stringify(v); }
+  / v:JSONValue { return JSON.stringify(v); }
+
+VegaConstant
+  = "NaN" boundary { return "NaN"; }
+  / "E" boundary { return "E"; }
+  / "LN2" boundary { return "LN2"; }
+  / "LN10" boundary { return "LN10"; }
+  / "LOG2E" boundary { return "LOG2E"; }
+  / "MAX_VALUE" boundary { return "MAX_VALUE"; }
+  / "MIN_VALUE" boundary { return "MIN_VALUE"; }
+  / "PI" boundary { return "PI"; }
+  / "SQRT1_2" boundary { return "SQRT1_2"; }
+  / "SQRT2" boundary { return "SQRT2"; }
 
 TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
@@ -1896,9 +2006,15 @@ JSONValue
   / JSONArray
   / JSONString
   / JSONNumber
-  / "true" { return true; }
+  / JSONBoolean
+  / JSONNull
+
+JSONBoolean
+  = "true" { return true; }
   / "false" { return false; }
-  / "null" { return null; }
+
+JSONNull
+  = "null" { return null; }
 
 JSONObject
   = "{" _ kvs:JSONObjectEntry|.., _ "," _| _ "}" {
