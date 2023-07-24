@@ -876,7 +876,7 @@ VegaExpressionValue
   / "datum" _ "." _ f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
   / "event" _ "." _ f:Name { return `event[${JSON.stringify(unquoteSQLName(f))}]`; }
   / f:Name { return `datum[${JSON.stringify(unquoteSQLName(f))}]`; }
-  / s:ParsedStringLiteral { return JSON.stringify(v); }
+  / s:ParsedStringLiteral { return JSON.stringify(s); }
   / v:JSONValue { return JSON.stringify(v); }
 
 VegaConstant
