@@ -639,7 +639,7 @@ VegaResolve
     { return { resolve: { [b]: { [c]: d } } }; }
 
 VegaRepeatDefVars
-  = ds:VegaRepeatDefVar|1.., _ "," _| { return merge(...ds); }
+  = ds:VegaRepeatDefVar|1.., _ "repeat" boundary _| { return merge(...ds); }
 
 VegaRepeatDefVar
   = dir:("row" / "column" / "layer")
