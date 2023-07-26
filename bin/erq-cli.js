@@ -1030,6 +1030,27 @@ function child() {
   }
 
   /**
+   * 
+   * @param {import("better-sqlite3").Database} db 
+   * @param {() => Promise<void>} fn 
+   */
+  async function asyncTransaction(db, fn) {
+    if (db.inTransaction) {
+      await fn();
+      return;
+    } else {
+      db.prepare("begin").run();
+      try {
+        await fn();
+        db.prepare("commit").run();
+      } catch (error) {
+        db.prepare("rollback").run();
+        throw error;
+      }
+    }
+  }
+
+  /**
    * @param {{command: string, args: any[]}} param0
    * @param {Map<string, any>} env
    * @returns {Promise<boolean>} ok status
@@ -1153,16 +1174,15 @@ function child() {
           console.error("header is not defined");
           return false;
         }
-        const createTableSQL = `create table ${table} (${definition})`;
-        console.error(createTableSQL);
-        db.prepare(createTableSQL).run();
-        const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-        console.error(insertSQL);
-        const insert = db.prepare(insertSQL);
-        let i = 0;
-        const insertMany = async () => {
-          db.prepare("begin").run();
-          try {
+        await asyncTransaction(db, async () => {
+          const createTableSQL = `create table ${table} (${definition})`;
+          console.error(createTableSQL);
+          db.prepare(createTableSQL).run();
+          const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+          console.error(insertSQL);
+          const insert = db.prepare(insertSQL);
+          let i = 0;
+          const insertMany = async () => {
             for await (const record of records) {
               i++;
               if (record.length === header.length) {
@@ -1175,17 +1195,13 @@ function child() {
                 throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
               }
             }
-            db.prepare("commit").run();
-          } catch (error) {
-            db.prepare("rollback").run();
-            throw error;
-          }
-        };
-        await insertMany();
-        const t1 = performance.now();
-        const t = t1 - t0;
-        const rows = (i === 1) ? "1 row" : `${i} rows`;
-        console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+          };
+          await insertMany();
+          const t1 = performance.now();
+          const t = t1 - t0;
+          const rows = (i === 1) ? "1 row" : `${i} rows`;
+          console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+        });
         return true;
       } else if (format === "ndjson") {
         let stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
@@ -1209,24 +1225,26 @@ function child() {
           stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
           records = stream.pipe(ndjson.parse());
         }
-        const createTableSQL = `create table ${table} (${definition})`;
-        console.error(createTableSQL);
-        db.prepare(createTableSQL).run();
-        const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-        console.error(insertSQL);
-        const insert = db.prepare(insertSQL);
-        let i = 0;
-        const insertMany = async () => {
-          for await (let json of records) {
-            i++;
-            insert.run(convertJsonToRecord(header, json))
-          }
-        };
-        await insertMany();
-        const t1 = performance.now();
-        const t = t1 - t0;
-        const rows = (i === 1) ? "1 row" : `${i} rows`;
-        console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+        await asyncTransaction(db, async () => {
+          const createTableSQL = `create table ${table} (${definition})`;
+          console.error(createTableSQL);
+          db.prepare(createTableSQL).run();
+          const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+          console.error(insertSQL);
+          const insert = db.prepare(insertSQL);
+          let i = 0;
+          const insertMany = async () => {
+            for await (let json of records) {
+              i++;
+              insert.run(convertJsonToRecord(header, json))
+            }
+          };
+          await insertMany();
+          const t1 = performance.now();
+          const t = t1 - t0;
+          const rows = (i === 1) ? "1 row" : `${i} rows`;
+          console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+        });
         return true;
       } else {
         console.error("unknown content type: %s", contentType);
