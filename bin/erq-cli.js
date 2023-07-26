@@ -1059,7 +1059,11 @@ function child() {
     try {
       return await runCLICommandThrowing({ command, args }, env);
     } catch (error) {
-      console.error(error);
+      if (DEBUG) {
+        console.error(error);
+      } else {
+        console.error("%s: %s", error.name, error.message);
+      }
       return false;
     }
   }
