@@ -18,7 +18,7 @@ function quote(value) {
     return `'${value.replace(/'/g, "''")}'`;
   }
   if (value != null && typeof value === "object") {
-    return JSON.stringify(value);
+    return `'${JSON.stringify(value).replace(/'/g, "''")}'`;
   }
   return String(value);
 }
@@ -1492,10 +1492,15 @@ ValuesList
       }
     }
     const keyNames = [...keys];
+    if (keyNames.length === 0) {
+      return `select null where 0`;
+    }
     return `select ${
       keyNames.map(c => `null as ${quoteSQLName(c)}`).join(", ")
     } where 0 union all values ${
-      jsonarray.map(r => `(${keyNames.map(k => quote(r[k])).join(", ")})`).join(", ")
+      jsonarray.map(r => `(${keyNames.map(
+        k => Object.hasOwn(r, k) ? quote(r[k]) : "null"
+      ).join(", ")})`).join(", ")
     }`;
     return values;
   }
