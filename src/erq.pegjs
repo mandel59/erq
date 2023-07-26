@@ -996,6 +996,7 @@ LoadOption
   / "encoding" boundary _ s:ParsedStringLiteral { return ["encoding", s]; }
   / "relax" __ "column" __ "count" __ lm:("less"/"more") { return ["relax_column_count_" + lm, true]; }
   / "relax" __ "column" __ "count" { return ["relax_column_count", true]; }
+  / "sniff" __ "size" boundary _ n:JSONNumber { return ["sniff_size", n]; }
   / ("format" __)? f:("csv"/"ndjson") { return ["format", f]; }
 
 CreateFunction

@@ -1135,6 +1135,7 @@ function child() {
       const relax_column_count_less = options.relax_column_count_less ?? undefined;;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;;
       const encoding = options.encoding ?? "utf-8";
+      const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
       let content = args.content;
       if (args.sql != null) {
         content = db.prepare(args.sql).pluck().get();
@@ -1211,13 +1212,19 @@ function child() {
           header = columnNames;
           definition = def;
         } else {
-          const s = new Set()
+          // sniff column names
+          const s = new Set();
+          let i = 0;
           for await (const record of records) {
             if (record == null || typeof record !== "object") {
               s.add("value");
             }
             for (const key of Object.keys(record)) {
               s.add(key);
+            }
+            i++;
+            if (i >= sniff_size) {
+              break;
             }
           }
           header = Array.from(s);
