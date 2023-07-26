@@ -10,6 +10,29 @@ function merge(x, ...args) {
   });
 }
 
+function quote(value) {
+  if (value == null) {
+    return "null";
+  }
+  if (typeof value === "string") {
+    return `'${value.replace(/'/g, "''")}'`;
+  }
+  if (value != null && typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+const patName = "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}][\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}]*"
+const reName = new RegExp(`^${patName}$`, "u");
+
+function quoteSQLName(name) {
+  if (!reName.test(name)) {
+    return `\`${name.replace(/`/g, "``")}\``;
+  }
+  return name;
+}
+
 function unquoteSQLName(quot) {
   if (quot[0] === "`") {
     if (quot[quot.length - 1] === "`") {
@@ -1459,6 +1482,22 @@ ValuesList
   / "values" _ a:ColumnNameList "[" _ "]"
   {
     return `select ${a.map(c => `null as ${c}`).join(", ")} where 0`;
+  }
+  / "values" _ jsonarray:JSONArray
+  {
+    const keys = new Set();
+    for (const obj of jsonarray) {
+      for (const key of Object.keys(obj)) {
+        keys.add(key);
+      }
+    }
+    const keyNames = [...keys];
+    return `select ${
+      keyNames.map(c => `null as ${quoteSQLName(c)}`).join(", ")
+    } where 0 union all values ${
+      jsonarray.map(r => `(${keyNames.map(k => quote(r[k])).join(", ")})`).join(", ")
+    }`;
+    return values;
   }
   ;
 
