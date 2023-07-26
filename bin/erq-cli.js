@@ -6,7 +6,6 @@ import readline from "node:readline";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
-import peggy from "peggy";
 import { parse as parseCSV } from "csv-parse/sync";
 import iconv from "iconv-lite";
 import jsdom from "jsdom";
