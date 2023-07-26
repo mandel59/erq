@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import process, { stdin, stdout, stderr } from "node:process";
-import { readFileSync, writeFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, readlinkSync, statSync, createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import { resolve as pathResolve, basename, dirname } from "node:path"
 import readline from "node:readline";
 import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
-import { parse as parseCSV } from "csv-parse/sync";
+import { parse as parseCSV } from "csv-parse";
 import iconv from "iconv-lite";
 import jsdom from "jsdom";
 import { NodeVM } from "vm2";
@@ -16,6 +17,7 @@ import vegaLite from "vega-lite"
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import parser from "../dist/erq.cjs";
+import { uncons } from "../src/async-iter.js";
 
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
 const ERQ_HISTORY = process.env["ERQ_HISTORY"];
@@ -1116,9 +1118,8 @@ function child() {
         content = db.prepare(args.sql).pluck().get();
       }
       if (format === "csv") {
-        /** @type {string} */
-        const data = path != null ? iconv.decode(readFileSync(path), encoding) : content;
-        const csv = parseCSV(data, {
+        const stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+        const csv = stream.pipe(parseCSV({
           bom: true,
           delimiter,
           quote,
@@ -1133,14 +1134,16 @@ function child() {
             }
             return value;
           },
-        });
-        let records, header, definition;
+        }));
+        /** @type {AsyncIterable<any[]>} */
+        let records
+        let header, definition;
         if (def) {
           header = columnNames;
           definition = def;
-          records = options.header ? csv.slice(1) : csv;
+          records = options.header ? (await uncons(csv))[1] : csv;
         } else {
-          [header, ...records] = csv;
+          [header, records] = await uncons(csv);
           if (header != null) {
             definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
           }
@@ -1155,25 +1158,32 @@ function child() {
         const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
         console.error(insertSQL);
         const insert = db.prepare(insertSQL);
-        const insertMany = db.transaction(() => {
-          let i = 0;
-          for (const record of records) {
-            i++;
-            if (record.length === header.length) {
-              insert.run(record);
-            } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
-              insert.run(record.concat(...Array(header.length - record.length)));
-            } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
-              insert.run(record.slice(0, header.length));
-            } else {
-              throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
+        let i = 0;
+        const insertMany = async () => {
+          db.prepare("begin").run();
+          try {
+            for await (const record of records) {
+              i++;
+              if (record.length === header.length) {
+                insert.run(record);
+              } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
+                insert.run(record.concat(...Array(header.length - record.length)));
+              } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
+                insert.run(record.slice(0, header.length));
+              } else {
+                throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
+              }
             }
+            db.prepare("commit").run();
+          } catch (error) {
+            db.prepare("rollback").run();
+            throw error;
           }
-        });
-        insertMany();
+        };
+        await insertMany();
         const t1 = performance.now();
         const t = t1 - t0;
-        const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+        const rows = (i === 1) ? "1 row" : `${i} rows`;
         console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
         return true;
       } else if (format === "ndjson") {
