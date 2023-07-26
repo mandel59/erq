@@ -8,6 +8,7 @@ import commandLineArgs from "command-line-args";
 import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
 import { parse as parseCSV } from "csv-parse";
+import ndjson from "ndjson";
 import iconv from "iconv-lite";
 import jsdom from "jsdom";
 import { NodeVM } from "vm2";
@@ -1187,16 +1188,15 @@ function child() {
         console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
         return true;
       } else if (format === "ndjson") {
-        /** @type {string} */
-        const data = path ? iconv.decode(readFileSync(path), encoding) : content;
-        const records = data.trim().split("\n").map(line => JSON.parse(line));
+        let stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+        let records = stream.pipe(ndjson.parse());
         let header, definition;
         if (def) {
           header = columnNames;
           definition = def;
         } else {
           const s = new Set()
-          for (const record of records) {
+          for await (const record of records) {
             if (record == null || typeof record !== "object") {
               s.add("value");
             }
@@ -1206,6 +1206,8 @@ function child() {
           }
           header = Array.from(s);
           definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+          stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+          records = stream.pipe(ndjson.parse());
         }
         const createTableSQL = `create table ${table} (${definition})`;
         console.error(createTableSQL);
@@ -1213,15 +1215,17 @@ function child() {
         const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
         console.error(insertSQL);
         const insert = db.prepare(insertSQL);
-        const insertMany = db.transaction(() => {
-          for (let json of records) {
+        let i = 0;
+        const insertMany = async () => {
+          for await (let json of records) {
+            i++;
             insert.run(convertJsonToRecord(header, json))
           }
-        });
-        insertMany();
+        };
+        await insertMany();
         const t1 = performance.now();
         const t = t1 - t0;
-        const rows = (records.length === 1) ? "1 row" : `${records.length} rows`;
+        const rows = (i === 1) ? "1 row" : `${i} rows`;
         console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
         return true;
       } else {
