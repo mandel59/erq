@@ -622,6 +622,7 @@ VegaView
 
 VegaViewOption
   = VegaRepeat
+  / VegaFacet
   / VegaCompose
   / VegaResolve
   / VegaMark
@@ -653,6 +654,32 @@ VegaCompose
     { return { [op]: vs }; }
   / "concat" __ "columns" __ n:JSONNumber _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
     { return { concat: vs, columns: n }; }
+
+VegaFacet
+  = "facet" __ "columns" __ n:JSONNumber __ "{" _ def:FacetFieldDef _ "}" _ "(" _ spec:VegaView _ ")"
+    { return { facet: def, columns: n, spec }; }
+  / "facet" _ "{" _ axes:FacetAxis|1.., _ "," _| _ "}" _ "(" _ spec:VegaView _ ")"
+    { return { facet: merge(...axes), spec }; }
+
+FacetAxis
+  = d:("row" / "column") _ ":" _ def:FacetFieldDef { return { [d]: def }; }
+
+FacetFieldDef
+  = f:VegaField? os:VegaFieldOptions jos:(_ j:JSONObject { return j; })? {
+    return {
+      ...(f ? { field: f.field } : {}),
+      ...Object.fromEntries(os),
+      ...jos,
+    };
+  }
+
+VegaFieldOptions
+  = _ os:VegaFieldOption|.., __| { return os; }
+
+VegaFieldOption
+  = VegaMeasurementType
+  / VegaTimeUnitOption
+  / VegaBinning
 
 VegaResolve
   = "resolve" __
