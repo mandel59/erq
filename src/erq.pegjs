@@ -1510,7 +1510,7 @@ ValuesList
   {
     return `select ${a.map(c => `null as ${c}`).join(", ")} where 0`;
   }
-  / "values" _ jsonarray:JSONArray
+  / "values" _ "[" _ jsonarray:JSONObject|.., _ "," _| _ "]"
   {
     const keys = new Set();
     for (const obj of jsonarray) {
