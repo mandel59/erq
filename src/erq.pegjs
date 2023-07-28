@@ -256,12 +256,16 @@ class TableBuilder {
   #limit = null;
   #offset = 0;
   #aggregate = false;
+  #rawSQL = undefined;
   constructor(name, expression, rename = name != null) {
     this.#name = this.#lastName = name;
     this.#expression = expression;
     this.#rename = rename;
   }
   toSQL(allowOrdered = false) {
+    if (this.#rawSQL != null) {
+      return this.#rawSQL;
+    }
     const columns = this.#select;
     let sql = "select ";
     if (this.#distinct) {
@@ -419,6 +423,7 @@ class TableBuilder {
     return new TableBuilder(name, `(${this.toSQL(true)})`);
   }
   where(e) {
+    this.#rawSQL = undefined;
     if (this.#aggregate) {
       this.#having.push(e);
     } else {
@@ -430,6 +435,7 @@ class TableBuilder {
     if (this.#isSelected()) {
       return this.#paren().select(rs);
     }
+    this.#rawSQL = undefined;
     for (const r of rs) {
       this.#select.push(r);
     }
@@ -440,6 +446,7 @@ class TableBuilder {
     if (this.#isSelected()) {
       return this.#paren().groupSelect(grs, rs);
     }
+    this.#rawSQL = undefined;
     this.#aggregate = true;
     for (const r of grs) {
       this.#group.push(r);
@@ -454,6 +461,7 @@ class TableBuilder {
     if (this.#isSelected()) {
       return this.#paren().window(w);
     }
+    this.#rawSQL = undefined;
     this.#window.push(w);
     return this;
   }
@@ -465,6 +473,7 @@ class TableBuilder {
     if (on) {
       j.on = on;
     }
+    this.#rawSQL = undefined;
     this.#lastName = j.name;
     this.#join.push(j);
     return this;
@@ -475,6 +484,7 @@ class TableBuilder {
     }
     const j = { name: tr.name, rename: tr.rename, expression: tr.expression, direction: d };
     j.using = u;
+    this.#rawSQL = undefined;
     this.#lastName = j.name;
     this.#join.push(j);
     return this;
@@ -491,6 +501,7 @@ class TableBuilder {
       if (this.#isLimited()) {
         return this.#paren().distinct(distinct);
       }
+      this.#rawSQL = undefined;
       this.#distinct = true;
     }
     return this;
@@ -499,6 +510,7 @@ class TableBuilder {
     if (this.#isLimited()) {
       return this.#paren().orderBy(order);
     }
+    this.#rawSQL = undefined;
     this.#order = [...order, ...this.#order];
     return this;
   }
@@ -506,8 +518,13 @@ class TableBuilder {
     if (this.#isLimited()) {
       return this.#paren().limitOffset(limit, offset);
     }
+    this.#rawSQL = undefined;
     this.#limit = limit;
     this.#offset = offset;
+    return this;
+  }
+  rawSQL(sql) {
+    this.#rawSQL = sql;
     return this;
   }
 }
@@ -1339,7 +1356,6 @@ TableName1
 
 Table
   = WithTable
-  / ValuesList
   / ("from" boundary _)? t:TableUnion { return t; }
 
 WithTable
@@ -1480,7 +1496,7 @@ Table2
     return new TableBuilder(null, null).select(rs);
   }
   / vs:ValuesList {
-    return new TableBuilder(null, `(${vs})`);
+    return new TableBuilder(null, `(${vs})`).rawSQL(vs);
   }
   / tr:TableReference {
     return new TableBuilder(tr.name, tr.expression, tr.rename);
