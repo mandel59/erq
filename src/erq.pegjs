@@ -1488,15 +1488,7 @@ Table2
   ;
 
 ValuesList
-  = "values" _ a:ColumnNameList? r1:Record rs:(_ ";" _ r:Record { return r; })*
-  {
-    const values = "values " + [r1, ...rs].map(r => `(${r})`).join(", ");
-    if (a != null) {
-      return `select ${a.map(c => `null as ${c}`).join(", ")} where 0 union all ${values}`;
-    }
-    return values;
-  }
-  / "values" _ a:ColumnNameList? "[" _ vs:(
+  = "values" _ a:ColumnNameList? "[" _ vs:(
       e1:(Record/Expression) es:(_ "," _ e:(Record/Expression) { return e; })* { return [e1, ...es].map(e => `(${e})`).join(", "); }
     ) _ "]"
   {
