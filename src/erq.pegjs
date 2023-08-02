@@ -1888,8 +1888,8 @@ WindowDefn
     {
       const a = [];
       if (n != null) a.push(n);
-      if (ps != null) a.push(ps.map(e => `partition by ${e}`).join(", "))
-      if (os != null) a.push(os.map(e => `order by ${e}`).join(", "))
+      if (ps != null) a.push(`partition by ${ps.join(", ")}`)
+      if (os != null) a.push(`order by ${os.join(", ")}`)
       if (f != null) a.push(f);
       return "(" + a.join(" ") + ")";
     }
