@@ -13,6 +13,7 @@ import iconv from "iconv-lite";
 import jsdom from "jsdom";
 import { NodeVM } from "vm2";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
+import { feature } from "topojson-client";
 import vega from "vega"
 import vegaLite from "vega-lite"
 import { fork } from "node:child_process";
@@ -499,6 +500,38 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
         const r = i / m;
         const v = e * r + s * (1 - r);
         yield [v];
+      }
+    }
+  })
+
+  defineTable("topojson_feature", {
+    parameters: ["_topology", "_object"],
+    columns: ["id", "type", "properties", "geometry"],
+    rows: function* (topology, object) {
+      if (topology == null || object == null) {
+        return;
+      }
+      if (typeof object !== "string") {
+        throw new TypeError("topojson_feature(topology,object) object must be a string");
+      }
+      if (Buffer.isBuffer(topology)) {
+        topology = topology.toString("utf-8");
+      }
+      const t = JSON.parse(topology);
+      const o = t.objects[object];
+      if (o == null) {
+        throw new Error(`topojson_feature(topology,object) object ${object} not found`);
+      }
+      for (const f of feature(t, o).features) {
+        if (!(typeof f.id === "number" || typeof f.id === "string" || f.id == null)) {
+          throw new Error("topojson_feature(topology,object) feature.id must be a number or a string");
+        }
+        yield [
+          f.id,
+          f.type,
+          JSON.stringify(f.properties),
+          JSON.stringify(f.geometry),
+        ];
       }
     }
   })
