@@ -645,6 +645,7 @@ VegaViewOption
   / VegaMark
   / VegaEncoding
   / VegaTransform
+  / VegaProjection
   / VegaViewJsonOption
 
 VegaMark
@@ -958,6 +959,17 @@ VegaConstant
   / "PI" boundary { return "PI"; }
   / "SQRT1_2" boundary { return "SQRT1_2"; }
   / "SQRT2" boundary { return "SQRT2"; }
+
+VegaProjection
+  = "projection" __ type:Name opts:(__ opts:JSONObject { return opts; })?
+  {
+    return {
+      projection: {
+        type,
+        ...opts,
+      },
+    };
+  }
 
 TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
