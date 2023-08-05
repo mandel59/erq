@@ -1435,7 +1435,8 @@ function child() {
                 const value = record[key];
                 if (typeof value === "string" && (
                   value === "{}" ||
-                  value[0] === "{" && value[1] === '"' && value[value.length - 1] === "}"
+                  value[0] === "{" && value[1] === '"' && value[value.length - 1] === "}" ||
+                  value[0] === "[" && value[value.length - 1] === "]"
                 )) {
                   record[key] = JSON.parse(value);
                 }
