@@ -1430,6 +1430,7 @@ function child() {
           const values = stmt.all(Object.fromEntries(env.entries())).map(record => {
             // SQLite can't return JSON object directly, so it returns JSON string.
             // try parsing JSON string. if failed, ignore error and return the original value.
+            // TODO: Add option to disable this behavior.
             for (const key in record) {
               try {
                 const value = record[key];
