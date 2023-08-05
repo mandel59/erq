@@ -1427,7 +1427,24 @@ function child() {
         if (typeof format === "object" && format.type === "vega") {
           stmt.raw(false);
           const t0 = performance.now();
-          const values = stmt.all(Object.fromEntries(env.entries()));
+          const values = stmt.all(Object.fromEntries(env.entries())).map(record => {
+            // SQLite can't return JSON object directly, so it returns JSON string.
+            // try parsing JSON string. if failed, ignore error and return the original value.
+            for (const key in record) {
+              try {
+                const value = record[key];
+                if (typeof value === "string" && (
+                  value === "{}" ||
+                  value[0] === "{" && value[1] === '"' && value[value.length - 1] === "}"
+                )) {
+                  record[key] = JSON.parse(value);
+                }
+              } catch {
+                // ignore error
+              }
+            }
+            return record;
+          });
           const t1 = performance.now();
           const t = t1 - t0;
           const i = values.length;
