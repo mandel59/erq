@@ -1845,10 +1845,13 @@ PackBody
       return `${intoSQLStringLiteral(k)}, ${e}`;
     }).join(", ")})`;
   }
+  / "[" _ es:PackBody|.., _ "," _| _ "]" {
+    return `json_array(${es.join(", ")})`;
+  }
+  / Expression
 
 PackName
-  = k:JSONObjectKey _ ":" _ e:PackBody &(_ ("," / "}")) { return [k, e]; }
-  / k:JSONObjectKey _ ":" _ e:Expression { return [k, e]; }
+  = k:JSONObjectKey _ ":" _ e:PackBody { return [k, e]; }
   / n:Name &(_ ("," / "}")) { return [unquoteSQLName(n), n]; }
   / e:Expression { return [e, e]; }
 
