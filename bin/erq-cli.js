@@ -506,7 +506,7 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
 
   defineTable("topojson_feature", {
     parameters: ["_topology", "_object"],
-    columns: ["id", "type", "properties", "geometry"],
+    columns: ["id", "type", "properties", "geometry", "bbox"],
     rows: function* (topology, object) {
       if (topology == null || object == null) {
         return;
@@ -522,7 +522,8 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
       if (o == null) {
         throw new Error(`topojson_feature(topology,object) object ${object} not found`);
       }
-      for (const f of feature(t, o).features) {
+      const fs = feature(t, o);
+      for (const f of fs.type === "Feature" ? [fs] : fs.features) {
         if (!(typeof f.id === "number" || typeof f.id === "string" || f.id == null)) {
           throw new Error("topojson_feature(topology,object) feature.id must be a number or a string");
         }
@@ -531,6 +532,7 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
           f.type,
           JSON.stringify(f.properties),
           JSON.stringify(f.geometry),
+          f.bbox != null ? JSON.stringify(f.bbox) : null,
         ];
       }
     }
