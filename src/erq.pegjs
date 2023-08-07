@@ -47,14 +47,6 @@ function parseSQLStringLiteral(l) {
   return l.substring(1, l.length - 1).replace(/''/g, "'");
 }
 
-function parseSQLIdentifier(l) {
-  if (l[0] === "`") {
-    return l.substring(1, l.length - 1).replace(/``/g, "`");
-  } else {
-    return l;
-  }
-}
-
 function intoSQLStringLiteral(s) {
   return `'${s.replace(/'/g, "''")}'`;
 }
@@ -1842,33 +1834,34 @@ Value
   )? ! (_ "." _ "*") { return ns != null ? `${n1}${ns}` : n1; }
   ;
 
-PackName
-  = k:Name _ ":" _ e:Expression { return [parseSQLIdentifier(k), e]; }
-  / n:Name &(_ ("," / "}")) { return [parseSQLIdentifier(n), n]; }
-  / e:Expression { return [e, e]; }
-
-PackNameList
-  = p1:PackName ps:(_ "," _ p:PackName { return p; })+ { return [p1, ...ps]; }
-  / p1:PackName? { return p1 != null ? [p1] : []; }
-
-UnpackKey
-  = k:Name { return parseSQLIdentifier(k); }
-  / JSONString
-
-UnpackName
-  = k:UnpackKey _ ":" _ "{" _ l:UnpackNameList _ "}" { return l.map(([k1, n]) => [`${JSON.stringify(k)}.${k1}`, n]); }
-  / k:UnpackKey _ ":" _ n:Name { return [[JSON.stringify(k), n]]; }
-  / k:UnpackKey { return [[JSON.stringify(k), k]]; }
-
-UnpackNameList
-  = l:UnpackName|.., _ "," _| { return l.flat(); }
-
 Pack
-  = "pack" boundary _ "{" _ ps:PackNameList _ "}" {
+  = "pack" _ b:PackBody {
+    return b;
+  }
+
+PackBody
+  = "{" _ ps:PackNameList _ "}" {
     return `json_object(${ps.map(([k, e]) => {
       return `${intoSQLStringLiteral(k)}, ${e}`;
     }).join(", ")})`;
   }
+
+PackName
+  = k:JSONObjectKey _ ":" _ e:PackBody &(_ ("," / "}")) { return [k, e]; }
+  / k:JSONObjectKey _ ":" _ e:Expression { return [k, e]; }
+  / n:Name &(_ ("," / "}")) { return [unquoteSQLName(n), n]; }
+  / e:Expression { return [e, e]; }
+
+PackNameList
+  = l:PackName|.., _ "," _|
+
+UnpackName
+  = k:JSONObjectKey _ ":" _ "{" _ l:UnpackNameList _ "}" { return l.map(([k1, n]) => [`${JSON.stringify(k)}.${k1}`, n]); }
+  / k:JSONObjectKey _ ":" _ n:Name { return [[JSON.stringify(k), n]]; }
+  / k:JSONObjectKey { return [[JSON.stringify(k), k]]; }
+
+UnpackNameList
+  = l:UnpackName|.., _ "," _| { return l.flat(); }
 
 Unpack
   = "unpack" boundary _ e:(
@@ -2138,9 +2131,12 @@ JSONObject
     return Object.fromEntries(kvs);
   } 
 
+JSONObjectKey
+  = JSONString
+  / k:Name { return unquoteSQLName(k); }
+
 JSONObjectEntry
-  = k:JSONString _ ":" _ v:JSONValue { return [k, v]; }
-  / k:Name _ ":" _ v:JSONValue { return [unquoteSQLName(k), v]; }
+  = k:JSONObjectKey _ ":" _ v:JSONValue { return [k, v]; }
 
 JSONArray
   = "[" _ vs:JSONValue|.., _ "," _| _ "]" { return vs; }
