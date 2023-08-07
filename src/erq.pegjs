@@ -1847,17 +1847,21 @@ PackName
   / n:Name &(_ ("," / "}")) { return [parseSQLIdentifier(n), n]; }
   / e:Expression { return [e, e]; }
 
-UnpackName
-  = c:Name _ ":" _ k:Name { return [k, c]; }
-  / c:Name { return [c, c]; }
-
 PackNameList
   = p1:PackName ps:(_ "," _ p:PackName { return p; })+ { return [p1, ...ps]; }
   / p1:PackName? { return p1 != null ? [p1] : []; }
 
+UnpackKey
+  = k:Name { return parseSQLIdentifier(k); }
+  / JSONString
+
+UnpackName
+  = k:UnpackKey _ ":" _ "{" _ l:UnpackNameList _ "}" { return l.map(([k1, n]) => [`${JSON.stringify(k)}.${k1}`, n]); }
+  / k:UnpackKey _ ":" _ n:Name { return [[JSON.stringify(k), n]]; }
+  / k:UnpackKey { return [[JSON.stringify(k), k]]; }
+
 UnpackNameList
-  = p1:UnpackName ps:(_ "," _ p:UnpackName { return p; })+ { return [p1, ...ps]; }
-  / p1:UnpackName? { return p1 != null ? [p1] : []; }
+  = l:UnpackName|.., _ "," _| { return l.flat(); }
 
 Pack
   = "pack" boundary _ "{" _ ps:PackNameList _ "}" {
@@ -1873,10 +1877,12 @@ Unpack
     / t:Name _ "." _ n:Name { return `${t}.${n}`; }
     / n:Name { return n; }
   ) _ "{" _ ps:UnpackNameList _ "}" {
-    return ps.map(([k, c]) => {
+    return ps.map(([k, n]) => {
       return {
-        name: c,
-        expression: `${e}->>${intoSQLStringLiteral(`$.${JSON.stringify(parseSQLIdentifier(k))}`)}`, sort: null };
+        name: quoteSQLName(n),
+        expression: `${e}->>${intoSQLStringLiteral(`$.${k}`)}`,
+        sort: null
+      };
     });
   }
 
