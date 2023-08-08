@@ -1858,13 +1858,22 @@ PackName
 PackNameList
   = l:PackName|.., _ "," _|
 
-UnpackName
-  = k:JSONObjectKey _ ":" _ "{" _ l:UnpackNameList _ "}" { return l.map(([k1, n]) => [`${JSON.stringify(k)}.${k1}`, n]); }
-  / k:JSONObjectKey _ ":" _ n:Name { return [[JSON.stringify(k), unquoteSQLName(n)]]; }
-  / k:JSONObjectKey { return [[JSON.stringify(k), k]]; }
+UnpackKeyValue
+  = k:JSONObjectKey _ ":" _ l:UnpackBody { return l.map(([k1, n]) => [`.${JSON.stringify(k)}${k1}`, n]); }
+  / k:JSONObjectKey { return [[`.${JSON.stringify(k)}`, k]]; }
 
-UnpackNameList
-  = l:UnpackName|.., _ "," _| { return l.flat(); }
+UnpackObject
+  = l:UnpackKeyValue|.., _ "," _| { return l.flat(); }
+
+UnpackArray
+  = l:UnpackBody|.., _ "," _| { return l.flat(); }
+
+UnpackBody
+  = "{" _ l:UnpackObject _ "}" { return l; }
+  / "[" _ l:UnpackArray _ "]" { return l.map(([k, n], i) => {
+    return [`[${i}]${k}`, n];
+  }); }
+  / n:Name { return [["", unquoteSQLName(n)]]; }
 
 Unpack
   = "unpack" boundary _ e:(
@@ -1872,11 +1881,11 @@ Unpack
     / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
     / t:Name _ "." _ n:Name { return `${t}.${n}`; }
     / n:Name { return n; }
-  ) _ "{" _ ps:UnpackNameList _ "}" {
+  ) _ "{" _ ps:UnpackObject _ "}" {
     return ps.map(([k, n]) => {
       return {
         name: quoteSQLName(n),
-        expression: `${e}->>${intoSQLStringLiteral(`$.${k}`)}`,
+        expression: `${e}->>${intoSQLStringLiteral(`$${k}`)}`,
         sort: null
       };
     });
