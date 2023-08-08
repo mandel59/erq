@@ -857,7 +857,7 @@ function child() {
 
   function defineTable(
     /** @type {string} */ name,
-    /** @type {BetterSqlite3.VirtualTableOptions} */ options
+    /** @type {import("better-sqlite3").VirtualTableOptions} */ options
   ) {
     db.table(name, options);
   }
@@ -1508,9 +1508,9 @@ function child() {
           let i = 0;
 
           /**
-           * @returns {(r: any[], outputStream: NodeJS.WriteStream) => Promise<boolean>}
+           * @returns {(r: any[], outputStream: NodeJS.WriteStream) => Promise<void>}
            */
-          function createFormatter(format) {
+          const createFormatter = (format) => {
             if (format === "sparse") return async (r, outputStream) => {
               const kvs = r.map((value, j) => {
                 const k = columnNames[j];
@@ -1524,8 +1524,11 @@ function child() {
                 return [k, value];
               });
               const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
-              return outputStream.write(JSON.stringify(obj) + "\n");
-            }; if (format === "eqp") return createEqpFormatter();
+              if (!outputStream.write(JSON.stringify(obj) + "\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+            }
+            if (format === "eqp") return createEqpFormatter();
             if (format === "raw") return async (r, outputStream) => {
               for (const v of r) {
                 if (v == null) {
@@ -1541,11 +1544,10 @@ function child() {
                   }
                 }
               }
-              return true;
             }
             return async (r, outputStream) => {
               // default dense format
-              return outputStream.write(JSON.stringify(r.map(value => {
+              if (!outputStream.write(JSON.stringify(r.map(value => {
                 if (value != null && typeof value === "object") {
                   // convert Buffer object to Array object
                   return Array.from(value);
@@ -1554,17 +1556,18 @@ function child() {
                   return String(value);
                 }
                 return value;
-              })) + "\n")
-            };
+              })) + "\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+            }
           }
 
           const formatter = createFormatter(format);
 
           for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
             i++;
-            if (!(await formatter(r, outputStream))) {
-              await new Promise(resolve => outputStream.once("drain", () => resolve()));
-            } else if (i % 100 === 0) {
+            await formatter(r, outputStream);
+            if (i % 100 === 0) {
               await new Promise(resolve => setImmediate(() => resolve()));
             }
             if (sigint) {
