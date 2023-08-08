@@ -1881,7 +1881,7 @@ Unpack
     / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
     / t:Name _ "." _ n:Name { return `${t}.${n}`; }
     / n:Name { return n; }
-  ) _ "{" _ ps:UnpackObject _ "}" {
+  ) _ ps:UnpackBody {
     return ps.map(([k, n]) => {
       return {
         name: quoteSQLName(n),
