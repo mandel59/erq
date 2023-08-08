@@ -1860,7 +1860,7 @@ PackNameList
 
 UnpackName
   = k:JSONObjectKey _ ":" _ "{" _ l:UnpackNameList _ "}" { return l.map(([k1, n]) => [`${JSON.stringify(k)}.${k1}`, n]); }
-  / k:JSONObjectKey _ ":" _ n:Name { return [[JSON.stringify(k), n]]; }
+  / k:JSONObjectKey _ ":" _ n:Name { return [[JSON.stringify(k), unquoteSQLName(n)]]; }
   / k:JSONObjectKey { return [[JSON.stringify(k), k]]; }
 
 UnpackNameList
