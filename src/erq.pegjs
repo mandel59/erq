@@ -1202,15 +1202,15 @@ Create
       return `create table ${n} (${td.def})`;
     }
   }
-  / "create" __ "trigger"
+  / "create" temp:(__ "temporary" { return " temporary"; })? __ "trigger"
     ine:(__ "if" __ "not" __ "exists" { return " if not exists"; })? boundary
     _ trig:TableName
     _ boundary triggerPhase:("before"/"after"/"instead" __ "of" { return "instead of"; })
     __ triggerMethod:("delete"/"insert"/"update" __ "of" __ cns:NameList { return `update of ${cns.join(", ")}`; })
-    _ boundary "on" boundary _ tn:Name when:(_ "when" _ when:Expression { return ` when ${when}`; })?
+    _ boundary "on" boundary _ tn:TableName when:(_ "when" _ when:Expression { return ` when ${when}`; })?
     _ ss:BlockTriggerStatement
   {
-    return `create trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.map(s => `${s.query};`).join("")} end`;
+    return `create${temp ?? ""} trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.map(s => `${s.query};`).join("")} end`;
   }
   / tv:("table" / "view") boundary _ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
@@ -1344,7 +1344,7 @@ IndexedColumn
   }
 
 Drop
-  = "drop" __ "temporary" __ tv:("table" / "view") boundary _ n:TableName
+  = "drop" __ "temporary" __ tv:("table" / "view" / "trigger") boundary _ n:TableName
   {
     return `drop temporary ${tv} ${n}`;
   }
