@@ -1208,9 +1208,9 @@ Create
     _ boundary triggerPhase:("before"/"after"/"instead" __ "of" { return "instead of"; })
     __ triggerMethod:("delete"/"insert"/"update" __ "of" __ cns:NameList { return `update of ${cns.join(", ")}`; })
     _ boundary "on" boundary _ tn:Name when:(_ "when" _ when:Expression { return ` when ${when}`; })?
-    _ "{" ss:(_ s:TriggerStatement _ ";;" { return `${s.query};`; })+ _ "}"
+    _ ss:BlockTriggerStatement
   {
-    return `create trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.join("")} end`;
+    return `create trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.map(s => `${s.query};`).join("")} end`;
   }
   / tv:("table" / "view") boundary _ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
@@ -1222,6 +1222,10 @@ Create
       return `create ${tv} ${qn} as with ${n} as (${t}) select * from ${n}`;
     }
   }
+
+BlockTriggerStatement
+  = s:TriggerStatement { return [s]; }
+  / "(" ss:TriggerStatement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
 
 Alter
   = "alter" __ "table" boundary _ n:TableName _ "rename" __ "to" boundary _ d:Name { return `alter table ${n} rename to ${d}`; }
@@ -1344,7 +1348,7 @@ Drop
   {
     return `drop temporary ${tv} ${n}`;
   }
-  / "drop" __ tv:("table" / "view" / "index") ie:(__ "if" __ "exists")? boundary _ n:TableName
+  / "drop" __ tv:("table" / "view" / "index" / "trigger") ie:(__ "if" __ "exists")? boundary _ n:TableName
   {
     if (ie) {
       return `drop ${tv} if exists ${n}`;
