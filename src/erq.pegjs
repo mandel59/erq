@@ -1855,6 +1855,7 @@ Value
   / Pack
   / WindowFunctionCall
   / FilteredFunctionCall
+  / RaiseFunctionCall
   / FunctionCall
   / n1:Name ns:(
     _ "." _ n2:Name n3:(
@@ -1997,6 +1998,10 @@ WindowFunctionCall
 
 FilteredFunctionCall
   = e:FilterClause _ f:FunctionCall { return `${f} filter (where ${e})`; }
+
+RaiseFunctionCall
+  = "raise" _ "(" _ "ignore" _ ")" { return `raise(ignore)`; }
+  / "raise" _ "(" _ t:("rollback" / "abort" / "fail") _ "," _ message:Expression _ ")" { return `raise(${t}, ${message})`; }
 
 FunctionCall
   = n:Name _ "(" _ rs:(
