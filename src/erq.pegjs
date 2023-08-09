@@ -1910,7 +1910,7 @@ Unpack
     return ps.map(([k, n]) => {
       return {
         name: quoteSQLName(n),
-        expression: `${e}->>${intoSQLStringLiteral(`$${k}`)}`,
+        expression: `${e}->>${quote(`$${k}`)}`,
         sort: null
       };
     });
