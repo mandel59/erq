@@ -822,6 +822,9 @@ function child() {
 
   function quoteSQLName(name) {
     if (!reName.test(name)) {
+      if (name.includes("\u0000")) {
+        throw new RangeError("SQL name cannot contain NUL character");
+      }
       return `\`${name.replace(/`/g, "``")}\``;
     }
     return name;
@@ -840,13 +843,47 @@ function child() {
   function resolveTable(table, env) {
     if (Array.isArray(table)) {
       const [s, v] = table;
+      const n = env.get(v.slice(1));
+      if (n == null) {
+        throw new Error(`variable ${v} not found`);
+      }
       if (s != null) {
-        table = `${s}.${quoteSQLName(env.get(v.slice(1)))}`
+        return `${s}.${quoteSQLName(n)}`
       } else {
-        table = quoteSQLName(env.get(v.slice(1)));
+        return quoteSQLName(n);
       }
     }
+    if (table[0] === "@") {
+      const n = env.get(table.slice(1));
+      if (n == null) {
+        throw new Error(`variable ${v} not found`);
+      }
+      return quoteSQLName(n);
+    }
     return table;
+  }
+
+  function preprocess(sourceSql, env) {
+    const re = /\u0000(.)([^\u0000]*)\u0000/g
+    return sourceSql.replace(re, (_, type, name) => {
+      if (DEBUG) {
+        console.error("preprocess %s %s", type, name);
+      }
+      if (type === "v") {
+        return env.get(name.slice(1));
+      } else if (type === "t") {
+        const t = resolveTable(name, env);
+        if (DEBUG) {
+          console.error("resolved table %s", t);
+        }
+        return t;
+      } else if (type === "e") {
+        const stmt = db.prepare(name);
+        return stmt.pluck().get(Object.fromEntries(env.entries()));
+      } else {
+        throw new Error(`unknown type: ${type}`);
+      }
+    });
   }
 
   const dbpath = options.db ?? ":memory:";
@@ -1321,7 +1358,11 @@ function child() {
     }
     else if (command === "meta-create-table-from-json") {
       const t0 = performance.now();
-      const [tableWithVariable, def, jsonsql, ifNotExists] = args;
+      const [tableWithVariable, def, jsonsqlSource, ifNotExists] = args;
+      const jsonsql = jsonsqlSource && preprocess(jsonsqlSource, env);
+      if (DEBUG) {
+        console.error(jsonsql);
+      }
       const table = resolveTable(tableWithVariable, env);
       if (ifNotExists && tableExists(table)) {
         return true;
@@ -1393,7 +1434,7 @@ function child() {
           const sourceSql = `select ${assignments.map(({ name, expression }) => {
             if (expression == null) return name;
             return `${expression} as ${name}`
-          }).join(", ")} from (${sourceTable})`
+          }).join(", ")} from (${preprocess(sourceTable, env)})`
           console.error(sourceSql);
           const t0 = performance.now();
           const stmt = db.prepare(sourceSql);
@@ -1416,13 +1457,14 @@ function child() {
         }
         const {
           type,
-          query: sql,
+          query: sourceSql,
           returning,
           format = outputFormat,
         } = statement;
         if (sigint) {
           break;
         }
+        const sql = preprocess(sourceSql, env);
         console.error(sql);
         const t0 = performance.now();
         const stmt = db.prepare(sql);

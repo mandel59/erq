@@ -1359,8 +1359,12 @@ TableName
   }
 
 TableName1
-  = s:Name _ "." _ n:Name { return [s, n]; }
-  / n:Name { return [null, n]; }
+  = s:MetaTableName _ "." _ n:MetaTableName { return [s, n]; }
+  / n:MetaTableName { return [null, n]; }
+
+MetaTableName
+  = i:$("@" Identifier) { return `\u0000t${i}\u0000`; }
+  / Name
 
 Table
   = WithTable
