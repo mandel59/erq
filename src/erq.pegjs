@@ -1182,13 +1182,11 @@ Create
       return `create ${tv} ${n} as ${t}`;
     }
   }
-  / "create" __ "index" ine:(__ "if" __ "not" __ "exists")? boundary _ n:TableName _ boundary "on" boundary _ tn:Name _ "(" _ ic:IndexedColumns ")"
+  / "create" uniq:(__ "unique" { return " unique"; }) __ "index"
+    ine:(__ "if" __ "not" __ "exists" { return " if not exists"; })? boundary _ n:TableName _ boundary
+      "on" boundary _ tn:Name cond:(_ "[" _ cond:Expression _ "]" { return ` where ${cond}`; })? _ "(" _ ic:IndexedColumns ")"
   {
-    if (ine) {
-      return `create index if not exists ${n} on ${tn} (${ic})`;
-    } else {
-      return `create index ${n} on ${tn} (${ic})`;
-    }
+    return `create${uniq ?? ""} index${ine ?? ""} ${n} on ${tn} (${ic})${cond ?? ""}`;
   }
   / "create" __ "virtual" __ "table" boundary _ n:TableName _ boundary "using" _ tn:Name _ "(" a:$ModuleArguments ")"
   {
