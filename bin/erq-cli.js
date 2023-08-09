@@ -1425,6 +1425,16 @@ function child() {
           if (!ok) return false;
           continue;
         }
+        if (statement.type === "if") {
+          const { condition: conditionSql, thenStatements, elseStatements = [] } = statement;
+          const sql = `select case when ${preprocess(conditionSql, env)} then 1 else 0 end`;
+          console.error(sql);
+          const stmt = db.prepare(sql);
+          const condition = stmt.pluck().get(Object.fromEntries(env.entries()));
+          const ok = await runSqls(condition ? thenStatements : elseStatements, env);
+          if (!ok) return false;
+          continue;
+        }
         if (statement.type === "for") {
           const {
             assignments,

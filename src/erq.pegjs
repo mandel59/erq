@@ -549,6 +549,7 @@ Statement
   = MetaStatement
   / "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", format: "eqp", query: `explain query plan ${s.query}` }; }
   / "explain" boundary _ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
+  / IfStatement
   / ForStatement
   / Statement1
 
@@ -557,6 +558,12 @@ MetaStatement
   / c:CreateFunction { return { type: "command", command: "meta-create-function", args:c } }
   / c:CreateTableFromJson { return { type: "command", command: "meta-create-table-from-json", args:c } }
   / f:SetOutputFormat { return { type: "command", command: "meta-set-output", args:[f] } }
+
+IfStatement
+  = "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement _ "else" _ f:BlockStatement
+    { return { type: "if", condition: e, thenStatements: t, elseStatements: f }; }
+  / "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement
+    { return { type: "if", condition: e, thenStatements: t }; }
 
 ForStatement
   = "for" _ a:ForVarAssignments _ boundary "of" boundary _ t:Table _ boundary ("do" boundary _)? body:BlockStatement
