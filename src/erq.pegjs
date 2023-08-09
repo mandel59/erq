@@ -15,6 +15,11 @@ function quote(value) {
     return "null";
   }
   if (typeof value === "string") {
+    if (value.includes("\u0000")) {
+      return `(${value.split("\u0000").map(
+        (v) => `'${v.replace(/'/g, "''")}'`
+      ).join("||char(0)||")})`;
+    }
     return `'${value.replace(/'/g, "''")}'`;
   }
   if (value != null && typeof value === "object") {
@@ -28,6 +33,9 @@ const reName = new RegExp(`^${patName}$`, "u");
 
 function quoteSQLName(name) {
   if (!reName.test(name)) {
+    if (name.includes("\u0000")) {
+      throw new RangeError("SQL name cannot contain NUL character");
+    }
     return `\`${name.replace(/`/g, "``")}\``;
   }
   return name;
@@ -45,10 +53,6 @@ function unquoteSQLName(quot) {
 
 function parseSQLStringLiteral(l) {
   return l.substring(1, l.length - 1).replace(/''/g, "'");
-}
-
-function intoSQLStringLiteral(s) {
-  return `'${s.replace(/'/g, "''")}'`;
 }
 
 function intoSQLIdentifier(n) {
@@ -1842,7 +1846,7 @@ Pack
 PackBody
   = "{" _ ps:PackNameList _ "}" {
     return `json_object(${ps.map(([k, e]) => {
-      return `${intoSQLStringLiteral(k)}, ${e}`;
+      return `${quote(k)}, ${e}`;
     }).join(", ")})`;
   }
   / "[" _ es:PackBody|.., _ "," _| _ "]" {
@@ -2007,7 +2011,7 @@ Name "name"
   ;
 
 QuotedName "quoted name"
-  = $('`' ("``" / [^`])* '`')+
+  = $('`' ("``" / [^`\u0000])* '`')+
 
 Identifier "identifier"
   = n:$(
@@ -2033,7 +2037,7 @@ Literal "literal"
 StringLiteral
   = SQLStringLiteral
   / &"E'" e:EscapedString { return e; }
-  / s:JSONString { return intoSQLStringLiteral(s); }
+  / s:JSONString { return quote(s); }
 
 ParsedStringLiteral
   = l:SQLStringLiteral { return parseSQLStringLiteral(l); }
@@ -2041,7 +2045,7 @@ ParsedStringLiteral
   / s:JSONString { return s; }
 
 SQLStringLiteral
-  = $("'" ("''" / [^'])* "'")+
+  = $("'" ("''" / [^'\u0000])* "'")+
 
 EscapedString
   = "E'" s:EscapedStringBody "'" {
