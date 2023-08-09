@@ -569,6 +569,15 @@ ForStatement
     };
   }
 
+ForEachClause
+  = _ "foreach" _ "(" _ a:ForVarAssignments _ ")" _ body:BlockStatement
+  {
+    return {
+      assignments: a,
+      bodyStatements: body,
+    };
+  }
+
 ForVarAssignments
   = ForVarAssignment|.., _ "," _|
 
@@ -598,6 +607,7 @@ Statement1
   / s:Commit { return { type: "commit", query: s }; }
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
+  / t:Table f:ForEachClause { return { type: "for", sourceTable: t, ...f }; }
   / t:TriggerStatement f:FormattingClause? { return f ? { ...t, format: f } : t; }
 
 SetOutputFormat
