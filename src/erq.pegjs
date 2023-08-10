@@ -1260,14 +1260,32 @@ Delete
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}delete from ${n} where ${e}`;
   }
+  / ts:WithClause*
+    "delete" boundary _ n:TableName _ e:BracketCondExpressionSeries
+  {
+    const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
+    return `${withclause}delete from ${n} where ${e}`;
+  }
 
 Update
   = ts:WithClause*
-    "update" boundary _ n:TableName cond:(_ "[" _ cond:Expression _ "]" { return cond; })?
+    "update" boundary _ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
     ss:(_ s:SetClause { return s; })*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}update ${n} set ${ss.join(", ")}${cond ? ` where ${cond}` : ""}`
+  }
+
+BracketCondExpression
+  = "[" _ e:Expression _ "]" { return e; }
+
+BracketCondExpressionSeries
+  = es:BracketCondExpression|1..| {
+    if (es.length == 1) {
+      return es[0];
+    } else {
+      return `(${es.join(") and (")})`;
+    }
   }
 
 SetClause
