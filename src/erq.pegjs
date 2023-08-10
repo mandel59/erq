@@ -1232,25 +1232,51 @@ Alter
   / "alter" __ "table" boundary _ n:TableName _ "drop" boundary _ c:Name { return `alter table ${n} drop ${c}`; }
 
 Insert
-  = ts:WithClause* "insert" __ "into" boundary _ n:TableName _ a:ColumnNameList? t:Table
+  = ts:WithClause*
+    "insert" __ "into" boundary _ n:TableName
+    a:(_ nl:ColumnNameList { return ` (${nl.join(", ")})` })?
+    _ t:Table up:UpsertClause*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
-    if (a != null) {
-      return `${withclause}insert into ${n} (${a.join(", ")}) ${t}`;
-    } else {
-      return `${withclause}insert into ${n} ${t}`;
+    if (up.length > 0) {
+      // workaround for syntax ambiguity
+      t = `select * from (${t}) where 1`;
     }
+    return `${withclause}insert into ${n}${a ?? ""} ${t}${up.join("")}`;
   }
-  / ts:WithClause* n:TableName _ a:ColumnNameList? "<-" _ t:Table
+  / ts:WithClause* n:TableName
+    a:(_ nl:ColumnNameList { return ` (${nl.join(", ")})` })?
+    _ "<-" _ t:Table up:UpsertClause*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
-    if (a != null) {
-      return `${withclause}insert into ${n} (${a.join(", ")}) ${t}`;
-    } else {
-      return `${withclause}insert into ${n} ${t}`;
+    if (up.length > 0) {
+      // workaround for syntax ambiguity
+      t = `select * from (${t}) where 1`;
     }
+    return `${withclause}insert into ${n}${a ?? ""} ${t}${up.join("")}`;
   }
   ;
+
+UpsertClause
+  = _ "on" _ "conflict" ct:ConflictTarget? _ "do" __ ua:UpsertAction {
+    return ` on conflict${ct ?? ""} do ${ua}`;
+  }
+
+ConflictTarget
+  = _ "(" _ cs:IndexedColumns _ ")" _ "where" _ e:Expression
+    { return ` (${cs}) where ${e}`; }
+  / _ "(" _ cs:IndexedColumns _ ")"
+    { return ` (${cs})`; }
+  / _ cond:BracketCondExpressionSeries _ "(" cs:IndexedColumns ")"
+    { return ` (${cs}) where ${e}`; }
+
+UpsertAction
+  = "nothing" { return "nothing"; }
+  / "update" _ ss:SetClause|.., _|
+    where:(_ "where" _ e:Expression { return ` where ${e}`; })?
+    { return `update set ${ss.join(", ")}${where ?? ""}`; }
+  / "update" _ cond:BracketCondExpressionSeries _ ss:SetClause|.., _|
+    { return `update set ${ss.join(", ")} where ${cond}`; }
 
 Delete
   = ts:WithClause*
@@ -1434,9 +1460,11 @@ ColumnNameList
 NameList
   = an1:Name ans:(_ "," _ an:Name { return an; })* { return [an1, ...ans]; }
 
+ConcatenatedTables
+  = Table1|1.., _ ";" _|
+
 TableUnion
-  = t1:Table1
-    ts:(_ ";" _ t:Table1 { return t; })*
+  = tss:ConcatenatedTables
     order:OrderClause?
     distinct:DistinctClause?
     limitOffset:LimitOffsetClause?
@@ -1449,6 +1477,7 @@ TableUnion
       / fs:(_ fs:Filters { return ["filters", fs]; })
     )*
   {
+    const [t1, ...ts] = tss;
     const union = distinct ? " union " : " union all "
     let sql;
     t1.distinct(distinct);
