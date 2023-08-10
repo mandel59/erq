@@ -1258,17 +1258,17 @@ Insert
   ;
 
 UpsertClause
-  = _ "on" _ "conflict" ct:ConflictTarget? _ "do" __ ua:UpsertAction {
+  = _ "on" __ "conflict" ct:ConflictTarget? _ "do" __ ua:UpsertAction {
     return ` on conflict${ct ?? ""} do ${ua}`;
   }
 
 ConflictTarget
-  = _ "(" _ cs:IndexedColumns _ ")" _ "where" _ e:Expression
-    { return ` (${cs}) where ${e}`; }
+  = _ "(" _ cs:IndexedColumns _ ")" _ "where" _ cond:Expression
+    { return ` (${cs}) where ${cond}`; }
   / _ "(" _ cs:IndexedColumns _ ")"
     { return ` (${cs})`; }
   / _ cond:BracketCondExpressionSeries _ "(" cs:IndexedColumns ")"
-    { return ` (${cs}) where ${e}`; }
+    { return ` (${cs}) where ${cond}`; }
 
 UpsertAction
   = "nothing" { return "nothing"; }
