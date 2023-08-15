@@ -419,12 +419,16 @@ class TableBuilder {
     return new TableBuilder(name, `(${this.toSQL(true)})`);
   }
   where(e) {
-    this.#rawSQL = undefined;
     if (this.#aggregate) {
+      this.#rawSQL = undefined;
       this.#having.push(e);
-    } else {
-      this.#where.push(e);
+      return this;
     }
+    if (this.#isSelected()) {
+      return this.#paren().where(e);
+    }
+    this.#rawSQL = undefined;
+    this.#where.push(e);
     return this;
   }
   select(rs) {
