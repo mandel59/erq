@@ -1814,7 +1814,7 @@ BinCompOp
   / "is" boundary { return "is"; }
 
 Expression
-  = e:Expression1OrRowValue _ boundary rest:(
+  = e:Expression1 _ boundary rest:(
     "not" __ "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
     / "not" __ "in" boundary _ t:Table { return `not in (${t})`; }
     / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
@@ -1868,10 +1868,6 @@ ExpressionOrRowValue
   = Expression
   / RowValue
 
-Expression1OrRowValue
-  = Expression1
-  / RowValue
-
 RecordOrExpressionList
   = e1:RecordOrExpression es:(_ "," _ e:RecordOrExpression { return e; })*
   { return [e1, ...es].join(", "); }
@@ -1889,7 +1885,8 @@ Expression1
   = op:UnOp _ e:Expression1 { return `${op}${e}` }
   / r1:RowValue _ op:BinCompOp _ r2:RowValue { return `${r1} ${op} ${r2}`; }
   / v:Value x:(_ op:BinOp _ e:Expression1 { return `${op} ${e}`; })?
-  { if (x) return `${v} ${x}`; else return v; }
+    { if (x) return `${v} ${x}`; else return v; }
+  / RowValue
   ;
 
 Value
