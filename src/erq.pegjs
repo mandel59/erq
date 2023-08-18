@@ -551,8 +551,8 @@ CLICommand
 
 Statement
   = MetaStatement
-  / "explain" __ "query" __ "plan" boundary _ s:Statement1 { return { type: "select", format: "eqp", query: `explain query plan ${s.query}` }; }
-  / "explain" boundary _ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
+  / "explain" __ "query" __ "plan" __ s:Statement1 { return { type: "select", format: "eqp", query: `explain query plan ${s.query}` }; }
+  / "explain" __ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
   / IfStatement
   / ForStatement
   / Statement1
@@ -564,13 +564,13 @@ MetaStatement
   / f:SetOutputFormat { return { type: "command", command: "meta-set-output", args:[f] } }
 
 IfStatement
-  = "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement _ "else" _ f:BlockStatement
+  = "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement _ "else" __ f:BlockStatement
     { return { type: "if", condition: e, thenStatements: t, elseStatements: f }; }
   / "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement
     { return { type: "if", condition: e, thenStatements: t }; }
 
 ForStatement
-  = "for" _ a:ForVarAssignments _ boundary "of" boundary _ t:Table _ boundary ("do" boundary _)? body:BlockStatement
+  = "for" __ a:ForVarAssignments _ "of" __ t:Table _ ("do" __)? body:BlockStatement
   {
     return {
       type: "for",
@@ -623,20 +623,20 @@ Statement1
 
 SetOutputFormat
   = "set" __ "format" __ f:(
-    "dense"
-    / "sparse"
-    / "array" { return "dense"; }
-    / "object" { return "sparse"; }
+    "dense" boundary { return "dense"; }
+    / "sparse" boundary { return "sparse"; }
+    / "array" boundary { return "dense"; }
+    / "object" boundary { return "sparse"; }
     / Vega
   ) { return f; }
 
 FormattingClause
-  = _ boundary "output" __ f:(
-    "dense"
-    / "sparse"
-    / "array" { return "dense"; }
-    / "object" { return "sparse"; }
-    / "raw"
+  = _ "output" __ f:(
+    "dense" boundary { return "dense"; }
+    / "sparse" boundary { return "sparse"; }
+    / "array" boundary { return "dense"; }
+    / "object" boundary { return "sparse"; }
+    / "raw" boundary { return "raw"; }
     / Vega
   ) { return f; }
 
@@ -676,13 +676,13 @@ VegaEncoding
   }
 
 VegaRepeat
-  = "repeat" boundary _ d:VegaRepeatDefVars _ "(" _ v:VegaView _ ")"
+  = "repeat" __ d:VegaRepeatDefVars _ "(" _ v:VegaView _ ")"
     { return { repeat: d, spec: v }; }
-  / "repeat" boundary _ d:VegaRepeatDef _ n:VegaRepeatColumns? "(" _ v:VegaView _ ")"
+  / "repeat" __ d:VegaRepeatDef _ n:VegaRepeatColumns? "(" _ v:VegaView _ ")"
     { return { repeat: d, spec: v, columns: n }; }
 
 VegaRepeatColumns
-  = "columns" _ n:JSONNumber _ { return n; }
+  = "columns" __ n:JSONNumber _ { return n; }
 
 VegaCompose
   = op:("layer" / "hconcat" / "vconcat" / "concat") _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
@@ -724,7 +724,7 @@ VegaResolve
     { return { resolve: { [b]: { [c]: d } } }; }
 
 VegaRepeatDefVars
-  = ds:VegaRepeatDefVar|1.., _ "repeat" boundary _| { return merge(...ds); }
+  = ds:VegaRepeatDefVar|1.., _ "repeat" __| { return merge(...ds); }
 
 VegaRepeatDefVar
   = dir:("row" / "column" / "layer")
@@ -738,7 +738,7 @@ VegaRepeatDef
     }
 
 VegaViewJsonOption
-  = "options" _ obj:JSONObject {
+  = "options" __ obj:JSONObject {
     return obj;
   }
 
@@ -810,12 +810,12 @@ VegaTimeUnitComponent
 
 VegaSorting
   = "sort" _ "(" _ ("channel" / "chan") __ c:Name _ o:(
-      "asc" { return "ascending"; }
-      / "desc" { return "descending"; }
+      "asc" boundary { return "ascending"; }
+      / "desc" boundary { return "descending"; }
     ) _ ")" { return ["sort", { encoding: c, order: o }] }
   / "sort" _ "(" _ f:(VegaRepeatField / VegaAggregatedField / VegaField) _ o:(
-      "asc" { return "ascending"; }
-      / "desc" { return "descending"; }
+      "asc" boundary { return "ascending"; }
+      / "desc" boundary { return "descending"; }
     ) _ ")" { return ["sort", { ...f, order: o }] }
   / "sort" _ "[" _ vs:(ParsedStringLiteral / JSONValue)|.., _ "," _| "]" { return ["sort", vs]; }
   / "asc" boundary { return ["sort", "ascending"]; }
@@ -823,8 +823,8 @@ VegaSorting
   / "nosort" boundary { return ["sort", null]; }
 
 VegaBinning
-  = "binned" { return ["bin", "binned"]; }
-  / "bin" { return ["bin", true]; }
+  = "binned" boundary { return ["bin", "binned"]; }
+  / "bin" boundary { return ["bin", true]; }
 
 VegaAggregatedField
   = "count" _ "(" _ ("*" _)? ")" { return { op: "count" }; }
@@ -854,14 +854,14 @@ VegaField
   = f:Name { return { field: escapeVegaField(unquoteSQLName(f)) }; }
 
 VegaTransform
-  = "transform" _ ms:VegaTransformMethod|1.., _|
+  = "transform" __ ms:VegaTransformMethod|1.., _|
     { return { transform: [].concat(...ms) }; }
 
 VegaTransformMethod
   = "[" _ filter:VegaPredicate _ "]" { return [{ filter }]; }
   / "[" _ e:VegaExpression _ "]" { return [{ filter: e }]; }
   / "{" _ cs:VegaCalculateField|1.., _ "," _| _ "}" { return cs; }
-  / "apply" _ obj:JSONObject { return [obj]; }
+  / "apply" __ obj:JSONObject { return [obj]; }
 
 VegaPredicate
   = ps:VegaPredicate1|2.., _ "or" _|
@@ -874,7 +874,7 @@ VegaPredicate1
   / VegaPredicate2
 
 VegaPredicate2
-  = "not" boundary _ p:VegaPredicate2 { return {"not": p}; }
+  = "not" __ p:VegaPredicate2 { return {"not": p}; }
   / VegaPredicate3
 
 VegaPredicate3
@@ -885,9 +885,9 @@ VegaPredicate3
     { return { field: escapeVegaField(unquoteSQLName(f)), oneOf: vs }; }
   / f:Name _ t:VegaTimeUnit _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| _ "]"
     { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, oneOf: vs }; }
-  / f:Name _ "between" boundary _ a:VegaValue _ "and" boundary _ b:VegaValue
+  / f:Name _ "between" __ a:VegaValue _ "and" __ b:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), range: [a, b] }; }
-  / f:Name _ t:VegaTimeUnit _ "between" boundary _ a:VegaValue _ "and" boundary _ b:VegaValue
+  / f:Name _ t:VegaTimeUnit _ "between" __ a:VegaValue _ "and" __ b:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, range: [a, b] }; }
   / f:Name _ ("<>"/"!=") _ value:VegaValue
     { return { not: { field: escapeVegaField(unquoteSQLName(f)), equal: value } }; }
@@ -924,12 +924,12 @@ VegaExpression0
   / VegaExpression1
 
 VegaExpression1
-  = "not" boundary _ e:VegaExpression2
+  = "not" __ e:VegaExpression2
     { return `!(${e})`; }
   / VegaExpression2
 
 VegaExpression2
-  = e:VegaExpression3 _ "between" boundary _ e1:VegaExpression3 _ "and" boundary _ e2:VegaExpression3
+  = e:VegaExpression3 _ "between" __ e1:VegaExpression3 _ "and" __ e2:VegaExpression3
     { return `${e} >= ${e1} && ${e} <= ${e2}`; }
   / VegaExpression3
 
@@ -1008,11 +1008,11 @@ Commit
   = "commit"
 
 Savepoint
-  = "savepoint" boundary _ n:Name
+  = "savepoint" __ n:Name
   { return `savepoint ${n}`; }
 
 Release
-  = "release" boundary _ n:Name
+  = "release" __ n:Name
   { return `release ${n}`; }
 
 Rollback
@@ -1026,15 +1026,15 @@ Rollback
   }
 
 Analyze
-  = "analyze" boundary _ s:Name _ "." _ n:Name { return `analyze ${s}.${n}`; }
-  / "analyze" boundary _ n:Name { return `analyze ${n}`; }
-  / "analyze" { return "analyze"; }
+  = "analyze" __ s:Name _ "." _ n:Name { return `analyze ${s}.${n}`; }
+  / "analyze" __ n:Name { return `analyze ${n}`; }
+  / "analyze" boundary { return "analyze"; }
 
 LoadRawBlock
-  = "load" __ "table"
-    ifNotExists:(__ "if" __ "not" __ "exists" { return true; })?
-    boundary _ table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
-    boundary "from" _ x:(
+  = "load" __ "table" boundary
+    ifNotExists:(_ "if" __ "not" __ "exists" boundary { return true; })?
+    _ table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    "from" __ x:(
       RawBlock
       / ParsedStringLiteral
       / v:Variable { return { variable: v }; }
@@ -1081,29 +1081,29 @@ LoadRawBlock
   }
 
 LoadOption
-  = "null" boundary _ s:ParsedStringLiteral { return ["null", s]; }
-  / "header" { return ["header", true]; }
-  / "no" __ "header" { return ["header", false]; }
-  / "delimiter" boundary _ s:ParsedStringLiteral { return ["delimiter", s]; }
-  / "quote" boundary _ s:ParsedStringLiteral { return ["quote", s]; }
-  / "no" __ "quote" { return ["quote", false]; }
-  / "escape" boundary _ s:ParsedStringLiteral { return ["escape", s]; }
-  / "comment" boundary _ s:ParsedStringLiteral { return ["comment", s]; }
-  / "encoding" boundary _ s:ParsedStringLiteral { return ["encoding", s]; }
-  / "relax" __ "column" __ "count" __ lm:("less"/"more") { return ["relax_column_count_" + lm, true]; }
-  / "relax" __ "column" __ "count" { return ["relax_column_count", true]; }
-  / "sniff" __ "size" boundary _ n:JSONNumber { return ["sniff_size", n]; }
+  = "null" __ s:ParsedStringLiteral { return ["null", s]; }
+  / "header" boundary { return ["header", true]; }
+  / "no" __ "header" boundary { return ["header", false]; }
+  / "delimiter" __ s:ParsedStringLiteral { return ["delimiter", s]; }
+  / "quote" __ s:ParsedStringLiteral { return ["quote", s]; }
+  / "no" __ "quote" boundary { return ["quote", false]; }
+  / "escape" __ s:ParsedStringLiteral { return ["escape", s]; }
+  / "comment" __ s:ParsedStringLiteral { return ["comment", s]; }
+  / "encoding" __ s:ParsedStringLiteral { return ["encoding", s]; }
+  / "relax" __ "column" __ "count" __ lm:("less"/"more") boundary { return ["relax_column_count_" + lm, true]; }
+  / "relax" __ "column" __ "count" boundary { return ["relax_column_count", true]; }
+  / "sniff" __ "size" __ n:JSONNumber { return ["sniff_size", n]; }
   / ("format" __)? f:("csv"/"ndjson") { return ["format", f]; }
 
 CreateFunction
-  = "create" __ "function" boundary _ n:Name _ ps:FunctionParams _ "as" _ x:RawBlock
+  = "create" __ "function" __ n:Name _ ps:FunctionParams _ "as" __ x:RawBlock
   {
     return [n, ps, x];
   }
 
 CreateTableFromJson
   = "create" __ "table"
-    ine:(__ "if" __ "not" __ "exists")? boundary _
+    ine:(__ "if" __ "not" __ "exists")? __
     table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
     boundary "from" __ "json" _ "(" _ e:Table _ ")" { return [table, d, e, Boolean(ine)]; }
 
@@ -1130,19 +1130,19 @@ ColumnDef
   }
 
 ColumnConstraint
-  = name:("constraint" n:Name { return n; })? body:ColumnConstraintBody
+  = name:("constraint" __ n:Name { return n; })? body:ColumnConstraintBody
   {
     const def = name ? `constraint ${name} ${body}` : body;
     return { def, name, body }
   }
 
 ColumnConstraintBody
-  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(__ "autoincrement" {return " autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
-  / "not" __ "null" cc:ConflictClause? { return `not null${cc ?? ""}`; }
-  / "unique" cc:ConflictClause? { return `unique${cc ?? ""}`; }
+  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(_ "autoincrement" boundary {return " autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
+  / "not" __ "null" boundary cc:ConflictClause? { return `not null${cc ?? ""}`; }
+  / "unique" boundary cc:ConflictClause? { return `unique${cc ?? ""}`; }
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
-  / "default" _ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / SignedNumber) { return `default ${x}`; }
-  / "collate" boundary _ n:Name { return `collate ${n}`; }
+  / "default" __ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / SignedNumber) { return `default ${x}`; }
+  / "collate" __ n:Name { return `collate ${n}`; }
   / "as" _ "(" _ e:Expression _ ")" x:(__ x:("stored" / "virtual") { return ` ${x}`; })? { return `as (${e})${x ?? ""}`; }
 
 TableConstraint
@@ -1157,20 +1157,20 @@ TableConstraintBody
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
 
 ConflictClause
-  = __ "on" __ "conflict" __ k:("rollback"/"abort"/"fail"/"ignore"/"replace") { return ` on conflict ${k}`; }
+  = _ "on" __ "conflict" __ k:("rollback"/"abort"/"fail"/"ignore"/"replace") { return ` on conflict ${k}`; }
 
 Attach
-  = "attach" boundary _ e:Expression _ "as" boundary _ n:Name {
+  = "attach" __ e:Expression _ "as" __ n:Name {
     return `attach ${e} as ${n}`;
   }
 
 Detach
-  = "detach" boundary _ n:Name {
+  = "detach" __ n:Name {
     return `detach ${n}`;
   }
 
 Create
-  = "create" __ "temporary" __ tv:("table" / "view") ine:(__ "if" __ "not" __ "exists")? boundary _ n:Name _ boundary "as" boundary _ t:Table
+  = "create" __ "temporary" __ tv:("table" / "view") boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:Name _ boundary "as" __ t:Table
   {
     if (ine) {
       return `create temporary ${tv} if not exists ${n} as ${t}`;
@@ -1178,7 +1178,7 @@ Create
       return `create temporary ${tv} ${n} as ${t}`;
     }
   }
-  / "create" __ tv:("table" / "view") ine:(__ "if" __ "not" __ "exists")? boundary _ n:TableName _ boundary "as" boundary _ t:Table
+  / "create" __ tv:("table" / "view") boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "as" __ t:Table
   {
     if (ine) {
       return `create ${tv} if not exists ${n} as ${t}`;
@@ -1186,17 +1186,17 @@ Create
       return `create ${tv} ${n} as ${t}`;
     }
   }
-  / "create" uniq:(__ "unique" { return " unique"; }) __ "index"
-    ine:(__ "if" __ "not" __ "exists" { return " if not exists"; })? boundary _ n:TableName _ boundary
-      "on" boundary _ tn:Name cond:(_ "[" _ cond:Expression _ "]" { return ` where ${cond}`; })? _ "(" _ ic:IndexedColumns ")"
+  / "create" boundary uniq:(_ "unique" boundary { return " unique"; })? _ "index" boundary
+    ine:(_ "if" __ "not" __ "exists" boundary { return " if not exists"; })? _ n:TableName _
+      "on" __ tn:Name cond:(_ "[" _ cond:Expression _ "]" { return ` where ${cond}`; })? _ "(" _ ic:IndexedColumns ")"
   {
     return `create${uniq ?? ""} index${ine ?? ""} ${n} on ${tn} (${ic})${cond ?? ""}`;
   }
-  / "create" __ "virtual" __ "table" boundary _ n:TableName _ boundary "using" _ tn:Name _ "(" a:$ModuleArguments ")"
+  / "create" __ "virtual" __ "table" __ n:TableName _ boundary "using" __ tn:Name _ "(" a:$ModuleArguments ")"
   {
     return `create virtual table ${n} using ${tn}(${a})`;
   }
-  / "create" __ "table" ine:(__ "if" __ "not" __ "exists")? boundary _ n:TableName _ "(" _ td:TableDef _ ")"
+  / "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef _ ")"
   {
     if (ine != null) {
       return `create table if not exists ${n} (${td.def})`;
@@ -1204,17 +1204,17 @@ Create
       return `create table ${n} (${td.def})`;
     }
   }
-  / "create" temp:(__ "temporary" { return " temporary"; })? __ "trigger"
-    ine:(__ "if" __ "not" __ "exists" { return " if not exists"; })? boundary
+  / "create" temp:(__ "temporary" { return " temporary"; })? __ "trigger" boundary
+    ine:(_ "if" __ "not" __ "exists" boundary { return " if not exists"; })?
     _ trig:TableName
-    _ boundary triggerPhase:("before"/"after"/"instead" __ "of" { return "instead of"; })
-    __ triggerMethod:("delete"/"insert"/"update" __ "of" __ cns:NameList { return `update of ${cns.join(", ")}`; })
-    _ boundary "on" boundary _ tn:TableName when:(_ "when" _ when:Expression { return ` when ${when}`; })?
+    _ triggerPhase:("before"/"after"/"instead" __ "of" boundary { return "instead of"; })
+    _ triggerMethod:("delete"/"insert"/"update" __ "of" __ cns:NameList { return `update of ${cns.join(", ")}`; })
+    _ "on" __ tn:TableName when:(_ "when" __ when:Expression { return ` when ${when}`; })?
     _ ss:BlockTriggerStatement
   {
     return `create${temp ?? ""} trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.map(s => `${s.query};`).join("")} end`;
   }
-  / tv:("table" / "view") boundary _ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
+  / tv:("table" / "view") __ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
     const [s, n] = x;
     const qn = s != null ? `${s}.${n}` : n;
@@ -1230,14 +1230,14 @@ BlockTriggerStatement
   / "(" ss:TriggerStatement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
 
 Alter
-  = "alter" __ "table" boundary _ n:TableName _ "rename" __ "to" boundary _ d:Name { return `alter table ${n} rename to ${d}`; }
-  / "alter" __ "table" boundary _ n:TableName _ "rename" boundary _ c:Name _ boundary "to" boundary _ d:Name { return `alter table ${n} rename ${c} to ${d}`; }
-  / "alter" __ "table" boundary _ n:TableName _ "add" boundary _ d:ColumnDef { return `alter table ${n} add ${d.def}`; }
-  / "alter" __ "table" boundary _ n:TableName _ "drop" boundary _ c:Name { return `alter table ${n} drop ${c}`; }
+  = "alter" __ "table" __ n:TableName _ "rename" __ "to" __ d:Name { return `alter table ${n} rename to ${d}`; }
+  / "alter" __ "table" __ n:TableName _ "rename" __ c:Name _ boundary "to" __ d:Name { return `alter table ${n} rename ${c} to ${d}`; }
+  / "alter" __ "table" __ n:TableName _ "add" __ d:ColumnDef { return `alter table ${n} add ${d.def}`; }
+  / "alter" __ "table" __ n:TableName _ "drop" __ c:Name { return `alter table ${n} drop ${c}`; }
 
 Insert
   = ts:WithClause*
-    "insert" __ "into" boundary _ n:TableName
+    "insert" __ "into" __ n:TableName
     a:(_ nl:ColumnNameList { return ` (${nl.join(", ")})` })?
     _ t:Table up:UpsertClause*
   {
@@ -1267,7 +1267,7 @@ UpsertClause
   }
 
 ConflictTarget
-  = _ "(" _ cs:IndexedColumns _ ")" _ "where" _ cond:Expression
+  = _ "(" _ cs:IndexedColumns _ ")" _ "where" __ cond:Expression
     { return ` (${cs}) where ${cond}`; }
   / _ "(" _ cs:IndexedColumns _ ")"
     { return ` (${cs})`; }
@@ -1276,22 +1276,22 @@ ConflictTarget
 
 UpsertAction
   = "nothing" { return "nothing"; }
-  / "update" _ ss:SetClause|.., _|
-    where:(_ "where" _ e:Expression { return ` where ${e}`; })?
+  / "update" __ ss:SetClause|.., _|
+    where:(_ "where" __ e:Expression { return ` where ${e}`; })?
     { return `update set ${ss.join(", ")}${where ?? ""}`; }
-  / "update" _ cond:BracketCondExpressionSeries _ ss:SetClause|.., _|
+  / "update" __ cond:BracketCondExpressionSeries _ ss:SetClause|.., _|
     { return `update set ${ss.join(", ")} where ${cond}`; }
 
 Delete
   = ts:WithClause*
-    "delete" __ "from" boundary _ n:TableName _
-    boundary "where" boundary _ e:Expression
+    "delete" __ "from" __ n:TableName _
+    "where" __ e:Expression
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}delete from ${n} where ${e}`;
   }
   / ts:WithClause*
-    "delete" boundary _ n:TableName _ e:BracketCondExpressionSeries
+    "delete" __ n:TableName _ e:BracketCondExpressionSeries
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}delete from ${n} where ${e}`;
@@ -1299,7 +1299,7 @@ Delete
 
 Update
   = ts:WithClause*
-    "update" boundary _ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
+    "update" __ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
     ss:(_ s:SetClause { return s; })*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
@@ -1319,22 +1319,22 @@ BracketCondExpressionSeries
   }
 
 SetClause
-  = "set" boundary _ l:UpdateLHS _ "=" _ e:Expression { return `${l} = ${e}`; }
+  = "set" __ l:UpdateLHS _ "=" _ e:Expression { return `${l} = ${e}`; }
 
 UpdateLHS
   = "{" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ "}" _ { return `(${[an1, ...ans].join(", ")})`; }
   / t:Name
 
 Truncate
-  = "truncate" __ "table" boundary _ n:TableName
+  = "truncate" __ "table" __ n:TableName
   { return `delete from ${n}`; }
 
 Vacuum
-  = "vacuum" boundary _ n:Name _ boundary "into" boundary s:SQLStringLiteral
+  = "vacuum" __ n:Name _ boundary "into" boundary s:SQLStringLiteral
   { return `vacuum ${n} into ${s}`; }
   / "vacuum" __ "into" boundary s:SQLStringLiteral
   { return `vacuum into ${s}`; }
-  / "vacuum" boundary _ n:Name
+  / "vacuum" __ n:Name
   { return `vacuum ${n}`; }
   / "vacuum"
   { return `vacuum`; }
@@ -1359,7 +1359,7 @@ PragmaValue
   / SQLStringLiteral
 
 ReturningClause
-  = rs:(_ boundary "returning" _ rs:ValueWildCardReferences { return rs; })
+  = rs:(_ boundary "returning" __ rs:ValueWildCardReferences { return rs; })
   {
     return " returning " + rs.map(s => {
       if (s.name && s.name !== s.expression) {
@@ -1390,11 +1390,11 @@ IndexedColumn
   }
 
 Drop
-  = "drop" __ "temporary" __ tv:("table" / "view" / "trigger") boundary _ n:TableName
+  = "drop" __ "temporary" __ tv:("table" / "view" / "trigger") __ n:TableName
   {
     return `drop temporary ${tv} ${n}`;
   }
-  / "drop" __ tv:("table" / "view" / "index" / "trigger") ie:(__ "if" __ "exists")? boundary _ n:TableName
+  / "drop" __ tv:("table" / "view" / "index" / "trigger") ie:(__ "if" __ "exists")? __ n:TableName
   {
     if (ie) {
       return `drop ${tv} if exists ${n}`;
@@ -1435,7 +1435,7 @@ MetaTableName
 
 Table
   = WithTable
-  / ("from" boundary _)? t:TableUnion { return t; }
+  / ("from" __)? t:TableUnion { return t; }
 
 WithTable
   = ts:WithClause+
@@ -1444,9 +1444,9 @@ WithTable
   }
 
 WithClause
-  = "with" boundary _ n:Name _
+  = "with" __ n:Name _
     a:ColumnNameList?
-    boundary "as" boundary _ "(" _ t:Table _ ")" _
+    "as" __ "(" _ t:Table _ ")" _
   {
     if (a != null) {
       return `${n}(${a.join(", ")}) as (${t})`;
@@ -1455,7 +1455,7 @@ WithClause
   }
 
 WindowClause
-  = "window" boundary _ n:Name _ boundary "as" _ w:WindowDefn
+  = "window" __ n:Name _ boundary "as" __ w:WindowDefn
   { return { name: n, window: w }; }
 
 ColumnNameList
@@ -1543,7 +1543,7 @@ DistinctClause
   ;
 
 AsClause
-  = _ boundary "as" boundary _ n:Name { return n; }
+  = _ "as" __ n:Name { return n; }
   ;
 
 OrderClause
@@ -1555,9 +1555,9 @@ OrderClause
   }
 
 LimitOffsetClause
-  = _ boundary "limit" boundary _ limit:Expression _ boundary "offset" boundary _ offset:Expression { return [limit, offset]; }
-  / _ boundary "limit" boundary _ limit:Expression { return [limit, null]; }
-  / _ boundary "offset" boundary _ offset:Expression _ boundary "limit" boundary _ limit:Expression { return [limit, offset]; }
+  = _ boundary "limit" __ limit:Expression _ boundary "offset" __ offset:Expression { return [limit, offset]; }
+  / _ boundary "limit" __ limit:Expression { return [limit, null]; }
+  / _ boundary "offset" __ offset:Expression _ boundary "limit" __ limit:Expression { return [limit, offset]; }
 
 Table1
   = tb:Table2 fs:(_ fs:Filters { return fs; })? {
@@ -1571,7 +1571,7 @@ Table1
   ;
 
 Table2
-  = "select" boundary _ rs:ValueReferences {
+  = "select" __ rs:ValueReferences {
     return new TableBuilder(null, null).select(rs);
   }
   / "{" _ rs:ValueReferences _ "}" {
@@ -1586,7 +1586,7 @@ Table2
   ;
 
 ValuesList
-  = "values" _ a:ColumnNameList? "[" _ vs:(
+  = "values" __ a:ColumnNameList? "[" _ vs:(
       e1:(Record/Expression) es:(_ "," _ e:(Record/Expression) { return e; })* { return [e1, ...es].map(e => `(${e})`).join(", "); }
     ) _ "]"
   {
@@ -1596,11 +1596,11 @@ ValuesList
     }
     return values;
   }
-  / "values" _ a:ColumnNameList "[" _ "]"
+  / "values" __ a:ColumnNameList "[" _ "]"
   {
     return `select ${a.map(c => `null as ${c}`).join(", ")} where 0`;
   }
-  / "values" _ "[" _ jsonarray:JSONObject|.., _ "," _| _ "]"
+  / "values" __ "[" _ jsonarray:JSONObject|.., _ "," _| _ "]"
   {
     const keys = new Set();
     for (const obj of jsonarray) {
@@ -1643,7 +1643,7 @@ Filter
   = "[" _ e:Expression _ "]" {
     return (tb) => tb.where(e);
   }
-  / "where" boundary _ e:Expression {
+  / "where" __ e:Expression {
     return (tb) => tb.where(e);
   }
   / "{" _ grs:ValueReferences _ "=>" _ rs:ValueWildCardReferences _ "}" {
@@ -1658,25 +1658,25 @@ Filter
   / "{" _ rs:ValueWildCardReferences _ "}" {
     return (tb) => tb.select(rs);
   }
-  / "group" __ "by" boundary _ grs:ValueReferences _ boundary "select" boundary _ rs:ValueWildCardReferences {
+  / "group" __ "by" __ grs:ValueReferences _ boundary "select" __ rs:ValueWildCardReferences {
     return (tb) => tb.groupSelect(grs, rs);
   }
-  / "select" boundary _ rs:ValueWildCardReferences {
+  / "select" __ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
-  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" boundary _ tr:TableReference _ boundary "using" _ "(" _ u:NameList _ ")" {
+  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList _ ")" {
     return (tb) => tb.joinUsing(tr, u, dw);
   }
-  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
+  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on, dw);
   }
-  / "join" boundary _ tr:TableReference _ boundary "using" _ "(" _ u:NameList _ ")" {
+  / "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList _ ")" {
     return (tb) => tb.joinUsing(tr, u);
   }
-  / "join" boundary _ tr:TableReference on:(_ boundary "on" boundary _ e:Expression { return e; })? {
+  / "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on);
   }
-  / "natural" __ "join" boundary _ tr:TableReference {
+  / "natural" __ "join" __ tr:TableReference {
     return (tb) => tb.join(tr, null, "natural");
   }
   / dw:("left" / "right" / "full" / "inner" / "cross")? _ "-:" _ nl:Name _ nr:(":" _ nr:Name _ { return nr; })? ":>" _ tr:TableReference {
@@ -1815,19 +1815,19 @@ BinCompOp
 
 Expression
   = e:Expression1 _ boundary rest:(
-    "not" __ "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
-    / "not" __ "in" boundary _ t:Table { return `not in (${t})`; }
+    "not" __ "in" __ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
+    / "not" __ "in" __ t:Table { return `not in (${t})`; }
     / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
     / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" { return `not in (${es})`; }
-    / "in" boundary _ t:Table _ op:BinOp _ e2:Expression { return `in (${t}) ${op} ${e2}` }
-    / "in" boundary _ t:Table { return `in (${t})`; }
+    / "in" __ t:Table _ op:BinOp _ e2:Expression { return `in (${t}) ${op} ${e2}` }
+    / "in" __ t:Table { return `in (${t})`; }
     / "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
     / "in" _ "[" _ es:RecordOrExpressionList _ "]" { return `in (${es})`; }
   ) { return `${e} ${rest}`; }
   / Expression1
 
 CaseExpression
-  = "case" boundary _ w:WhenClause+ el:ElseClause? boundary "end" boundary
+  = "case" __ w:WhenClause+ el:ElseClause? boundary "end" boundary
   {
     let sql = `case `;
     for (const e of w) {
@@ -1839,7 +1839,7 @@ CaseExpression
     sql += "end";
     return sql;
   }
-  / "case" boundary _ ex:ExpressionOrRowValue _ w:WhenClause+ el:ElseClause? boundary "end" boundary
+  / "case" __ ex:ExpressionOrRowValue _ w:WhenClause+ el:ElseClause? boundary "end" boundary
   {
     let sql = `case `;
     sql += ex;
@@ -1853,16 +1853,16 @@ CaseExpression
     sql += "end";
     return sql;
   }
-  / "if" boundary _ c:Expression _ boundary "then" boundary _ e:Expression _ el:ElseClause? boundary "end" boundary
+  / "if" __ c:Expression _ boundary "then" __ e:Expression _ el:ElseClause? boundary "end" boundary
   {
     return `case when ${c} then ${e} ${el ?? ""}end`;
   }
 
 WhenClause
-  = "when" boundary _ c:ExpressionOrRowValue _ boundary "then" boundary _ e:Expression _ { return `when ${c} then ${e} `; }
+  = "when" __ c:ExpressionOrRowValue _ boundary "then" __ e:Expression _ { return `when ${c} then ${e} `; }
 
 ElseClause
-  = "else" boundary _ e:Expression _ { return `else ${e} `; }
+  = "else" __ e:Expression _ { return `else ${e} `; }
 
 ExpressionOrRowValue
   = Expression
@@ -1878,7 +1878,7 @@ RecordOrExpression
 
 RowValue
   = "{" _ es:Expressions _ "}" { return `(${es})`; }
-  / "from" boundary _ t:Table { return `(${t})`; }
+  / "from" __ t:Table { return `(${t})`; }
   / v:ValuesList { return `(${v})`; }
 
 Expression1
@@ -1893,11 +1893,11 @@ Value
   = CaseExpression
   / "(" _ e:Expression _ ")" { return `(${e})` }
   / &(("from" / "with" / "values") boundary) t:Table { return `(${t})` }
-  / "not" __ "exists" boundary _ t:Table { return `not exists (${t})` }
-  / "exists" boundary _ t:Table { return `exists (${t})` }
+  / "not" __ "exists" __ t:Table { return `not exists (${t})` }
+  / "exists" __ t:Table { return `exists (${t})` }
   / Variable
   / Literal
-  / "cast" _ "(" _ e:Expression _ boundary "as" boundary _ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
+  / "cast" _ "(" _ e:Expression _ boundary "as" __ t:TypeName _ ")" { return `cast(${e} as ${t})`; }
   / Pack
   / WindowFunctionCall
   / FilteredFunctionCall
@@ -1911,7 +1911,7 @@ Value
   ;
 
 Pack
-  = "pack" _ b:PackBody {
+  = "pack" __ b:PackBody {
     return b;
   }
 
@@ -1952,7 +1952,7 @@ UnpackBody
   / n:Name { return [["", unquoteSQLName(n)]]; }
 
 Unpack
-  = "unpack" boundary _ e:(
+  = "unpack" __ e:(
     "(" _ e:Expression _ ")" { return `(${e})`; }
     / s:Name _ "." _ t:Name _ "." _ n:Name { return `${s}.${t}.${n}`; }
     / t:Name _ "." _ n:Name { return `${t}.${n}`; }
@@ -1968,20 +1968,20 @@ Unpack
   }
 
 FilterClause
-  = "filter" _ "(" _ "where" boundary _ e:Expression _ ")" { return e; }
+  = "filter" _ "(" _ "where" __ e:Expression _ ")" { return e; }
   / "[" _ e:Expression _ "]" { return e; }
   ;
 
 OverClause
-  = "over" _ w:WindowDefn { return `over ${w}`; }
-  / "over" _ n:Name { return `over ${n}`; }
+  = "over" __ w:WindowDefn { return `over ${w}`; }
+  / "over" __ n:Name { return `over ${n}`; }
   ;
 
 WindowDefn
   = "("
       n:(_ !(("partition"/"order"/"range"/"rows"/"groups") boundary) n:Name { return n; })?
-      ps:(_ boundary "partition" __ "by" boundary _ e1:Expression es:(_ "," _ e:Expression { return e; })* { return [e1, ...es]; })?
-      os:(_ boundary "order" __ "by" boundary _ e1:OrderingTerm es:(_ "," _ e:OrderingTerm { return e; })* { return [e1, ...es]; })?
+      ps:(_ boundary "partition" __ "by" __ e1:Expression es:(_ "," _ e:Expression { return e; })* { return [e1, ...es]; })?
+      os:(_ boundary "order" __ "by" __ e1:OrderingTerm es:(_ "," _ e:OrderingTerm { return e; })* { return [e1, ...es]; })?
       f:(_ f:FrameSpec { return f; })?
       _ ")"
     {
@@ -2009,13 +2009,13 @@ OrderingTerm
   ;
 
 FrameSpec
-  = t:("range"/"rows"/"groups") boundary _
+  = t:("range"/"rows"/"groups") __
     r:(
-      "between" boundary _ b1:(
+      "between" __ b1:(
         "unbounded" __ "preceding" { return `unbounded preceding`; }
         / "current" __ "row" { return `current row`; }
         / e:Expression _ boundary pf:("preceding"/"following") { return `${e} ${pf}`; }
-      ) _ boundary "and" boundary _ b2:(
+      ) _ boundary "and" __ b2:(
         "unbounded" __ "following" { return `unbounded following`; }
         / "current" __ "row" { return `current row`; }
         / e:Expression _ boundary pf:("preceding"/"following") { return `${e} ${pf}`; }
@@ -2053,7 +2053,7 @@ FunctionCall
   = n:Name _ "(" _ rs:(
     ")" { return `)`; }
     / "*" _ ")" { return `*)`; }
-    / "distinct" boundary _ e:Expression _ ")" { return `distinct ${e})`; }
+    / "distinct" __ e:Expression _ ")" { return `distinct ${e})`; }
     / es:Expressions _ ")" { return `${es})`; }
   ) { return `${n}(${rs}`; }
   ;
@@ -2201,7 +2201,7 @@ boundary "boundary" = & {
   return re.test(input);
 }
 
-__ = _ boundary
+__ = boundary _
 
 JSONValue
   = JSONObject

@@ -79,10 +79,10 @@ test('select table', t => {
     query: 'select mji.*, mjsm.* from mji join mjsm where (mji.MJ文字図形名 = mjsm.MJ文字図形名) limit 10'
   });
   t.deepEqual(parser.parse(`
-    with t(x) as (values {1}; {2}; {3})
+    with t(x) as (values [1, 2, 3])
     with u as (t{x, y: x*2})
     u
-    [{x, y} in values {1, 2}; {3, 6} and {x, y} > values {2, 2}]
+    [{x, y} in values [{1, 2}, {3, 6}] and {x, y} > values [{2, 2}]]
   `), {
     type: 'select',
     query: 'with t(x) as (values (1), (2), (3)), u as (select x, x * 2 as y from t) select * from u where ((x, y) in (values (1, 2), (3, 6)) and (x, y) > (values (2, 2)))'
@@ -94,7 +94,7 @@ test('select table', t => {
   t.deepEqual(parser.parse(`r group by r.a select x: max(r.b)`), { type: 'select', query: 'select max(r.b) as x from r group by (r.a)' });
   t.deepEqual(parser.parse(`{x and exists t and y}`), { type: 'select', query: 'select x and exists (select * from t) and y' });
   t.deepEqual(parser.parse(`{x and not exists t[p] and y}`), { type: 'select', query: 'select x and not exists (select * from t where (p)) and y' });
-  t.deepEqual(parser.parse(`explain query plan t`), { type: 'select', query: 'explain query plan select * from t' });
+  t.deepEqual(parser.parse(`explain query plan t`), { type: 'select', query: 'explain query plan select * from t', format: 'eqp' });
   t.deepEqual(parser.parse(`explain t`), { type: 'select', query: 'explain select * from t' });
   t.deepEqual(parser.parse(`t: {x: 'a b c'} join string_split(x, ' ')`), { type: 'select', query: `select * from (select 'a b c' as x) as t join string_split(x, ' ')` });
   t.deepEqual(parser.parse(`from mji limit 10`), { type: 'select', query: `select * from mji limit 10` });
@@ -151,6 +151,7 @@ test('load table', t => {
       def: null,
       options: {},
       table: 'p',
+      ifNotExists: null,
     },
   });
   t.deepEqual(parser.parse(`load table p(x integer, y integer, z as (x + y)) from \`\`\`csv\nx,y\n1,2\n3,4\n,6\n7,\n\`\`\` header`), {
@@ -163,6 +164,7 @@ test('load table', t => {
       def: 'x integer, y integer, z as (x + y)',
       options: { header: true },
       table: 'p',
+      ifNotExists: null,
     },
   });
 })
