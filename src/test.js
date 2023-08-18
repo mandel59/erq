@@ -170,9 +170,9 @@ test('load table', t => {
 })
 
 test('vega lite', t => {
-  t.deepEqual(parser.parse(`unihan_kTotalStrokes {s: cast(regexp_substr(value, '\d+') as integer) => t: count(*)} output vega lite with mark bar, encoding {x: s o, y: t q}`), {
+  t.deepEqual(parser.parse(`unihan_kTotalStrokes {s: cast(regexp_substr(value, '\\d+') as integer) => t: count(*)} output vega lite with mark bar, encoding {x: s o, y: t q}`), {
     type: 'select',
-    query: 'select cast(regexp_substr(value, \'d+\') as integer) as s, count(*) as t from unihan_kTotalStrokes group by (cast(regexp_substr(value, \'d+\') as integer))',
+    query: 'select cast(regexp_substr(value, \'\\d+\') as integer) as s, count(*) as t from unihan_kTotalStrokes group by (cast(regexp_substr(value, \'\\d+\') as integer))',
     format: {
       format: null,
       type: 'vega',
