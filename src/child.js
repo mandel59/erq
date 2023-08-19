@@ -8,47 +8,19 @@ import iconv from "iconv-lite";
 import { NodeVM } from "vm2";
 import vega from "vega"
 import vegaLite from "vega-lite"
-import { uncons } from "../src/async-iter.js";
 
-import { options, DEBUG } from "../src/options.js";
+import { uncons } from "./async-iter.js";
+import { options, DEBUG } from "./options.js";
+import {
+  reFQNamePart,
+  reParseColumnName,
+  quoteSQLName,
+  unquoteSQLName,
+} from "./parser-utils.js";
 
 export async function child() {
   if (DEBUG) {
     console.error("child process start");
-  }
-
-  const patName = "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}][\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}]*"
-  const patQuot = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*`"
-  const patPart = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*"
-  const reName = new RegExp(`^${patName}$`, "u");
-  const reFQNamePart = new RegExp(`(?:(?:${patName}|${patQuot})\\.){0,2}(?:${patName}|${patQuot}|${patPart})?$`, "u");
-  /**
-   * Parse dot-separated name like `t.c` or `s.t.c`.
-   * Used as `m = reParseColumnName.exec(q);`.
-   * `m[1]`: schema or table name.
-   * `m[2]`: table name if schema name is specified.
-   * `m[3]`: column name.
-   */
-  const reParseColumnName = new RegExp(`^(${patName}|${patQuot})(?:\\.(${patName}|${patQuot}))?\\.(${patName}|${patQuot}|${patPart})?$`, "u");
-
-  function quoteSQLName(name) {
-    if (!reName.test(name)) {
-      if (name.includes("\u0000")) {
-        throw new RangeError("SQL name cannot contain NUL character");
-      }
-      return `\`${name.replace(/`/g, "``")}\``;
-    }
-    return name;
-  }
-
-  function unquoteSQLName(quot) {
-    if (quot[0] === "`") {
-      if (quot[quot.length - 1] === "`") {
-        return quot.substring(1, quot.length - 1).replace(/``/g, "`");
-      }
-      return quot.substring(1).replace(/``/g, "`");
-    }
-    return quot;
   }
 
   function resolveTable(table, env) {
