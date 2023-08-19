@@ -1,0 +1,16 @@
+table graph(x, y) = values [
+  {1, 2},
+  {2, 3},
+  {2, 4},
+  {3, 5},
+  {4, 5},
+  {4, 6}
+];;
+
+-- Transitive closure of a graph
+view closure(x, y) =
+  graph{x, y};
+  a: closure join b: graph on a.y = b.x { a.x, b.y }
+  distinct;;
+
+closure order by x, y;;

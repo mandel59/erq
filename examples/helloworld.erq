@@ -1,0 +1,2 @@
+table greeting(message) = values ['Hello, World'];;
+greeting;;

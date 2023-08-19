@@ -1,0 +1,5 @@
+range(0, 12, 0.05) { x: value, y: sin(value) }
+output vega lite with
+  mark line,
+  encoding { x: x q, y: y q },
+  options { width: 400, height: 300 };;
