@@ -1,7 +1,7 @@
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import process, { stdin, stderr } from "node:process";
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import readline from "node:readline";
 
 import { options, DEBUG } from "./options.js";
@@ -122,7 +122,7 @@ export async function parent() {
   }
 
   if (options.init) {
-    input = readFileSync(options.init, "utf-8");
+    input = await readFile(options.init, "utf-8");
     input += "\n;;";
     while (input !== "") {
       const sqls = parseErq();
