@@ -1481,7 +1481,7 @@ TableUnion
       / fs:(_ fs:Filters { return ["filters", fs]; })
     )*
   {
-    const [t1, ...ts] = tss;
+    let [t1, ...ts] = tss;
     const union = distinct ? " union " : " union all "
     let sql;
     t1.distinct(distinct);
