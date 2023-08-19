@@ -7,7 +7,7 @@ import readline from "node:readline";
 import { options, DEBUG } from "./options.js";
 import { loadHistory, saveHistory } from "./history.js";
 import { isTTY } from "./io.js";
-import parser from "../dist/erq.cjs";
+import * as parser from "../dist/erq.js";
 
 export async function parent() {
   if (DEBUG) {
