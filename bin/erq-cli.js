@@ -4,8 +4,6 @@ import { readFileSync, writeFileSync, readdirSync, readlinkSync, statSync, creat
 import { Readable } from "node:stream";
 import { resolve as pathResolve, basename, dirname } from "node:path"
 import readline from "node:readline";
-import commandLineArgs from "command-line-args";
-import commandLineUsage from "command-line-usage";
 import Database from "better-sqlite3";
 import { parse as parseCSV } from "csv-parse";
 import ndjson from "ndjson";
@@ -21,73 +19,11 @@ import { fileURLToPath } from "node:url";
 import parser from "../dist/erq.cjs";
 import { uncons } from "../src/async-iter.js";
 
+import { loadHistory, saveHistory } from "../src/history.js";
+import { isTTY } from "../src/io.js";
+import { options } from "../src/options.js";
+
 const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
-const ERQ_HISTORY = process.env["ERQ_HISTORY"];
-const isTTY = stdin.isTTY && stderr.isTTY;
-
-function loadHistory() {
-  if (isTTY && ERQ_HISTORY) {
-    try {
-      return readFileSync(ERQ_HISTORY, "utf-8").split("\n").filter(line => line);
-    } catch {
-      // ignore
-    }
-  }
-  return [];
-}
-
-function saveHistory(history) {
-  if (ERQ_HISTORY) {
-    try {
-      writeFileSync(ERQ_HISTORY, history.join("\n"), "utf-8");
-    } catch {
-      // ignore
-    }
-  }
-}
-
-const optionList = [
-  { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
-  { name: 'version', alias: 'v', type: Boolean, description: 'show Version' },
-  { name: 'load', alias: 'l', typeLabel: '{underline path}', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
-  { name: 'init', alias: 'i', type: String, typeLabel: '{underline path}', description: 'path to initialize Erq file' },
-  { name: 'format', alias: 'f', type: String, typeLabel: '{underline mode}', description: 'output format' },
-  { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
-];
-
-function showUsage() {
-  const sections = [
-    {
-      header: 'Erq CLI',
-      content: 'Erq-powered SQLite client',
-    },
-    {
-      header: 'Options',
-      optionList
-    }
-  ];
-  const usage = commandLineUsage(sections);
-  console.error(usage);
-}
-
-function showVersion() {
-  const packagejson = readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf-8");
-  const erqVersion = JSON.parse(packagejson).version;
-  const db = new Database(":memory:");
-  const sqliteVersion = db.prepare("select sqlite_version()").pluck().get();
-  console.log("Erq CLI version %s", erqVersion);
-  console.log("SQLite version %s", sqliteVersion);
-}
-
-const options = commandLineArgs(optionList);
-if (options.help) {
-  showUsage();
-  process.exit();
-}
-if (options.version) {
-  showVersion();
-  process.exit();
-}
 
 if (DEBUG) {
   console.error("%s process start", process.connected ? "child" : "parent");
@@ -101,8 +37,8 @@ if (process.connected) {
 
 /**
  * @param {(name: string, options: Database.RegistrationOptions, func: (...params: any[]) => any) => void} defineFunction 
- * @param {(name: string, options: BetterSqlite3.VirtualTableOptions) => void} defineTable 
- * @param {(name: string, options: BetterSqlite3.AggregateOptions) => void} defineAggregate
+ * @param {(name: string, options: Arg2<import("better-sqlite3").Database["table"]>) => void} defineTable 
+ * @param {(name: string, options: Arg2<import("better-sqlite3").Database["aggregate"]>) => void} defineAggregate
  */
 function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
   defineTable("string_split", {
@@ -154,7 +90,7 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
 
   defineFunction("from_enum", { deterministic: true, varargs: true, safeIntegers: true }, function (value, ...enumDefs) {
     if (value == null) return null;
-    return enumDefs[BigInt(value) - 1n] ?? null;
+    return enumDefs[Number(BigInt(value) - 1n)] ?? null;
   });
 
   defineFunction("regexp", { deterministic: true }, function (pattern, string) {
@@ -197,11 +133,25 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
       /** @type {string | null} */ url,
       /** @type {string | null} */ referrer,
     ) {
+      /**
+       * @param {string} contentType 
+       * @returns {contentType is 'text/html' | 'application/xhtml+xml' | 'application/xml' | 'text/xml' | 'image/svg+xml'}
+       */
+      function isSupportedContentType(contentType) {
+        return contentType === "text/html"
+          || contentType === "application/xhtml+xml"
+          || contentType === "application/xml"
+          || contentType === "text/xml"
+          || contentType === "image/svg+xml";
+      }
       if (xml == null) {
         return;
       }
       if (contentType == null) {
         contentType = "application/xml";
+      }
+      if (!isSupportedContentType(contentType)) {
+        throw new Error(`xml_tree(xml,contentType,url,referrer) unsupported content type ${contentType}`);
       }
       const { window } = new jsdom.JSDOM(xml, {
         contentType,
@@ -401,6 +351,12 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
     return buffer.toString("base64");
   })
 
+  /**
+   * The quotient of floored division.
+   * @param {bigint} a
+   * @param {bigint} b
+   * @returns {bigint}
+   */
   function bigintFlooredDivision(a, b) {
     // ECMAScript's / operator is defined by the quotient of truncated division.
     // This function defines the quotient of floored division.
@@ -522,8 +478,23 @@ function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
       if (o == null) {
         throw new Error(`topojson_feature(topology,object) object ${object} not found`);
       }
-      const fs = feature(t, o);
-      for (const f of fs.type === "Feature" ? [fs] : fs.features) {
+      /** @type {*} */
+      const f = feature(t, o);
+      /** @type {Array<import("geojson").Feature>} */
+      let fs;
+      /**
+       * @param {*} obj
+       * @returns {obj is import("geojson").FeatureCollection}
+       */
+      function isFeatureCollection(obj) {
+        return obj.type === "FeatureCollection";
+      }
+      if (isFeatureCollection(f)) {
+        fs = f.features;
+      } else {
+        fs = [f];
+      }
+      for (const f of fs) {
         if (!(typeof f.id === "number" || typeof f.id === "string" || f.id == null)) {
           throw new Error("topojson_feature(topology,object) feature.id must be a number or a string");
         }
@@ -625,7 +596,7 @@ async function parent() {
 
   // global states
 
-  /** @type {"read" | "eval"} */
+  /** @type {"read" | "eval" | "hang"} */
   let state = "read";
   let input = "";
 
@@ -720,6 +691,7 @@ async function parent() {
 
   function handleSigint() {
     if (state === "read") {
+      // @ts-ignore
       rl.clearLine(0);
       input = "";
       setPrompt();
@@ -856,7 +828,7 @@ function child() {
     if (table[0] === "@") {
       const n = env.get(table.slice(1));
       if (n == null) {
-        throw new Error(`variable ${v} not found`);
+        throw new Error(`variable ${table} not found`);
       }
       return quoteSQLName(n);
     }
@@ -894,7 +866,7 @@ function child() {
 
   function defineTable(
     /** @type {string} */ name,
-    /** @type {import("better-sqlite3").VirtualTableOptions} */ options
+    /** @type {Arg2<import("better-sqlite3").Database["table"]>} */ options
   ) {
     db.table(name, options);
   }
@@ -924,7 +896,7 @@ function child() {
   /**
    * @param {string} method 
    * @param {any[]} params 
-   * @returns {any}
+   * @returns {Promise<any>}
    */
   async function callIpcMethod(method, params) {
     const methodFunc = ipcExported.get(method);
@@ -936,37 +908,43 @@ function child() {
   }
 
   function getTables() {
-    /** @type {{schema: string, name: string, type: string, ncol: number, wr: 0 | 1, strict: 0 | 1}[]} */
-    const tables = db.prepare("pragma table_list").all();
+    const tables =
+      /** @type {{schema: string, name: string, type: string, ncol: number, wr: 0 | 1, strict: 0 | 1}[]} */
+      (db.prepare("pragma table_list").all());
     return tables;
   }
 
   function getAllModules() {
-    /** @type {string[]} */
-    const names = db.prepare("select name from pragma_module_list where name not glob 'pragma_*'").pluck().all();
+    const names =
+      /** @type {string[]} */
+      (db.prepare("select name from pragma_module_list where name not glob 'pragma_*'").pluck().all());
     return names;
   }
 
   function getAllFunctionNames() {
-    /** @type {string[]} */
-    const names = db.prepare("select name from pragma_function_list").pluck().all();
+    const names =
+      /** @type {string[]} */
+      (db.prepare("select name from pragma_function_list").pluck().all());
     return names.map(name => quoteSQLName(name));
   }
 
   function getColumns(schema, table) {
     if (schema == null) {
-      /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
-      const columns = db.prepare(`pragma table_xinfo(${quoteSQLName(table)})`).all();
+      const columns =
+        /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
+        (db.prepare(`pragma table_xinfo(${quoteSQLName(table)})`).all());
       return columns;
     }
-    /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
-    const columns = db.prepare(`pragma ${quoteSQLName(schema)}.table_xinfo(${quoteSQLName(table)})`).all();
+    const columns =
+      /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
+      (db.prepare(`pragma ${quoteSQLName(schema)}.table_xinfo(${quoteSQLName(table)})`).all());
     return columns;
   }
 
   function getPragmaNames() {
-    /** @type {{name: string}[]} */
-    const tables = db.prepare("pragma pragma_list").all();
+    const tables =
+      /** @type {{name: string}[]} */
+      (db.prepare("pragma pragma_list").all());
     return tables.map(({ name }) => name);
   }
 
@@ -1142,7 +1120,7 @@ function child() {
   ipcExport(runCLICommand);
 
   /**
-   * @param {{command: string, args: any[]}} param0
+   * @param {{command: string, args: any[] | any}} param0
    * @param {Map<string, any>} env
    * @returns {Promise<boolean>} ok status
    */
@@ -1392,6 +1370,7 @@ function child() {
       let ct = 0
       const insertMany = db.transaction(() => {
         for (let json of records) {
+          // @ts-ignore
           const obj = JSON.parse(json)
           if (Array.isArray(obj)) {
             for (const o of obj) {
@@ -1485,6 +1464,7 @@ function child() {
             // SQLite can't return JSON object directly, so it returns JSON string.
             // try parsing JSON string. if failed, ignore error and return the original value.
             // TODO: Add option to disable this behavior.
+            // @ts-ignore
             for (const key in record) {
               try {
                 const value = record[key];
@@ -1532,6 +1512,7 @@ function child() {
             continue;
           }
           const canvas = await vgView.toCanvas();
+          // @ts-ignore
           const png = canvas.toBuffer();
           const size = png.length;
           if (!outputStream.write(`\x1b]1337;File=inline=1;size=${size}:`)) {
@@ -1618,6 +1599,7 @@ function child() {
 
           for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
             i++;
+            // @ts-ignore
             await formatter(r, outputStream);
             if (i % 100 === 0) {
               await new Promise(resolve => setImmediate(() => resolve()));
@@ -1667,6 +1649,7 @@ function child() {
   process.on("message", async (message) => {
     if (message == null || typeof message !== "object") return;
     try {
+      // @ts-ignore
       const { method, params, id } = message;
       try {
         const result = await callIpcMethod(method, params);
