@@ -1,4 +1,5 @@
 node_modules
 *.db
 *.txt
+dist/erq.js
 dist/erq.cjs

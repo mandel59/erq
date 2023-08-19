@@ -1,6 +1,6 @@
 {{
 
-const mergeWith = require("lodash.mergewith");
+import mergeWith from "lodash.mergewith";
 
 function merge(x, ...args) {
   return mergeWith(x, ...args, (a, b) => {
