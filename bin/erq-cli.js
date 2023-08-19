@@ -37,8 +37,8 @@ if (process.connected) {
 
 /**
  * @param {(name: string, options: Database.RegistrationOptions, func: (...params: any[]) => any) => void} defineFunction 
- * @param {(name: string, options: Arg2<import("better-sqlite3").Database["table"]>) => void} defineTable 
- * @param {(name: string, options: Arg2<import("better-sqlite3").Database["aggregate"]>) => void} defineAggregate
+ * @param {(name: string, options: Parameters<import("better-sqlite3").Database["table"]>[1]) => void} defineTable 
+ * @param {(name: string, options: Parameters<import("better-sqlite3").Database["aggregate"]>[1]) => void} defineAggregate
  */
 function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
   defineTable("string_split", {
@@ -866,7 +866,7 @@ function child() {
 
   function defineTable(
     /** @type {string} */ name,
-    /** @type {Arg2<import("better-sqlite3").Database["table"]>} */ options
+    /** @type {Parameters<import("better-sqlite3").Database["table"]>[1]} */ options
   ) {
     db.table(name, options);
   }
