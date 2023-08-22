@@ -1,0 +1,15 @@
+with xaxis(x) as (range(-2.0, 1.0, 1/64.0))
+with yaxis(y) as (range(-1.5, 1.5, 1/64.0))
+with m(iter, cx, cy, x, y) as (
+  xaxis join yaxis { iter: 0, cx: x, cy: y, x: 0.0, y: 0.0 };
+  m[iter <= 30][x*x + y*y < 4.0]
+    { iter: iter + 1, cx: cx, cy: cy, x: x*x - y*y + cx, y: 2.0*x*y + cy }
+)
+with m2(cx, cy, iter) as (m { cx, cy => iter: max(iter) })
+m2 output vega lite with
+  mark square,
+  encoding {
+    x: cx q {scale:{nice:false}},
+    y: cy q {scale:{nice:false}},
+    color: iter q
+  };;
