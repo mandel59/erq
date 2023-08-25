@@ -1,9 +1,6 @@
 import test from "ava";
-import { readFileSync } from "node:fs";
-import peggy from "peggy";
 
-const syntax = readFileSync(new URL("erq.pegjs", import.meta.url).pathname, "utf-8")
-const parser = peggy.generate(syntax);
+import * as parser from "../dist/erq.js";
 
 test('select table', t => {
   t.deepEqual(parser.parse(`employees`), { type: 'select', query: 'select * from employees' });
