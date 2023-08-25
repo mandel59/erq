@@ -2,11 +2,6 @@ import process, { stdout } from "node:process";
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import Database from "better-sqlite3";
-import { parse as parseCSV } from "csv-parse";
-import ndjson from "ndjson";
-import iconv from "iconv-lite";
-import vega from "vega"
-import vegaLite from "vega-lite"
 
 import { uncons } from "./async-iter.js";
 import { options, DEBUG } from "./options.js";
@@ -407,6 +402,7 @@ export async function child() {
         content = db.prepare(args.sql).pluck().get();
       }
       if (format === "csv") {
+        const [iconv, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
         const stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
         const csv = stream.pipe(parseCSV({
           bom: true,
@@ -471,6 +467,7 @@ export async function child() {
         });
         return true;
       } else if (format === "ndjson") {
+        const [iconv, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
         let stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
         let records = stream.pipe(ndjson.parse());
         let header, definition;
@@ -702,6 +699,10 @@ export async function child() {
             }
             continue;
           }
+          const [vega, vegaLite] = await Promise.all([
+            import("vega"),
+            import("vega-lite"),
+          ]);
           const vgSpec = vegaLite.compile(spec).spec;
           const vgView = new vega.View(vega.parse(vgSpec), {
             logger: vega.logger(vega.Warn, 'error'),
