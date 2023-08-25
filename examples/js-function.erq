@@ -1,0 +1,5 @@
+create function add2(x, y) as ```js
+  return x + y;
+```;;
+
+{ add2(1, 2), add2('x', 'y') };;

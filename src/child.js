@@ -5,7 +5,6 @@ import Database from "better-sqlite3";
 import { parse as parseCSV } from "csv-parse";
 import ndjson from "ndjson";
 import iconv from "iconv-lite";
-import { NodeVM } from "vm2";
 import vega from "vega"
 import vegaLite from "vega-lite"
 
@@ -17,6 +16,7 @@ import {
   quoteSQLName,
   unquoteSQLName,
 } from "./parser-utils.js";
+import { getJSRuntime } from "./js-runtime.js";
 
 export async function child() {
   if (DEBUG) {
@@ -527,17 +527,11 @@ export async function child() {
     else if (command === "meta-create-function") {
       const [fn, ps, { rawblock: [tag, body] }] = args;
       if (tag === "js" || tag === "javascript") {
-        const vm = new NodeVM({
-          console: 'inherit',
-          sandbox: {},
-          require: {
-            external: true,
-            builtin: [],
-          },
-          strict: true,
+        const rt = await getJSRuntime();
+        rt.setFunction(fn, ps, body);
+        db.function(fn, { varargs: true }, (...args) => {
+          return rt.callFunction(fn, ...args);
         });
-        const f = vm.run(`module.exports = function(${ps.join(",")}) {\n${body}\n};`);
-        db.function(fn, f);
         console.error("ok");
         return true;
       }
