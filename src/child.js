@@ -402,7 +402,7 @@ export async function child() {
         content = db.prepare(args.sql).pluck().get();
       }
       if (format === "csv") {
-        const [iconv, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
+        const [{ default: iconv }, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
         const stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
         const csv = stream.pipe(parseCSV({
           bom: true,
@@ -467,7 +467,7 @@ export async function child() {
         });
         return true;
       } else if (format === "ndjson") {
-        const [iconv, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
+        const [{ default: iconv }, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
         let stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
         let records = stream.pipe(ndjson.parse());
         let header, definition;
