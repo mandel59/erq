@@ -1,0 +1,6 @@
+{"key":1,"value":["hello","world"],"type":"array"}
+{"key":2,"value":{"a":1,"b":2,"c":3},"type":"object"}
+{"key":3,"value":"ndjson","type":"string"}
+{"key":4,"value":true,"type":"boolean"}
+{"key":5,"value":null,"type":"null"}
+{"key":6,"value":42,"type":"number"}

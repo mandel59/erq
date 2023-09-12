@@ -1,0 +1,10 @@
+-- load table from csv file
+-- all column types are string
+load table csv
+  from 'examples/data/data1.csv' csv, header;;
+csv;;
+
+-- specify column types
+load table csv2(col1 real, col2 real, col3 real)
+  from 'examples/data/data1.csv' csv, header;;
+csv2;;

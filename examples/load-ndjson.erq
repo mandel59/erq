@@ -1,0 +1,4 @@
+-- load table from ndjson file
+load table ndjson
+  from 'examples/data/data2.ndjson' ndjson;;
+ndjson{*,typeof(value)};;
