@@ -279,8 +279,8 @@ export async function child() {
     return header.map(n => {
       const v = json[n];
       if (v == null) return null;
-      if (v === true) return 1;
-      if (v === false) return 0;
+      if (v === true) return 1n;
+      if (v === false) return 0n;
       if (typeof v === "object") return JSON.stringify(v);
       return v;
     })
