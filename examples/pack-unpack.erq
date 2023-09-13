@@ -1,0 +1,26 @@
+table j(value) = values [
+  '{"a":1,"b":2,"c":3}',
+  '{"a":4,"b":5,"c":6}'
+];;
+
+table t = j
+  -- unpack the json value
+  { input: value, unpack value { a, b, c } }
+  -- then add the values
+  { *, sum: a + b + c };;
+
+-- show the table
+t;;
+
+-- pack values back into json
+t { json: pack { a, b, c, sum } };;
+
+-- output ndjson (newline delimited json)
+t {
+  line: pack {
+    -- use json function if the input is a json value
+    input: json(input),
+    args: [a, b, c],
+    sum
+  } || E'\n'
+} output raw;;
