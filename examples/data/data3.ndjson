@@ -1,0 +1,4 @@
+{"a":"hello","b":"hello","c":"hello","d":"hello","e":"hello","json":"\"hello\""}
+{"a":"123","b":"123","c":"123","d":"123","e":"123","json":"\"123\""}
+{"a":42,"b":42,"c":42,"d":42,"e":42,"json":"42"}
+{"a":true,"b":true,"c":true,"d":true,"e":true,"json":"true"}

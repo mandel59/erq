@@ -1,4 +1,9 @@
 -- load table from ndjson file
-load table ndjson
+load table data2
   from 'examples/data/data2.ndjson' ndjson;;
-ndjson{*,typeof(value)};;
+data2{*,typeof(value)};;
+
+-- specify columns and type affinity
+load table data3 (json, a text, b numeric, c integer, d real, e blob)
+  from 'examples/data/data3.ndjson' ndjson;;
+data3;;
