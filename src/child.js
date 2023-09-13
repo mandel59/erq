@@ -1,5 +1,5 @@
 import process, { stdout } from "node:process";
-import { createReadStream } from "node:fs";
+import { open } from "node:fs/promises";
 import { Readable } from "node:stream";
 import Database from "better-sqlite3";
 
@@ -403,7 +403,7 @@ export async function child() {
       }
       if (format === "csv") {
         const [{ default: iconv }, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
-        const stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+        const stream = path != null ? (await open(path)).createReadStream().pipe(iconv.decodeStream(encoding)) : Readable.from(content);
         const csv = stream.pipe(parseCSV({
           bom: true,
           delimiter,
@@ -468,53 +468,58 @@ export async function child() {
         return true;
       } else if (format === "ndjson") {
         const [{ default: iconv }, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
-        let stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
-        let records = stream.pipe(ndjson.parse());
-        let header, definition;
-        if (def) {
-          header = columnNames;
-          definition = def;
-        } else {
-          // sniff column names
-          const s = new Set();
-          let i = 0;
-          for await (const record of records) {
-            if (record == null || typeof record !== "object") {
-              s.add("value");
-            }
-            for (const key of Object.keys(record)) {
-              s.add(key);
-            }
-            i++;
-            if (i >= sniff_size) {
-              break;
-            }
-          }
-          header = Array.from(s);
-          definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
-          stream = path != null ? createReadStream(path).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
-          records = stream.pipe(ndjson.parse());
-        }
-        await asyncTransaction(db, async () => {
-          const createTableSQL = `create table ${table} (${definition})`;
-          console.error(createTableSQL);
-          db.prepare(createTableSQL).run();
-          const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-          console.error(insertSQL);
-          const insert = db.prepare(insertSQL);
-          let i = 0;
-          const insertMany = async () => {
-            for await (let json of records) {
+        const fileHandle = path != null ? await open(path) : null;
+        try {
+          let stream = fileHandle != null ? fileHandle.createReadStream({ autoClose: false }).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+          let records = stream.pipe(ndjson.parse());
+          let header, definition;
+          if (def) {
+            header = columnNames;
+            definition = def;
+          } else {
+            // sniff column names
+            const s = new Set();
+            let i = 0;
+            for await (const record of records) {
+              if (record == null || typeof record !== "object") {
+                s.add("value");
+              }
+              for (const key of Object.keys(record)) {
+                s.add(key);
+              }
               i++;
-              insert.run(convertJsonToRecord(header, json))
+              if (i >= sniff_size) {
+                break;
+              }
             }
-          };
-          await insertMany();
-          const t1 = performance.now();
-          const t = t1 - t0;
-          const rows = (i === 1) ? "1 row" : `${i} rows`;
-          console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
-        });
+            header = Array.from(s);
+            definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+            stream = path != null ? fileHandle.createReadStream({ autoClose: false, start: 0 }).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+            records = stream.pipe(ndjson.parse());
+          }
+          await asyncTransaction(db, async () => {
+            const createTableSQL = `create table ${table} (${definition})`;
+            console.error(createTableSQL);
+            db.prepare(createTableSQL).run();
+            const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+            console.error(insertSQL);
+            const insert = db.prepare(insertSQL);
+            let i = 0;
+            const insertMany = async () => {
+              for await (let json of records) {
+                i++;
+                insert.run(convertJsonToRecord(header, json))
+              }
+            };
+            await insertMany();
+            const t1 = performance.now();
+            const t = t1 - t0;
+            const rows = (i === 1) ? "1 row" : `${i} rows`;
+            console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+          });
+        } finally {
+          fileHandle?.close();
+        }
         return true;
       } else {
         console.error("unknown content type: %s", contentType);
