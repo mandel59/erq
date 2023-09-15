@@ -3,6 +3,7 @@ import { resolve as pathResolve, basename, dirname } from "node:path";
 import jsdom from "jsdom";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { feature } from "topojson-client";
+import { geomToGeoJSON } from "./geo/geom-to-geojson.js";
 
 /**
  * @param {(name: string, options: import("better-sqlite3").RegistrationOptions, func: (...params: any[]) => any) => void} defineFunction 
@@ -474,6 +475,24 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
           JSON.stringify(f.geometry),
           f.bbox != null ? JSON.stringify(f.bbox) : null,
         ];
+      }
+    }
+  })
+
+  defineFunction("st_asgeojson", { deterministic: true }, function (geom) {
+    if (!Buffer.isBuffer(geom)) throw new TypeError("st_asgeojson(geom) geom must be a blob");
+    return JSON.stringify(geomToGeoJSON(geom));
+  });
+
+  defineTable("gpkg_wkb_feature", {
+    parameters: ["_geom"],
+    columns: ["type", "geometry", "bbox"],
+    rows: function* (geom) {
+      if (!Buffer.isBuffer(geom)) throw new TypeError("gpkg_wkb_feature(geom) geom must be a blob");
+      yield {
+        type: "Feature",
+        geometry: JSON.stringify(geomToGeoJSON(geom)),
+        bbox: null,
       }
     }
   })
