@@ -479,11 +479,6 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
     }
   })
 
-  defineFunction("st_asgeojson", { deterministic: true }, function (geom) {
-    if (!Buffer.isBuffer(geom)) throw new TypeError("st_asgeojson(geom) geom must be a blob");
-    return JSON.stringify(geomToGeoJSON(geom));
-  });
-
   defineTable("gpkg_wkb_feature", {
     parameters: ["_geom"],
     columns: ["type", "geometry", "bbox"],
