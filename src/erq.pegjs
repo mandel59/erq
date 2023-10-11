@@ -625,9 +625,14 @@ ColumnConstraintBody
   / "not" __ "null" boundary cc:ConflictClause? { return `not null${cc ?? ""}`; }
   / "unique" boundary cc:ConflictClause? { return `unique${cc ?? ""}`; }
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
-  / "default" __ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / SignedNumber) { return `default ${x}`; }
+  / "default" __ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / Current / SignedNumber) { return `default ${x}`; }
   / "collate" __ n:Name { return `collate ${n}`; }
   / "as" _ "(" _ e:Expression _ ")" x:(__ x:("stored" / "virtual") { return ` ${x}`; })? { return `as (${e})${x ?? ""}`; }
+
+Current
+  = "current_timestamp" boundary { return "current_timestamp"; }
+  / "current_time" boundary { return "current_time"; }
+  / "current_date" boundary { return "current_date"; }
 
 TableConstraint
   = name:("constraint" n:Name { return n; })? body:TableConstraintBody
