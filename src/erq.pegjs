@@ -1542,8 +1542,14 @@ FunctionCall
   = n:Name _ "(" _ rs:(
     ")" { return `)`; }
     / "*" _ ")" { return `*)`; }
-    / "distinct" __ e:Expression _ ")" { return `distinct ${e})`; }
-    / es:Expressions _ ")" { return `${es})`; }
+    / "distinct" __ es:Expressions oc:OrderClause? _ ")" {
+      if (oc == null) return `distinct ${es})`;
+      return `distinct ${es} order by ${oc.map(([v, dir]) => `${v} ${dir}`).join(", ")})`;
+    }
+    / es:Expressions oc:OrderClause? _ ")" {
+      if (oc == null) return `${es})`;
+      return `${es} order by ${oc.map(([v, dir]) => `${v} ${dir}`).join(", ")})`;
+    }
   ) { return `${n}(${rs}`; }
   ;
 
