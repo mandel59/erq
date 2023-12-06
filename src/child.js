@@ -64,6 +64,15 @@ export async function child() {
     });
   }
 
+  /** @type {[string, string][]} */
+  const globalVars = options.var.map((vv, i) => {
+    const m = vv.match(/^([_A-Za-z\u0100-\uffff][_A-Za-z0-9\u0100-\uffff]*)=([\s\S]*)$/)
+    if (!m) {
+      throw new Error(`Unexpected variable format at #${i + 1}`);
+    }
+    return [m[1], m[2]];
+  });
+
   const dbpath = options.db ?? ":memory:";
   const db = new Database(dbpath);
   console.error("Connected to %s", dbpath);
@@ -604,7 +613,7 @@ export async function child() {
     }
   }
 
-  async function runSqls(statements, env = new Map()) {
+  async function runSqls(statements, env = new Map(globalVars)) {
     try {
       for (const statement of statements) {
         if (statement.type === "command") {
