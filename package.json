@@ -5,6 +5,9 @@
   "repository": "mandel59/erq",
   "type": "module",
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/command-line-args": "^5.2.3",
+    "@types/command-line-usage": "^5.0.4",
     "@types/node": "^18.0.6",
     "ava": "^4.3.1"
   },
