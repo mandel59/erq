@@ -646,6 +646,7 @@ export async function child() {
           console.error(sourceSql);
           const t0 = performance.now();
           const stmt = db.prepare(sourceSql);
+          stmt.safeIntegers(true);
           const env2 = new Map(env.entries());
           const t1 = performance.now();
           const records = stmt.all(Object.fromEntries(env.entries()));
