@@ -125,8 +125,8 @@ FormatClause
     / "array" boundary { return { format: "dense" }; }
     / "object" boundary { return { format: "sparse" }; }
     / "raw" boundary { return { format: "raw" }; }
-    / "csv" opts:CsvOptions? { return { format: "csv", ...opts }; }
-    / "csv" boundary { return { format: "csv" }; }
+    / "csv" opts:CsvOptions? { return { format: "csv", formatOptions: { ...opts } }; }
+    / "tsv" opts:CsvOptions? { return { format: "csv", formatOptions: { delimiter: '\t', quote: '', ...opts } }; }
     / Vega
   ) { return f; }
 
@@ -139,7 +139,7 @@ CsvOptions
     / "no" __ "quote" boundary { return { quote: '' }; }
     / "escape" __ s:ParsedStringLiteral { return { escape: s }; }
     / "encoding" __ s:ParsedStringLiteral { return { encoding: s }; }
-  )|1..,_ "," _| { return { formatOptions: Object.assign({}, ...opts) }; }
+  )|1..,_ "," _| { return Object.assign({}, ...opts); }
 
 DestinationClause
   = _ "to" __ d:(
