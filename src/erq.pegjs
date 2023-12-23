@@ -126,7 +126,6 @@ FormatClause
     / "object" boundary { return { format: "sparse" }; }
     / "raw" boundary { return { format: "raw" }; }
     / "csv" opts:CsvOptions? { return { format: "csv", formatOptions: { ...opts } }; }
-    / "tsv" opts:CsvOptions? { return { format: "csv", formatOptions: { delimiter: '\t', quote: '', ...opts } }; }
     / Vega
   ) { return f; }
 
