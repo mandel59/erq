@@ -271,6 +271,10 @@ export async function child() {
     sigint = true;
   }
   ipcExport(interrupt);
+  async function resetSigint() {
+    sigint = false;
+  }
+  ipcExport(resetSigint);
 
   // global state
 

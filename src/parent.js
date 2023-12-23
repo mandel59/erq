@@ -252,6 +252,7 @@ export async function parent() {
         }
       } finally {
         state = "read";
+        await ipcCall("resetSigint", []);
         setPrompt();
         if (isTTY) {
           rl.prompt();
