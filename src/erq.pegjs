@@ -134,6 +134,10 @@ CsvOptions
   = __ ("with" __)? opts:(
     "header" boundary { return { header: true }; }
     / "no" __ "header" boundary { return { header: false }; }
+    / "delimiter" __ s:ParsedStringLiteral { return { delimiter: s }; }
+    / "quote" __ s:ParsedStringLiteral { return { quote: s }; }
+    / "no" __ "quote" boundary { return { quote: '' }; }
+    / "escape" __ s:ParsedStringLiteral { return { escape: s }; }
     / "encoding" __ s:ParsedStringLiteral { return { encoding: s }; }
   )|1..,_ "," _| { return { formatOptions: Object.assign({}, ...opts) }; }
 
