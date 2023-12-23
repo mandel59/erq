@@ -829,7 +829,7 @@ export async function child() {
               }
             }
             if (format === "csv") {
-              const delimiter = formatOptions.delimiter || ",";
+              const delimiter = formatOptions.delimiter ?? ",";
               const quote = formatOptions.quote;
               const escape = formatOptions.escape;
               const escapeCsvValue = getEscapeCsvValue(quote, escape);
