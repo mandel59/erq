@@ -1644,7 +1644,8 @@ SQLStringLiteral
   = $("'" ("''" / [^'\u0000])* "'")+
 
 EscapedString
-  = "E'" s:EscapedStringBody "'" {
+  = "E''" { return "''"; } // printf('') returns null. this is a workaround.
+  / "E'" s:EscapedStringBody "'" {
     let fs = "";
     let args = "";
     for (const [f, ...a] of s) {
