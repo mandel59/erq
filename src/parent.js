@@ -176,6 +176,7 @@ export async function parent() {
   const rl = readline.createInterface({
     input: stdin,
     output: stderr,
+    terminal: isTTY,
     completer: (line, callback) => {
       ipcCall("completer", [line]).then(value => callback(null, value));
     },
@@ -219,7 +220,7 @@ export async function parent() {
     process.once("SIGCONT", () => {
       child.kill("SIGCONT");
       stdin.setRawMode(true);
-      if (state === "read" && isTTY) {
+      if (state === "read") {
         // resume the stream
         rl.prompt();
       }
@@ -251,10 +252,10 @@ export async function parent() {
         }
       } finally {
         state = "read";
-      }
-      setPrompt();
-      if (isTTY) {
-        rl.prompt();
+        setPrompt();
+        if (isTTY) {
+          rl.prompt();
+        }
       }
     }
   });
