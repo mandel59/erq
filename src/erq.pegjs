@@ -115,7 +115,7 @@ SetOutputFormat
   ) { return f; }
 
 FormattingClause
-  = _ "output" d:DestinationClause f:FormatClause { return { ...f, ...d }; }
+  = _ "output" d:DestinationClause f:FormatClause? { return { ...f, ...d }; }
   / _ "output" f:FormatClause d:DestinationClause? { return { ...f, ...d }; }
 
 FormatClause
