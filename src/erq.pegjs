@@ -134,6 +134,7 @@ CsvOptions
   = __ ("with" __)? opts:(
     "header" boundary { return { header: true }; }
     / "no" __ "header" boundary { return { header: false }; }
+    / "encoding" __ s:ParsedStringLiteral { return { encoding: s }; }
   )|1..,_ "," _| { return { formatOptions: Object.assign({}, ...opts) }; }
 
 DestinationClause

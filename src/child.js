@@ -668,7 +668,7 @@ export async function child() {
           query: sourceSql,
           returning,
           format = outputFormat,
-          formatOptions,
+          formatOptions = {},
           dest = defaultDestination,
         } = statement;
         if (sigint) {
@@ -778,21 +778,16 @@ export async function child() {
           // stmt.safeIntegers(true);
           const columns = stmt.columns();
           const columnNames = columns.map(c => c.name);
-          if (format !== "eqp") {
-            console.error(JSON.stringify(columnNames));
-          }
-          if (format === "eqp") {
-            console.log("* QUERY PLAN")
-          }
           let interrupted = false;
           let i = 0;
 
           /**
            * @param {string} format
+           * @param {any} formatOptions
            * @param {NodeJS.WritableStream} outputStream
            * @returns {(r: any[]) => Promise<void>}
            */
-          const createFormatter = (format, outputStream) => {
+          const createFormatter = (format, formatOptions, outputStream) => {
             if (format === "sparse") return async (r) => {
               const kvs = r.map((value, j) => {
                 const k = columnNames[j];
@@ -827,19 +822,21 @@ export async function child() {
                 }
               }
             }
-            if (format === "csv") return async (r) => {
-              for (let i = 0; i < r.length; i++) {
-                if (i > 0) {
-                  if (!outputStream.write(",")) {
+            if (format === "csv") {
+              return async (r) => {
+                for (let i = 0; i < r.length; i++) {
+                  if (i > 0) {
+                    if (!outputStream.write(",")) {
+                      await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                    }
+                  }
+                  if (!outputStream.write(escapeCsvValue(r[i]))) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
                 }
-                if (!outputStream.write(escapeCsvValue(r[i]))) {
+                if (!outputStream.write("\n")) {
                   await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
-              }
-              if (!outputStream.write("\n")) {
-                await new Promise(resolve => outputStream.once("drain", () => resolve()));
               }
             }
             return async (r) => {
@@ -859,14 +856,24 @@ export async function child() {
             }
           }
 
-          const { outputStream, closeOutputStream } = evalDestination(dest);
-          const formatter = createFormatter(format, outputStream);
+          let { outputStream, closeOutputStream } = evalDestination(dest);
+          if (formatOptions.encoding) {
+            const { default: iconv } = await import("iconv-lite");
+            const encoder = iconv.encodeStream(formatOptions.encoding);
+            encoder.pipe(outputStream);
+            outputStream = encoder;
+          }
+          const formatter = createFormatter(format, formatOptions, outputStream);
           try {
-            if (format === "csv" && formatOptions?.header) {
+            if (format === "eqp") {
+              console.log("* QUERY PLAN")
+            } else if (format === "csv" && formatOptions.header) {
               const s = columnNames.map(escapeCsvValue).join(",");
               if (!outputStream.write(s + "\n")) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
               }
+            } else {
+              console.error(JSON.stringify(columnNames));
             }
             for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
               i++;
