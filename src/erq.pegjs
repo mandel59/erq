@@ -1529,6 +1529,7 @@ FrameSpec
 
 WindowFunctionCall
   = e:FilterClause _ o:OverClause _ f:FunctionCall { return `${f} filter (where ${e}) ${o}`; }
+  / o:OverClause _ f:FilteredFunctionCall { return `${f} ${o}`; }
   / o:OverClause _ f:FunctionCall { return `${f} ${o}`; }
 
 FilteredFunctionCall
