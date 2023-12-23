@@ -85,7 +85,7 @@ Variable
 
 BlockStatement
   = s:Statement { return [s]; }
-  / "(" ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
+  / "(" _ ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
 
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
