@@ -12,6 +12,8 @@ import {
   unquoteSQLName,
 } from "./parser-utils.js";
 import { getJSRuntime } from "./js-runtime.js";
+import { evalDestination } from "./eval-utils.js";
+import { escapeCsvValue } from "./csv-utils.js";
 
 export async function child() {
   if (DEBUG) {
@@ -274,7 +276,7 @@ export async function child() {
 
   /** @type {"dense" | "sparse"} */
   let outputFormat = "dense";
-  let outputStream = stdout;
+  let defaultDestination = { type: "stdout" };
 
   /**
    * 
@@ -666,6 +668,8 @@ export async function child() {
           query: sourceSql,
           returning,
           format = outputFormat,
+          formatOptions,
+          dest = defaultDestination,
         } = statement;
         if (sigint) {
           break;
@@ -705,11 +709,19 @@ export async function child() {
           console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
           const spec = { ...format.view, data: { values } };
           if (format.format === "spec") {
-            if (!outputStream.write(JSON.stringify(spec))) {
-              await new Promise(resolve => outputStream.once("drain", () => resolve()));
-            }
-            if (!outputStream.write("\n")) {
-              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            const { outputStream, closeOutputStream } = evalDestination(dest);
+            try {
+              if (!outputStream.write(JSON.stringify(spec))) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              if (!outputStream.write("\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+
+            } finally {
+              if (closeOutputStream) {
+                closeOutputStream();
+              }
             }
             continue;
           }
@@ -724,11 +736,18 @@ export async function child() {
           }).finalize();
           if (format.format === "svg") {
             const svg = await vgView.toSVG();
-            if (!outputStream.write(svg)) {
-              await new Promise(resolve => outputStream.once("drain", () => resolve()));
-            }
-            if (!outputStream.write("\n")) {
-              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            const { outputStream, closeOutputStream } = evalDestination(dest);
+            try {
+              if (!outputStream.write(svg)) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              if (!outputStream.write("\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+            } finally {
+              if (closeOutputStream) {
+                closeOutputStream();
+              }
             }
             continue;
           }
@@ -736,14 +755,21 @@ export async function child() {
           // @ts-ignore
           const png = canvas.toBuffer();
           const size = png.length;
-          if (!outputStream.write(`\x1b]1337;File=inline=1;size=${size}:`)) {
-            await new Promise(resolve => outputStream.once("drain", () => resolve()));
-          }
-          if (!outputStream.write(png.toString("base64"))) {
-            await new Promise(resolve => outputStream.once("drain", () => resolve()));
-          }
-          if (!outputStream.write('\x07\n')) {
-            await new Promise(resolve => outputStream.once("drain", () => resolve()));
+          const { outputStream, closeOutputStream } = evalDestination(dest);
+          try {
+            if (!outputStream.write(`\x1b]1337;File=inline=1;size=${size}:`)) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+            if (!outputStream.write(png.toString("base64"))) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+            if (!outputStream.write('\x07\n')) {
+              await new Promise(resolve => outputStream.once("drain", () => resolve()));
+            }
+          } finally {
+            if (closeOutputStream) {
+              closeOutputStream();
+            }
           }
           continue;
         }
@@ -762,10 +788,12 @@ export async function child() {
           let i = 0;
 
           /**
-           * @returns {(r: any[], outputStream: NodeJS.WriteStream) => Promise<void>}
+           * @param {string} format
+           * @param {NodeJS.WritableStream} outputStream
+           * @returns {(r: any[]) => Promise<void>}
            */
-          const createFormatter = (format) => {
-            if (format === "sparse") return async (r, outputStream) => {
+          const createFormatter = (format, outputStream) => {
+            if (format === "sparse") return async (r) => {
               const kvs = r.map((value, j) => {
                 const k = columnNames[j];
                 if (value != null && typeof value === "object") {
@@ -783,7 +811,7 @@ export async function child() {
               }
             }
             if (format === "eqp") return createEqpFormatter();
-            if (format === "raw") return async (r, outputStream) => {
+            if (format === "raw") return async (r) => {
               for (const v of r) {
                 if (v == null) {
                   continue;
@@ -799,7 +827,22 @@ export async function child() {
                 }
               }
             }
-            return async (r, outputStream) => {
+            if (format === "csv") return async (r) => {
+              for (let i = 0; i < r.length; i++) {
+                if (i > 0) {
+                  if (!outputStream.write(",")) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                }
+                if (!outputStream.write(escapeCsvValue(r[i]))) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                }
+              }
+              if (!outputStream.write("\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+            }
+            return async (r) => {
               // default dense format
               if (!outputStream.write(JSON.stringify(r.map(value => {
                 if (value != null && typeof value === "object") {
@@ -816,19 +859,31 @@ export async function child() {
             }
           }
 
-          const formatter = createFormatter(format);
-
-          for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
-            i++;
-            // @ts-ignore
-            await formatter(r, outputStream);
-            if (i % 100 === 0) {
-              await new Promise(resolve => setImmediate(() => resolve()));
+          const { outputStream, closeOutputStream } = evalDestination(dest);
+          const formatter = createFormatter(format, outputStream);
+          try {
+            if (format === "csv" && formatOptions?.header) {
+              const s = columnNames.map(escapeCsvValue).join(",");
+              if (!outputStream.write(s + "\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
             }
-            if (sigint) {
-              console.error("Interrupted");
-              interrupted = true;
-              break;
+            for (const r of stmt.iterate(Object.fromEntries(env.entries()))) {
+              i++;
+              // @ts-ignore
+              await formatter(r);
+              if (i % 100 === 0) {
+                await new Promise(resolve => setImmediate(() => resolve()));
+              }
+              if (sigint) {
+                console.error("Interrupted");
+                interrupted = true;
+                break;
+              }
+            }
+          } finally {
+            if (closeOutputStream) {
+              closeOutputStream();
             }
           }
 

@@ -103,7 +103,7 @@ Statement1
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
   / t:Table f:ForEachClause { return { type: "for", sourceTable: t, ...f }; }
-  / t:TriggerStatement f:FormattingClause? { return f ? { ...t, format: f } : t; }
+  / t:TriggerStatement f:FormattingClause? { return { ...t, ...f }; }
 
 SetOutputFormat
   = "set" __ "format" __ f:(
@@ -115,14 +115,33 @@ SetOutputFormat
   ) { return f; }
 
 FormattingClause
-  = _ "output" __ f:(
-    "dense" boundary { return "dense"; }
-    / "sparse" boundary { return "sparse"; }
-    / "array" boundary { return "dense"; }
-    / "object" boundary { return "sparse"; }
-    / "raw" boundary { return "raw"; }
+  = _ "output" d:DestinationClause f:FormatClause { return { ...f, ...d }; }
+  / _ "output" f:FormatClause d:DestinationClause? { return { ...f, ...d }; }
+
+FormatClause
+  = _ ("format" __)? f:(
+    "dense" boundary { return { format: "dense" }; }
+    / "sparse" boundary { return { format: "sparse" }; }
+    / "array" boundary { return { format: "dense" }; }
+    / "object" boundary { return { format: "sparse" }; }
+    / "raw" boundary { return { format: "raw" }; }
+    / "csv" opts:CsvOptions? { return { format: "csv", ...opts }; }
+    / "csv" boundary { return { format: "csv" }; }
     / Vega
   ) { return f; }
+
+CsvOptions
+  = __ ("with" __)? opts:(
+    "header" boundary { return { header: true }; }
+    / "no" __ "header" boundary { return { header: false }; }
+  )|1..,_ "," _| { return { formatOptions: Object.assign({}, ...opts) }; }
+
+DestinationClause
+  = _ "to" __ d:(
+    "stdout" boundary { return { type: "stdout" }; }
+    / "stderr" boundary { return { type: "stderr" }; }
+    / ("file" boundary _)? f:ParsedStringLiteral { return { type: "file", file: f }; }
+  ) { return { dest: d } ; }
 
 Vega
   = "vega" __ ("lite" __)? s:(s:("spec" / "svg") __ { return s; })? ("with" __)? v:VegaView {
