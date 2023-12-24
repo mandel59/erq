@@ -1,11 +1,25 @@
-range(0, 11) { p: value }
-join range(0, 6.28, 0.01) { p, t: value }
-  { p, t, x: sin(2.0 * t + 3.14 * p / 24.0), y: sin(3.0 * t) }
-  output vega lite with
-    mark circle,
-    encoding {
-      x: x q,
-      y: y q,
-      color: t q {scale:{scheme:"sinebow"},legend:null},
-      facet: p n {columns:4}
-    };;
+-- Lissajous curve
+table lissajous =
+  range(0, 11) { p: value }
+  join range(0, 6.28, 0.01) { p, t: value }
+  { p, t, x: sin(2.0 * t + 3.14 * p / 24.0), y: sin(3.0 * t) };;
+
+-- output to terminal using Inline Images Protocol
+lissajous output vega lite with
+  mark circle,
+  encoding {
+    x: x q,
+    y: y q,
+    color: t q {scale:{scheme:"sinebow"},legend:null},
+    facet: p n {columns:4}
+  };;
+
+-- output to PNG image
+lissajous output to 'examples/output/lissajous.png' format vega lite png with
+  mark circle,
+  encoding {
+    x: x q,
+    y: y q,
+    color: t q {scale:{scheme:"sinebow"},legend:null},
+    facet: p n {columns:4}
+  };;
