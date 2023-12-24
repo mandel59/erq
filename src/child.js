@@ -756,11 +756,16 @@ export async function child() {
             }
             continue;
           }
+          // render PNG image
           const canvas = await vgView.toCanvas();
           // @ts-ignore
           const png = canvas.toBuffer();
           const size = png.length;
           const { outputStream, closeOutputStream } = evalDestination(dest);
+          if (format.format === "png") {
+            outputStream.write(png);
+            continue;
+          }
           try {
             if (!outputStream.write(`\x1b]1337;File=inline=1;size=${size}:`)) {
               await new Promise(resolve => outputStream.once("drain", () => resolve()));

@@ -148,7 +148,7 @@ DestinationClause
   ) { return { dest: d } ; }
 
 Vega
-  = "vega" __ ("lite" __)? s:(s:("spec" / "svg") __ { return s; })? ("with" __)? v:VegaView {
+  = "vega" __ ("lite" __)? s:(s:("spec" / "svg" / "png" / "inline" (__ "image")? { return "inline"; }) __ { return s; })? ("with" __)? v:VegaView {
     return {
       "type": "vega",
       "view": v,
