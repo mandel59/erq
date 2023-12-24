@@ -259,7 +259,7 @@ export async function child() {
         }
       }
     } catch (error) {
-      // ignore errorsu   
+      // ignore error
       console.error(error);
     }
     return [[], q];
