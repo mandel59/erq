@@ -508,4 +508,18 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
     if (typeof encoding !== "string") throw new TypeError("iconv_encode(str,encoding) encoding must be a string");
     return iconv.encode(str, encoding);
   })
+
+  defineFunction("normalize", { deterministic: true }, function (str) {
+    if (str == null) return null;
+    if (typeof str !== "string") throw new TypeError("normalize(str,form) str must be a string");
+    return str.normalize();
+  })
+
+  defineFunction("normalize", { deterministic: true }, function (str, form) {
+    if (str == null) return null;
+    if (form == null) return null;
+    if (typeof str !== "string") throw new TypeError("normalize(str,form) str must be a string");
+    if (typeof form !== "string") throw new TypeError("normalize(str,form) form must be a string");
+    return str.normalize(form);
+  })
 }
