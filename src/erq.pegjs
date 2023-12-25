@@ -979,8 +979,19 @@ NameList
 ConcatenatedTables
   = Table1|1.., _ ";" _|
 
+ExceptTable
+  = _ "except" __ t:Table1 { return t; }
+
+IntersectTable
+  = _ "intersect" __ t:Table1 { return t; }
+
+ExceptIntersectTable
+  = t:ExceptTable { return ["except", t]; }
+  / t:IntersectTable { return ["intersect", t]; }
+
 TableUnion
   = tss:ConcatenatedTables
+    tex:ExceptIntersectTable*
     order:OrderClause?
     distinct:DistinctClause?
     limitOffset:LimitOffsetClause?
@@ -1001,9 +1012,19 @@ TableUnion
       if (order != null) {
         t1 = t1.orderBy(order);
       }
-      sql = t1.toSQL(true);
+      if (tex.length === 0) {
+        sql = t1.toSQL(true);
+      } else {
+        sql = t1.toSQL(false);
+        for (const [k, t] of tex) {
+          sql = `${sql} ${k} ${t.toSQL(false)}`;
+        }
+      }
     } else {
       sql = `${t1.toSQL(false)}${union}${ts.map(tb => tb.distinct(distinct).toSQL(false)).join(union)}`;
+      for (const [k, t] of tex) {
+        sql = `${sql} ${k} ${t.toSQL(false)}`;
+      }
       if (order) {
         sql += " order by ";
         let k = 0;
