@@ -12,9 +12,12 @@ for (const dir of dirs) {
   const files = readdirSync(`testcases/${dir}`);
   for (const file of files) {
     if (!file.endsWith(".erq")) continue;
+    const erqBaseName = basename(file, '.erq');
+    const outFile = files.find((f) => f.startsWith(`${erqBaseName}.out`));
+    if (!outFile) continue;
     test(`${dir}/${basename(file, '.erq')}`, async (t) => {
       const erqInput = createReadStream(`testcases/${dir}/${file}`);
-      const erqOutputExpected = await readFile(`testcases/${dir}/${basename(file, '.erq')}.out`);
+      const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`);
       const expected = { exitCode: 0, output: erqOutputExpected };
       const erqProcess = spawn("erq", [], {
         stdio: ["pipe", "pipe", "inherit"],

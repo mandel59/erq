@@ -1,0 +1,5 @@
+linear_space(0, 2 * pi(), 100) { x: value, y: sin(value) }
+  output vega lite png with
+    mark line,
+    encoding { x: x q {axis:null}, y: y q {axis:null} },
+    options { width: 100, height: 100 };;
