@@ -1,0 +1,15 @@
+{
+  "name": "erq-ci",
+  "version": "0.0.1",
+  "description": "CI tests for Erq CLI",
+  "type": "module",
+  "scripts": {
+    "erq": "erq",
+    "test": "node --test"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@mandel59/erq": "file:../mandel59-erq-0.0.1.tgz"
+  }
+}

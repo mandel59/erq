@@ -1,0 +1,2 @@
+table greeting(message) = values [E'Hello, World!\n'];;
+greeting output format raw;;
