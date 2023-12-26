@@ -12,6 +12,11 @@
     "LICENSE",
     "README.md"
   ],
+  "ava": {
+    "files": [
+      "tests/**"
+    ]
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/command-line-args": "^5.2.3",
