@@ -1,2 +1,2 @@
 load table data(id integer, name text, age integer) from 'data/names.csv' csv, header;;
-data output format csv with header;;
+data output format dense;;
