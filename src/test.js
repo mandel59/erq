@@ -91,8 +91,8 @@ test('select table', t => {
   t.deepEqual(parser.parse(`r group by r.a select x: max(r.b)`), { type: 'select', query: 'select max(r.b) as x from r group by (r.a)' });
   t.deepEqual(parser.parse(`{x and exists t and y}`), { type: 'select', query: 'select x and exists (select * from t) and y' });
   t.deepEqual(parser.parse(`{x and not exists t[p] and y}`), { type: 'select', query: 'select x and not exists (select * from t where (p)) and y' });
-  t.deepEqual(parser.parse(`explain query plan t`), { type: 'select', query: 'explain query plan select * from t', format: 'eqp' });
-  t.deepEqual(parser.parse(`explain t`), { type: 'select', query: 'explain select * from t' });
+  t.deepEqual(parser.parse(`explain query plan t`), { type: 'select', query: 'explain query plan select * from t', format: 'eqp', dest: undefined });
+  t.deepEqual(parser.parse(`explain t`), { type: 'select', query: 'explain select * from t', dest: undefined });
   t.deepEqual(parser.parse(`t: {x: 'a b c'} join string_split(x, ' ')`), { type: 'select', query: `select * from (select 'a b c' as x) as t join string_split(x, ' ')` });
   t.deepEqual(parser.parse(`from mji limit 10`), { type: 'select', query: `select * from mji limit 10` });
   t.deepEqual(parser.parse(`from mji_reading [MJ文字図形名 = from mji [対応するUCS = '𩸽'] {MJ文字図形名}]`), { type: 'select', query: `select * from mji_reading where (MJ文字図形名 = (select MJ文字図形名 from mji where (対応するUCS = '𩸽')))` });
