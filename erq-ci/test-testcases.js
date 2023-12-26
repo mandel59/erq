@@ -20,7 +20,7 @@ for (const dir of dirs) {
       const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`);
       const expected = { exitCode: 0, output: erqOutputExpected };
       const erqProcess = spawn("erq", [], {
-        stdio: ["pipe", "pipe", "inherit"],
+        stdio: ["pipe", "pipe", "ignore"],
         timeout: 10000,
       });
       erqInput.pipe(erqProcess.stdin);
