@@ -4,6 +4,14 @@
   "author": "Ryusei Yamaguchi",
   "repository": "mandel59/erq",
   "type": "module",
+  "files": [
+    "dist/**",
+    "src/**",
+    "bin/**",
+    "jsconfig.json",
+    "LICENSE",
+    "README.md"
+  ],
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/command-line-args": "^5.2.3",
