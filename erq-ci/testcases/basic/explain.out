@@ -1,0 +1,4 @@
+* QUERY PLAN
+   * SCAN t
+* QUERY PLAN
+   * SEARCH t USING INDEX tx (x=?)
