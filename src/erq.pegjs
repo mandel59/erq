@@ -761,7 +761,7 @@ Insert
     return `${withclause}insert into ${n}${a ?? ""} ${t}${up.join("")}`;
   }
   / ts:WithClause* n:TableName
-    a:(_ nl:ColumnNameList { return ` (${nl.join(", ")})` })?
+    a:(_ nl:(ColumnNameList / BraceColumnNameList) { return ` (${nl.join(", ")})` })?
     _ "<-" _ t:Table up:UpsertClause*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
@@ -972,6 +972,9 @@ WindowClause
 
 ColumnNameList
   = "(" _ ns:NameList _ ")" _ { return ns; }
+
+BraceColumnNameList
+  = "{" _ ns:NameList _ "}" _ { return ns; }
 
 NameList
   = an1:Name ans:(_ "," _ an:Name { return an; })* { return [an1, ...ans]; }
