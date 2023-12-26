@@ -11,7 +11,8 @@
     "@types/jsdom": "^21.1.6",
     "@types/node": "^18.0.6",
     "@types/topojson-client": "^3.1.4",
-    "ava": "^4.3.1"
+    "ava": "^4.3.1",
+    "c8": "^8.0.1"
   },
   "description": "Erq - Easy Relational Query Language",
   "license": "MIT",
@@ -19,7 +20,7 @@
     "erq": "bin/erq-cli.js"
   },
   "scripts": {
-    "test": "ava",
+    "test": "c8 ava",
     "prepare": "peggy -o dist/erq.js --format es --allowed-start-rules start,cli_readline src/erq.pegjs"
   },
   "dependencies": {
