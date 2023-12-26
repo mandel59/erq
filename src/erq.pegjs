@@ -35,8 +35,8 @@ CLICommand
 
 Statement
   = MetaStatement
-  / "explain" __ "query" __ "plan" __ s:Statement1 { return { type: "select", format: "eqp", query: `explain query plan ${s.query}` }; }
-  / "explain" __ s:Statement1 { return { type: "select", query: `explain ${s.query}` }; }
+  / "explain" __ "query" __ "plan" __ s:Statement1 { return { type: "select", format: "eqp", query: `explain query plan ${s.query}`, dest: s.dest }; }
+  / "explain" __ s:Statement1 { return { type: "select", query: `explain ${s.query}`, dest: s.dest }; }
   / IfStatement
   / ForStatement
   / Statement1

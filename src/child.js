@@ -819,8 +819,10 @@ export async function child() {
               }
             }
             if (format === "eqp") {
-              console.log("* QUERY PLAN");
-              return createEqpFormatter();
+              if (!outputStream.write("* QUERY PLAN\n")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              return createEqpFormatter(format, formatOptions, outputStream);
             }
             if (format === "raw") return async (r) => {
               for (const v of r) {
@@ -978,9 +980,9 @@ export async function child() {
  * Format EXPLAIN QUERY PLAN output.
  * @returns 
  */
-function createEqpFormatter() {
+function createEqpFormatter(format, formatOptions, outputStream) {
   const nodes = [];
-  return async ([id, parent, _notused, detail], outputStream) => {
+  return async ([id, parent, _notused, detail]) => {
     while (nodes.length > 0 && nodes[nodes.length - 1] !== parent) {
       nodes.pop()
     }
