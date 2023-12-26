@@ -1,3 +1,7 @@
 node_modules
+coverage
+.gitignore
+.gitkeep
 *.db
 *.txt
+*.tgz
