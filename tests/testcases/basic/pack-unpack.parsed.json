@@ -1,0 +1,23 @@
+[
+  {
+    "type": "create",
+    "query": "create table j as with j(value) as (values ('{\"a\":1,\"b\":2,\"c\":3}'), ('{\"a\":4,\"b\":5,\"c\":6}')) select * from j"
+  },
+  {
+    "type": "create",
+    "query": "create table t as with t as (select *, a + b + c as sum from (select value as input, value->>'$.\"a\"' as a, value->>'$.\"b\"' as b, value->>'$.\"c\"' as c from j)) select * from t"
+  },
+  {
+    "type": "select",
+    "query": "select * from t"
+  },
+  {
+    "type": "select",
+    "query": "select json_object('a', a, 'b', b, 'c', c, 'sum', sum) as json from t"
+  },
+  {
+    "type": "select",
+    "query": "select json_object('input', json(input), 'args', json_array(a, b, c), 'sum', sum) || printf('%c', char(10)) as line from t",
+    "format": "raw"
+  }
+]
