@@ -1,0 +1,37 @@
+[
+  {
+    "type": "create",
+    "query": "create table data1 as with data1 as (select null as id, null as name, null as age where 0 union all values (1, 'John', 20), (2, 'Jane', 30), (3, 'Bob', 40), (4, 'Alice', 50), (5, 'Eve', 60)) select * from data1"
+  },
+  {
+    "type": "command",
+    "command": "meta-load",
+    "args": {
+      "ifNotExists": null,
+      "table": "data2",
+      "def": "id integer, name text, age integer",
+      "columns": [
+        "id",
+        "name",
+        "age"
+      ],
+      "options": {
+        "format": "csv",
+        "header": true
+      },
+      "path": "data/names.csv"
+    }
+  },
+  {
+    "type": "select",
+    "query": "select (select count() from data1) = (select count() from data2)"
+  },
+  {
+    "type": "select",
+    "query": "select count() = 0 from (select * from data1 except select * from data2) as t"
+  },
+  {
+    "type": "select",
+    "query": "select count() = 0 from (select * from data2 except select * from data1) as t"
+  }
+]

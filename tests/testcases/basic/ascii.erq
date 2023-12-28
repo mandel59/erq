@@ -1,0 +1,9 @@
+range(0x0, 0xf) { ascii_table: '   ' || string_agg(E'\%01X(value)', ' ' order by value) || E'\n' };
+range(0x20, 0x7e)
+  {code: E'\%02X(value)', char: E'\u(value)'}
+  {*, h: substr(code, 1, 1), l: substr(code, 2, 1)}
+  right join (
+    h: range(0x0, 0x7) cross join l: range(0x0, 0xf)
+    { h: E'\%X(h.value)', l: E'\%X(l.value)' }) using (h, l)
+  { h => list: string_agg(coalesce(char, ' '), ' ' order by l) }
+  { E'\(h)0 \(list)\n' } output raw;;

@@ -1,0 +1,20 @@
+[
+  {
+    "type": "create",
+    "query": "create table t as with t(x, y) as (values (1, 2), (3, 4), (5, 6), (7, 8)) select * from t"
+  },
+  {
+    "type": "select",
+    "format": "eqp",
+    "query": "explain query plan select * from t where (x = 1)"
+  },
+  {
+    "type": "create",
+    "query": "create index tx on t (x)"
+  },
+  {
+    "type": "select",
+    "format": "eqp",
+    "query": "explain query plan select * from t where (x = 1)"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "type": "select",
+    "query": "select '   ' || string_agg(printf('%01X', value), ' ' order by value asc) || printf('%c', char(10)) as ascii_table from `range`(0x0, 0xf) union all select printf('%s0 %s%c', h, list, char(10)) from (select h, string_agg(coalesce(char, ' '), ' ' order by l asc) as list from (select *, substr(code, 1, 1) as h, substr(code, 2, 1) as l from (select printf('%02X', value) as code, printf('%c', char(value)) as char from `range`(0x20, 0x7e))) right join (select printf('%X', h.value) as h, printf('%X', l.value) as l from `range`(0x0, 0x7) as h cross join `range`(0x0, 0xf) as l) using (h, l) group by (h))",
+    "format": "raw"
+  }
+]

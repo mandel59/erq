@@ -1,0 +1,22 @@
+[
+  {
+    "type": "select",
+    "query": "select (select * from `range`(1, 10) where (value between 3 and 7) order by value asc limit 1)"
+  },
+  {
+    "type": "select",
+    "query": "select 7 in (select * from `range`(1, 10))"
+  },
+  {
+    "type": "select",
+    "query": "select exists (select * from `range`(1, 10) where (value = 7))"
+  },
+  {
+    "type": "select",
+    "query": "select *, x * x as xx from (select value as x from `range`(1, 10) where (value between 3 and 7))"
+  },
+  {
+    "type": "select",
+    "query": "select * from (select x.value as x, y.value as y, x.value + y.value as sum from (select * from `range`(1, 6) where (value % 2 = 0)) as x join (select * from `range`(1, 6) where (value % 2 = 1)) as y) where (sum < 10)"
+  }
+]

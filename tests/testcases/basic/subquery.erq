@@ -1,0 +1,9 @@
+{from range(1, 10)[value between 3 and 7] order by value asc limit 1};;
+{7 in range(1, 10)};;
+{exists range(1, 10)[value = 7]};;
+range(1, 10)[value between 3 and 7]
+  {x: value}
+  {*, xx: x * x};;
+x: (range(1, 6)[value % 2 = 0]) join y: (range(1, 6)[value % 2 = 1])
+  {x: x.value, y: y.value, sum: x.value + y.value}
+  [sum < 10];;

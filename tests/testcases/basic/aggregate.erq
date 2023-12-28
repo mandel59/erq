@@ -1,0 +1,9 @@
+range(1, 6) { sum: sum(value) } output sparse;;
+range(1, 6)[value % 2 <> 0] { sum_odd: sum(value) } output sparse;;
+range(1, 6) { sum_odd: [value % 2 <> 0]sum(value) } output sparse;;
+range(1, 6) order by value desc { gc_desc: group_concat(value) } output sparse;;
+range(1, 6) { gc_desc: group_concat(value order by value desc) } output sparse;;
+range(1, 6) { odd: value % 2 <> 0 => sum: sum(value) } output sparse;;
+range(1, 6)
+  { value, rn: over(partition by value % 2 order by value desc) row_number() }
+  { rn => gc: group_concat(value order by value) } output sparse;;

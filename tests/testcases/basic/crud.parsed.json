@@ -1,0 +1,38 @@
+[
+  {
+    "type": "create",
+    "query": "create table t (id integer primary key, name text, value integer)"
+  },
+  {
+    "type": "insert",
+    "query": "insert into t (id, name, value) values (1, 'foo', 10), (2, 'bar', 20), (3, 'baz', 30)"
+  },
+  {
+    "type": "select",
+    "query": "select * from t"
+  },
+  {
+    "type": "update",
+    "query": "update t set (name, value) = ('quux', 40) where id = 1"
+  },
+  {
+    "type": "select",
+    "query": "select * from t where (id = 1)"
+  },
+  {
+    "type": "delete",
+    "query": "delete from t where id = 1"
+  },
+  {
+    "type": "select",
+    "query": "select * from t"
+  },
+  {
+    "type": "insert",
+    "query": "insert into t (id, name, value) select * from (values (2, 'hoge', 200), (4, 'fuga', 400)) where 1 on conflict (id) do update set (name, value) = (excluded.name, excluded.value)"
+  },
+  {
+    "type": "select",
+    "query": "select * from t"
+  }
+]

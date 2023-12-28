@@ -1,0 +1,11 @@
+[
+  {
+    "type": "create",
+    "query": "create table greeting as with greeting(message) as (values (printf('Hello, World!%c', char(10)))) select * from greeting"
+  },
+  {
+    "type": "select",
+    "query": "select * from greeting",
+    "format": "raw"
+  }
+]

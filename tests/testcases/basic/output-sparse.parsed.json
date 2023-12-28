@@ -1,0 +1,26 @@
+[
+  {
+    "type": "command",
+    "command": "meta-load",
+    "args": {
+      "ifNotExists": null,
+      "table": "data",
+      "def": "id integer, name text, age integer",
+      "columns": [
+        "id",
+        "name",
+        "age"
+      ],
+      "options": {
+        "format": "csv",
+        "header": true
+      },
+      "path": "data/names.csv"
+    }
+  },
+  {
+    "type": "select",
+    "query": "select * from data",
+    "format": "sparse"
+  }
+]
