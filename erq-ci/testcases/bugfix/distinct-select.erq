@@ -1,0 +1,2 @@
+range(-10, 10) {x:value*value} limit 10 offset 7 distinct {group_concat(x)};;
+range(-10, 10) {x:value*value} limit 10 offset 7 distinct as t {group_concat(x)};;

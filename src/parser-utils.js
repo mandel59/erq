@@ -272,7 +272,7 @@ export class TableBuilder {
     return sql;
   }
   #isSelected() {
-    return this.#group.length > 0 || this.#select.length > 0;
+    return this.#group.length > 0 || this.#select.length > 0 || this.#distinct;
   }
   #isLimited() {
     return this.#limit != null;

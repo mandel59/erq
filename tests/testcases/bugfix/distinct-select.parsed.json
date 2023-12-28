@@ -1,0 +1,10 @@
+[
+  {
+    "type": "select",
+    "query": "select group_concat(x) from (select distinct * from (select value * value as x from `range`(-10, 10) limit 10 offset 7))"
+  },
+  {
+    "type": "select",
+    "query": "select group_concat(x) from (select distinct * from (select value * value as x from `range`(-10, 10) limit 10 offset 7)) as t"
+  }
+]
