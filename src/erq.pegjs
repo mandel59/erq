@@ -1117,6 +1117,9 @@ Table2
     return new TableBuilder(null, `(${vs})`).rawSQL(vs);
   }
   / tr:TableReference {
+    if (tr.table) {
+      return tr.table;
+    }
     return new TableBuilder(tr.name, tr.expression, tr.rename);
   }
   ;
@@ -1167,7 +1170,7 @@ Record
 
 TableReference
   = n:Name _ ":" _ e:TableExpression { return { name: n, expression: e.expression, rename: true }; }
-  / e:TableExpression { return { name: e.name, expression: e.expression, rename: false }; }
+  / e:TableExpression { return { name: e.name, expression: e.expression, table: e.table, rename: false }; }
   ;
 
 Filters
@@ -1275,7 +1278,9 @@ TableExpression
   = "{" _ rs:ValueReferences _ "}" {
     return { name: null, expression: `(${new TableBuilder(null, null).select(rs).toSQL(true)})` };
   }
+  / "(" _ t:Table1 _ ")" { return { name: null, expression: `(${t.toSQL(true)})`, table: t }; }
   / "(" _ t:Table _ ")" { return { name: null, expression: `(${t})` }; }
+  / t:ValuesList { return { name: null, expression: `(${t})` }; }
   / s:Name _ "." _ n:Name _ "(" _ ")" { return { name: n, expression: `${s}.${n}()` }; }
   / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${s}.${n}(${es})` }; }
   / s:Name _ "." _ t:Name { return { name: t, expression: `${s}.${t}` }; }
