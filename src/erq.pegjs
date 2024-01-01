@@ -1219,6 +1219,9 @@ Filter
     return (tb) => tb.join(tr, null, "natural");
   }
   / dw:("left" / "right" / "full" / "inner" / "cross")? _ "-:" _ nl:Name _ nr:(":" _ nr:Name _ { return nr; })? ":>" _ tr:TableReference {
+    if (nr == null) {
+      return (tb) => tb.joinUsing(tr, [nl], dw);
+    }
     return (tb) => tb.sugarJoin(nl, nr, tr, dw);
   }
   / w:WindowClause {
