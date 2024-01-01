@@ -1,4 +1,4 @@
-import process, { stdout } from "node:process";
+import process from "node:process";
 import { open } from "node:fs/promises";
 import { Readable } from "node:stream";
 import Database from "better-sqlite3";
