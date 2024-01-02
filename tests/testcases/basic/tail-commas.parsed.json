@@ -1,0 +1,26 @@
+[
+  {
+    "type": "select",
+    "query": "values (1), (2), (3)"
+  },
+  {
+    "type": "select",
+    "query": "select null as x, null as y where 0 union all values (1, 2), (3, 4)"
+  },
+  {
+    "type": "create",
+    "query": "create table t (id integer primary key, name text, age integer)"
+  },
+  {
+    "type": "insert",
+    "query": "insert into t (name, age) values ('Alice', 10), ('Bob', 15), ('Carol', 21), ('Dave', 15), ('Eve', 10), ('Frank', 21)"
+  },
+  {
+    "type": "select",
+    "query": "select name, age from t"
+  },
+  {
+    "type": "select",
+    "query": "select age / 10 * 10, count(), group_concat(name) from t group by (age / 10 * 10)"
+  }
+]

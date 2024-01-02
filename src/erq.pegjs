@@ -178,7 +178,7 @@ VegaMark
     { return { mark: { type: m, ...props } }; }
 
 VegaEncoding
-  = "encoding" _ "{" _ cs:VegaEncodingChannel|.., _ "," _| _ "}" {
+  = "encoding" _ "{" _ cs:VegaEncodingChannel|.., _ "," _| (_ ",")? _ "}" {
     return { encoding: Object.fromEntries(cs) };
   }
 
@@ -192,15 +192,15 @@ VegaRepeatColumns
   = "columns" __ n:JSONNumber _ { return n; }
 
 VegaCompose
-  = op:("layer" / "hconcat" / "vconcat" / "concat") _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
+  = op:("layer" / "hconcat" / "vconcat" / "concat") _ "(" _ vs:VegaView|.., _ !";;" ";" _| (_ !";;" ";")? _ ")"
     { return { [op]: vs }; }
-  / "concat" __ "columns" __ n:JSONNumber _ "(" _ vs:VegaView|.., _ ";" _| _ ")"
+  / "concat" __ "columns" __ n:JSONNumber _ "(" _ vs:VegaView|.., _ !";;" ";" _| (_ !";;" ";")? _ ")"
     { return { concat: vs, columns: n }; }
 
 VegaFacet
   = "facet" __ "columns" __ n:JSONNumber __ "{" _ def:FacetFieldDef _ "}" _ "(" _ spec:VegaView _ ")"
     { return { facet: def, columns: n, spec }; }
-  / "facet" _ "{" _ axes:FacetAxis|1.., _ "," _| _ "}" _ "(" _ spec:VegaView _ ")"
+  / "facet" _ "{" _ axes:FacetAxis|1.., _ "," _| (_ ",")? _ "}" _ "(" _ spec:VegaView _ ")"
     { return { facet: merge(...axes), spec }; }
 
 FacetAxis
@@ -235,12 +235,12 @@ VegaRepeatDefVars
 
 VegaRepeatDefVar
   = dir:("row" / "column" / "layer")
-      _ "(" _ fs:VegaField|1.., _ "," _| _ ")" {
+      _ "(" _ fs:VegaField|1.., _ "," _| (_ ",")? _ ")" {
       return { [dir]: fs.map(f => f.field) };
     }
 
 VegaRepeatDef
-  = "(" _ fs:VegaField|1.., _ "," _| _ ")" {
+  = "(" _ fs:VegaField|1.., _ "," _| (_ ",")? _ ")" {
       return fs.map(f => f.field);
     }
 
@@ -324,7 +324,7 @@ VegaSorting
       "asc" boundary { return "ascending"; }
       / "desc" boundary { return "descending"; }
     ) _ ")" { return ["sort", { ...f, order: o }] }
-  / "sort" _ "[" _ vs:(ParsedStringLiteral / JSONValue)|.., _ "," _| "]" { return ["sort", vs]; }
+  / "sort" _ "[" _ vs:(ParsedStringLiteral / JSONValue)|.., _ "," _| (_ ",")? "]" { return ["sort", vs]; }
   / "asc" boundary { return ["sort", "ascending"]; }
   / "desc" boundary { return ["sort", "descending"]; }
   / "nosort" boundary { return ["sort", null]; }
@@ -367,7 +367,7 @@ VegaTransform
 VegaTransformMethod
   = "[" _ filter:VegaPredicate _ "]" { return [{ filter }]; }
   / "[" _ e:VegaExpression _ "]" { return [{ filter: e }]; }
-  / "{" _ cs:VegaCalculateField|1.., _ "," _| _ "}" { return cs; }
+  / "{" _ cs:VegaCalculateField|1.., _ "," _| (_ ",")? _ "}" { return cs; }
   / "apply" __ obj:JSONObject { return [obj]; }
 
 VegaPredicate
@@ -388,9 +388,9 @@ VegaPredicate3
   = "(" _ p:VegaPredicate _ ")" { return p; }
   / "valid" _ "(" _ f:Name _ ")"
     { return { field: escapeVegaField(unquoteSQLName(f)), valid: true }; }
-  / f:Name _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| _ "]"
+  / f:Name _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| (_ ",")? _ "]"
     { return { field: escapeVegaField(unquoteSQLName(f)), oneOf: vs }; }
-  / f:Name _ t:VegaTimeUnit _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| _ "]"
+  / f:Name _ t:VegaTimeUnit _ "in" _ "[" _ vs:(EscapedString / JSONValue)|.., _ "," _| (_ ",")? _ "]"
     { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, oneOf: vs }; }
   / f:Name _ "between" __ a:VegaValue _ "and" __ b:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), range: [a, b] }; }
@@ -540,7 +540,7 @@ Analyze
 LoadRawBlock
   = "load" __ "table" boundary
     ifNotExists:(_ "if" __ "not" __ "exists" boundary { return true; })?
-    _ table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    _ table:TableNameWithVariable _ d:("(" _ td:TableDef (_ ",")? _ ")" _ { return td; })?
     "from" __ x:(
       RawBlock
       / ParsedStringLiteral
@@ -611,7 +611,7 @@ CreateFunction
 CreateTableFromJson
   = "create" __ "table"
     ine:(__ "if" __ "not" __ "exists")? __
-    table:TableNameWithVariable _ d:("(" _ td:TableDef _ ")" _ { return td; })?
+    table:TableNameWithVariable _ d:("(" _ td:TableDef (_ ",")? _ ")" _ { return td; })?
     boundary "from" __ "json" _ "(" _ e:Table _ ")" { return [table, d, e, Boolean(ine)]; }
 
 FunctionParams
@@ -708,7 +708,7 @@ Create
   {
     return `create virtual table ${n} using ${tn}(${a})`;
   }
-  / "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef _ ")"
+  / "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef (_ ",")? _ ")"
   {
     if (ine != null) {
       return `create table if not exists ${n} (${td.def})`;
@@ -834,7 +834,7 @@ SetClause
   = "set" __ l:UpdateLHS _ "=" _ e:Expression { return `${l} = ${e}`; }
 
 UpdateLHS
-  = "{" _ an1:Name ans:(_ "," _ an:Name { return an; })* _ "}" _ { return `(${[an1, ...ans].join(", ")})`; }
+  = "{" _ ans:Name|1.., _ "," _| (_ ",")? _ "}" _ { return `(${ans.join(", ")})`; }
   / t:Name
 
 Truncate
@@ -974,13 +974,13 @@ ColumnNameList
   = "(" _ ns:NameList _ ")" _ { return ns; }
 
 BraceColumnNameList
-  = "{" _ ns:NameList _ "}" _ { return ns; }
+  = "{" _ ns:NameList (_ ",")? _ "}" _ { return ns; }
 
 NameList
-  = an1:Name ans:(_ "," _ an:Name { return an; })* { return [an1, ...ans]; }
+  = ans:Name|1.., _ "," _| { return ans; }
 
 ConcatenatedTables
-  = Table1|1.., _ ";" _|
+  = ts:Table1|1.., _ !";;" ";" _| { return ts; }
 
 ExceptTable
   = _ "except" __ t:Table1 { return t; }
@@ -1110,7 +1110,7 @@ Table2
   = "select" __ rs:ValueReferences {
     return new TableBuilder(null, null).select(rs);
   }
-  / "{" _ rs:ValueReferences _ "}" {
+  / "{" _ rs:ValueReferences (_ ",")? _ "}" {
     return new TableBuilder(null, null).select(rs);
   }
   / vs:ValuesList {
@@ -1126,8 +1126,8 @@ Table2
 
 ValuesList
   = "values" __ a:ColumnNameList? "[" _ vs:(
-      e1:(Record/Expression) es:(_ "," _ e:(Record/Expression) { return e; })* { return [e1, ...es].map(e => `(${e})`).join(", "); }
-    ) _ "]"
+      es:(Record/Expression)|1.., _ "," _| { return es.map(e => `(${e})`).join(", "); }
+    ) (_ ",")? _ "]"
   {
     const values = "values " + vs;
     if (a != null) {
@@ -1139,7 +1139,7 @@ ValuesList
   {
     return `select ${a.map(c => `null as ${c}`).join(", ")} where 0`;
   }
-  / "values" __ "[" _ jsonarray:JSONObject|.., _ "," _| _ "]"
+  / "values" __ "[" _ jsonarray:JSONObject|.., _ "," _| (_ ",")? _ "]"
   {
     const keys = new Set();
     for (const obj of jsonarray) {
@@ -1163,7 +1163,7 @@ ValuesList
   ;
 
 Record
-  = "{" _ vs:Expressions _ "}"
+  = "{" _ vs:Expressions (_ ",")? _ "}"
   {
     return vs;
   }
@@ -1185,16 +1185,16 @@ Filter
   / "where" __ e:Expression {
     return (tb) => tb.where(e);
   }
-  / "{" _ grs:ValueReferences _ "=>" _ rs:ValueWildCardReferences _ "}" {
+  / "{" _ grs:ValueReferences (_ ",")? _ "=>" _ rs:ValueWildCardReferences (_ ",")? _ "}" {
     return (tb) => tb.groupSelect(grs, [...grs, ...rs]);
   }
-  / "{" _ grs:ValueReferences _ "=>" _ "}" {
+  / "{" _ grs:ValueReferences (_ ",")? _ "=>" _ "}" {
     return (tb) => tb.groupSelect(grs, grs);
   }
-  / "{" _ "=>" _ grs:ValueReferences  _ "}" {
+  / "{" _ "=>" _ grs:ValueReferences (_ ",")? _ "}" {
     return (tb) => tb.groupSelect([], grs);
   }
-  / "{" _ rs:ValueWildCardReferences _ "}" {
+  / "{" _ rs:ValueWildCardReferences (_ ",")? _ "}" {
     return (tb) => tb.select(rs);
   }
   / "group" __ "by" __ grs:ValueReferences _ boundary "select" __ rs:ValueWildCardReferences {
@@ -1203,13 +1203,13 @@ Filter
   / "select" __ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
-  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList _ ")" {
+  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList (_ ",")? _ ")" {
     return (tb) => tb.joinUsing(tr, u, dw);
   }
   / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on, dw);
   }
-  / "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList _ ")" {
+  / "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList (_ ",")? _ ")" {
     return (tb) => tb.joinUsing(tr, u);
   }
   / "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
@@ -1230,14 +1230,14 @@ Filter
   ;
 
 ValueReferences
-  = r1:ValueReferenceOrUnpack rs:(_ "," _ r:ValueReferenceOrUnpack { return r; })* {
-    return [r1, ...rs].flat();
+  = rs:ValueReferenceOrUnpack|1.., _ "," _| {
+    return rs.flat();
   }
   ;
 
 ValueWildCardReferences
-  = r1:ValueWildCardReferenceOrUnpack rs:(_ "," _ r:ValueWildCardReferenceOrUnpack { return r; })* {
-    return [r1, ...rs].flat();
+  = rs:ValueWildCardReferenceOrUnpack|1.., _ "," _| {
+    return rs.flat();
   }
 
 ValueReference
@@ -1361,12 +1361,12 @@ Expression
   = e:Expression1 _ boundary rest:(
     "not" __ "in" __ t:Table _ op:BinOp _ e2:Expression { return `not in (${t}) ${op} ${e2}` }
     / "not" __ "in" __ t:Table { return `not in (${t})`; }
-    / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
-    / "not" __ "in" _ "[" _ es:RecordOrExpressionList _ "]" { return `not in (${es})`; }
+    / "not" __ "in" _ "[" _ es:RecordOrExpressionList (_ ",")? _ "]" _ op:BinOp _ e2:Expression { return `not in (${es}) ${op} ${e2}` }
+    / "not" __ "in" _ "[" _ es:RecordOrExpressionList (_ ",")? _ "]" { return `not in (${es})`; }
     / "in" __ t:Table _ op:BinOp _ e2:Expression { return `in (${t}) ${op} ${e2}` }
     / "in" __ t:Table { return `in (${t})`; }
-    / "in" _ "[" _ es:RecordOrExpressionList _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
-    / "in" _ "[" _ es:RecordOrExpressionList _ "]" { return `in (${es})`; }
+    / "in" _ "[" _ es:RecordOrExpressionList (_ ",")? _ "]" _ op:BinOp _ e2:Expression { return `in (${es}) ${op} ${e2}` }
+    / "in" _ "[" _ es:RecordOrExpressionList (_ ",")? _ "]" { return `in (${es})`; }
   ) { return `${e} ${rest}`; }
   / Expression1
 
@@ -1413,15 +1413,15 @@ ExpressionOrRowValue
   / RowValue
 
 RecordOrExpressionList
-  = e1:RecordOrExpression es:(_ "," _ e:RecordOrExpression { return e; })*
-  { return [e1, ...es].join(", "); }
+  = es:RecordOrExpression|1.., _ "," _|
+  { return es.join(", "); }
 
 RecordOrExpression
   = r:Record {return `(${r})`}
   / Expression
 
 RowValue
-  = "{" _ es:Expressions _ "}" { return `(${es})`; }
+  = "{" _ es:Expressions (_ ",")? _ "}" { return `(${es})`; }
   / "from" __ t:Table { return `(${t})`; }
   / v:ValuesList { return `(${v})`; }
 
@@ -1460,12 +1460,12 @@ Pack
   }
 
 PackBody
-  = "{" _ ps:PackNameList _ "}" {
+  = "{" _ ps:PackNameList (_ ",")? _ "}" {
     return `json_object(${ps.map(([k, e]) => {
       return `${quote(k)}, ${e}`;
     }).join(", ")})`;
   }
-  / "[" _ es:PackBody|.., _ "," _| _ "]" {
+  / "[" _ es:PackBody|.., _ "," _| (_ ",")? _ "]" {
     return `json_array(${es.join(", ")})`;
   }
   / Expression
@@ -1489,8 +1489,8 @@ UnpackArray
   = l:UnpackBody|.., _ "," _| { return l.flat(); }
 
 UnpackBody
-  = "{" _ l:UnpackObject _ "}" { return l; }
-  / "[" _ l:UnpackArray _ "]" { return l.map(([k, n], i) => {
+  = "{" _ l:UnpackObject (_ ",")? _ "}" { return l; }
+  / "[" _ l:UnpackArray (_ ",")? _ "]" { return l.map(([k, n], i) => {
     return [`[${i}]${k}`, n];
   }); }
   / n:Name { return [["", unquoteSQLName(n)]]; }
@@ -1771,7 +1771,7 @@ JSONNull
   = "null" { return null; }
 
 JSONObject
-  = "{" _ kvs:JSONObjectEntry|.., _ "," _| _ "}" {
+  = "{" _ kvs:JSONObjectEntry|.., _ "," _| (_ ",")? _ "}" {
     return Object.fromEntries(kvs);
   } 
 
@@ -1783,7 +1783,7 @@ JSONObjectEntry
   = k:JSONObjectKey _ ":" _ v:JSONValue { return [k, v]; }
 
 JSONArray
-  = "[" _ vs:JSONValue|.., _ "," _| _ "]" { return vs; }
+  = "[" _ vs:JSONValue|.., _ "," _| (_ ",")? _ "]" { return vs; }
 
 JSONString
   = s:$("\"" JSONStringBody* "\"") { return JSON.parse(s); }
