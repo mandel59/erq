@@ -1,0 +1,23 @@
+[
+  {
+    "type": "command",
+    "command": "meta-create-function",
+    "args": [
+      "gcd",
+      [
+        "a",
+        "b"
+      ],
+      {
+        "rawblock": [
+          "js",
+          "let [x, y] = [Math.abs(a), Math.abs(b)];\nwhile (y > 0) [x, y] = [y, x % y];\nreturn x;\n"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "select",
+    "query": "select gcd(18, 24)"
+  }
+]
