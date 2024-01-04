@@ -1,5 +1,5 @@
-linear_space(0, 2 * pi(), 100) { x: value, y: sin(value) }
+linear_space(0, 20, 11) { x: value, y: value % 10 }
   output vega lite spec with
-    mark line,
+    mark bar,
     encoding { x: x q {axis:null}, y: y q {axis:null} },
     options { width: 100, height: 100 };;
