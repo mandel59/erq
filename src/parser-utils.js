@@ -51,7 +51,7 @@ export function parseSQLStringLiteral(l) {
 }
 
 export function intoSQLIdentifier(n) {
-  if (keywords.has(n.toUpperCase())) {
+  if (keywords.has(n.toLowerCase())) {
     return `\`${n}\``;
   }
   return n;

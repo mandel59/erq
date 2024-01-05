@@ -14,6 +14,7 @@ import {
 import { getJSRuntime } from "./js-runtime.js";
 import { evalDestination } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
+import { keywords } from "./keywords.js";
 
 export async function child() {
   if (DEBUG) {
@@ -243,6 +244,7 @@ export async function child() {
         const functionNames = getAllFunctionNames();
         const matches
           = Array.from(new Set([
+            ...keywords,
             ...schemas,
             ...tableNames,
             ...tableNamesFQ,

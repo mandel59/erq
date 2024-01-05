@@ -146,4 +146,4 @@ export const keywords = new Set([
   "WINDOW",
   "WITH",
   "WITHOUT",
-]);
+].map(k => k.toLowerCase()));
