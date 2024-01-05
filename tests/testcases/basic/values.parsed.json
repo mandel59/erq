@@ -26,5 +26,9 @@
   {
     "type": "select",
     "query": "select null as x, null as y, null as z where 0 union all values (1, 'a', null), (null, 'b', 'c'), (1 + 2, null, printf('d'))"
+  },
+  {
+    "type": "select",
+    "query": "select null as json where 0 union all values (json_object('value', trunc(sin(1) * 1000)))"
   }
 ]
