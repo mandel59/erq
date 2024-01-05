@@ -1,0 +1,30 @@
+[
+  {
+    "type": "select",
+    "query": "values (1, 'a'), (2, 'b'), (1 + 2, printf('c'))"
+  },
+  {
+    "type": "select",
+    "query": "select null as x, null as y where 0 union all values (1, 'a'), (2, 'b'), (1 + 2, printf('c'))"
+  },
+  {
+    "type": "select",
+    "query": "values (1), (2), (1 + 2)"
+  },
+  {
+    "type": "select",
+    "query": "values ('a'), ('b'), (printf('c'))"
+  },
+  {
+    "type": "select",
+    "query": "select null as x where 0 union all values (1), (2), (1 + 2)"
+  },
+  {
+    "type": "select",
+    "query": "select null as y where 0 union all values ('a'), ('b'), (printf('c'))"
+  },
+  {
+    "type": "select",
+    "query": "select null as x, null as y, null as z where 0 union all values (1, 'a', null), (null, 'b', 'c'), (1 + 2, null, printf('d'))"
+  }
+]

@@ -1139,11 +1139,11 @@ ValuesList
   {
     return `select ${a.map(c => `null as ${c}`).join(", ")} where 0`;
   }
-  / "values" __ "[" _ jsonarray:JSONObject|.., _ "," _| (_ ",")? _ "]"
+  / "values" __ "[" _ ess:QuasiJsonObjectEntries|.., _ "," _| (_ ",")? _ "]"
   {
     const keys = new Set();
-    for (const obj of jsonarray) {
-      for (const key of Object.keys(obj)) {
+    for (const es of ess) {
+      for (const [key, _value] of es) {
         keys.add(key);
       }
     }
@@ -1154,8 +1154,15 @@ ValuesList
     return `select ${
       keyNames.map(c => `null as ${quoteSQLName(c)}`).join(", ")
     } where 0 union all values ${
-      jsonarray.map(r => `(${keyNames.map(
-        k => Object.hasOwn(r, k) ? quote(r[k]) : "null"
+      ess.map(es => `(${keyNames.map(
+        k => {
+          for (const [key, value] of es) {
+            if (key === k) {
+              return value;
+            }
+          }
+          return "null";
+        }
       ).join(", ")})`).join(", ")
     }`;
     return values;
@@ -1795,3 +1802,28 @@ JSONStringBody
 
 JSONNumber
   = n:$("-"? [0-9]+ ("." [0-9]+)? ([eE] [+-]? [0-9]+)?) { return JSON.parse(n); }
+
+QuasiJsonExpression
+  = v:QuasiJsonObject
+  / v:QuasiJsonArray
+  / e:Expression
+
+QuasiJsonObject
+  = xs:QuasiJsonObjectEntries {
+    return `json_object(${xs.map(([k, e]) => {
+      return `${quote(k)}, ${e}`;
+    }).join(", ")})`;
+  }
+
+QuasiJsonArray
+  = "[" _ xs:QuasiJsonExpression|.., _ "," _| (_ ",")? _ "]" {
+    return `json_array(${xs.join(", ")})`;
+  }
+
+QuasiJsonObjectEntry
+  = k:JSONObjectKey _ ":" _ e:QuasiJsonExpression { return [k, e]; }
+
+QuasiJsonObjectEntries
+  = "{" _ xs:QuasiJsonObjectEntry|.., _ "," _| (_ ",")? _ "}" {
+    return xs;
+  }

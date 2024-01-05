@@ -1,0 +1,7 @@
+values[{1,'a'},{2,"b"},{1+2,E'c'}];;
+values(x,y)[{1,'a'},{2,"b"},{1+2,E'c'}];;
+values[1,2,1+2];;
+values['a',"b",E'c'];;
+values(x)[1,2,1+2];;
+values(y)['a',"b",E'c'];;
+values[{x:1,y:'a'},{y:'b',"z":"c"},{x:1+2,z:E'd'}];;
