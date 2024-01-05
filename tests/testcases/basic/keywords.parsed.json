@@ -1,0 +1,26 @@
+[
+  {
+    "type": "reindex",
+    "query": "reindex"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum"
+  },
+  {
+    "type": "begin",
+    "query": "begin"
+  },
+  {
+    "type": "commit",
+    "query": "commit"
+  },
+  {
+    "type": "rollback",
+    "query": "rollback"
+  },
+  {
+    "type": "select",
+    "query": "select * from `range`"
+  }
+]

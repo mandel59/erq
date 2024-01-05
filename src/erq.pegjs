@@ -102,6 +102,7 @@ Statement1
   / s:Commit { return { type: "commit", query: s }; }
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
+  / s:Reindex { return { type: "reindex", query: s }; }
   / t:Table f:ForEachClause { return { type: "for", sourceTable: t, ...f }; }
   / t:TriggerStatement f:FormattingClause? { return { ...t, ...f }; }
 
@@ -900,6 +901,10 @@ IndexedColumn
       return e;
     }
   }
+
+Reindex
+  = "reindex" __ n:TableName { return `reindex ${n}`; }
+  / "reindex" boundary { return `reindex`; }
 
 Drop
   = "drop" __ "temporary" __ tv:("table" / "view" / "trigger") __ n:TableName

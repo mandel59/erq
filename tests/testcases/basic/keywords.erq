@@ -1,0 +1,7 @@
+reindex;;
+vacuum;;
+begin;;
+commit;;
+rollback;;
+-- `range` keyword is interpreted as range virtual table in Erq.
+range;;
