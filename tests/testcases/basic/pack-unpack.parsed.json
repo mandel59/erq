@@ -5,7 +5,7 @@
   },
   {
     "type": "create",
-    "query": "create table t as with t as (select *, a + b + c as sum from (select value as input, value->>'$.\"a\"' as a, value->>'$.\"b\"' as b, value->>'$.\"c\"' as c from j)) select * from t"
+    "query": "create table t as select *, a + b + c as sum from (select value as input, value->>'$.\"a\"' as a, value->>'$.\"b\"' as b, value->>'$.\"c\"' as c from j)"
   },
   {
     "type": "select",

@@ -727,7 +727,7 @@ Create
   {
     return `create${temp ?? ""} trigger${ine ?? ""} ${trig} ${triggerPhase} ${triggerMethod} on ${tn}${when ?? ""} begin ${ss.map(s => `${s.query};`).join("")} end`;
   }
-  / tv:("table" / "view") __ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
+  / tv:("table" / "view") __ "recursive" __ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
   {
     const [s, n] = x;
     const qn = s != null ? `${s}.${n}` : n;
@@ -735,6 +735,16 @@ Create
       return `create ${tv} ${qn} as with ${n}(${a.join(", ")}) as (${t}) select * from ${n}`;
     } else {
       return `create ${tv} ${qn} as with ${n} as (${t}) select * from ${n}`;
+    }
+  }
+  / tv:("table" / "view") __ x:TableName1 _ a:ColumnNameList? "=" _ t:Table
+  {
+    const [s, n] = x;
+    const qn = s != null ? `${s}.${n}` : n;
+    if (a != null) {
+      return `create ${tv} ${qn} as with ${n}(${a.join(", ")}) as (${t}) select * from ${n}`;
+    } else {
+      return `create ${tv} ${qn} as ${t}`;
     }
   }
 
@@ -961,7 +971,7 @@ WithTable
   }
 
 WithClause
-  = "with" __ n:Name _
+  = "with" boundary _ ("recursive" boundary _)? n:Name _
     a:ColumnNameList?
     "as" __ "(" _ t:Table _ ")" _
   {

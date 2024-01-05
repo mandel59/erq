@@ -1,0 +1,34 @@
+[
+  {
+    "type": "create",
+    "query": "create table fib_table as with t(x, y) as (select 1, 1 union all select y, x + y from t limit 5) select x from t"
+  },
+  {
+    "type": "select",
+    "query": "select * from fib_table"
+  },
+  {
+    "type": "create",
+    "query": "create view fib_view as with t(x, y) as (select 1, 1 union all select y, x + y from t) select x from t"
+  },
+  {
+    "type": "select",
+    "query": "select * from fib_view limit 5"
+  },
+  {
+    "type": "create",
+    "query": "create table seq_table as with seq_table as (select 1 as x union all select x + 1 from seq_table limit 5) select * from seq_table"
+  },
+  {
+    "type": "select",
+    "query": "select * from seq_table"
+  },
+  {
+    "type": "create",
+    "query": "create view seq_view as with seq_view as (select 1 as x union all select x + 1 from seq_view) select * from seq_view"
+  },
+  {
+    "type": "select",
+    "query": "select * from seq_view limit 5"
+  }
+]

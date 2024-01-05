@@ -1,0 +1,19 @@
+table fib_table =
+  with recursive t(x, y) as ({1,1}; t{y, x+y} limit 5)
+    t{x};;
+
+fib_table;;
+
+view fib_view =
+  with recursive t(x, y) as ({1,1}; t{y, x+y})
+    t{x};;
+
+fib_view limit 5;;
+
+table recursive seq_table = {x: 1}; seq_table{x+1} limit 5;;
+
+seq_table;;
+
+view recursive seq_view = {x: 1}; seq_view{x+1};;
+
+seq_view limit 5;;

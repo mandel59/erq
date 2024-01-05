@@ -125,12 +125,12 @@ test('select table', t => {
 });
 
 test('create table', t => {
-  t.deepEqual(parser.parse(`table temp.t = {42}`), { type: 'create', query: `create table \`temp\`.t as with t as (select 42) select * from t` });
+  t.deepEqual(parser.parse(`table temp.t = {42}`), { type: 'create', query: `create table \`temp\`.t as select 42` });
   t.deepEqual(parser.parse(`create table temp.t(id integer primary key autoincrement, value text)`), { type: 'create', query: `create table \`temp\`.t (id integer primary key autoincrement, value text)` });
 })
 
 test('create view', t => {
-  t.deepEqual(parser.parse(`view temp.t = {42}`), { type: 'create', query: `create view \`temp\`.t as with t as (select 42) select * from t` });
+  t.deepEqual(parser.parse(`view temp.t = {42}`), { type: 'create', query: `create view \`temp\`.t as select 42` });
 })
 
 test('create index', t => {

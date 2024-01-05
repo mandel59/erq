@@ -1,7 +1,7 @@
 [
   {
     "type": "create",
-    "query": "create table data1 as with data1 as (select null as id, null as name, null as age where 0 union all values (1, 'John', 20), (2, 'Jane', 30), (3, 'Bob', 40), (4, 'Alice', 50), (5, 'Eve', 60)) select * from data1"
+    "query": "create table data1 as select null as id, null as name, null as age where 0 union all values (1, 'John', 20), (2, 'Jane', 30), (3, 'Bob', 40), (4, 'Alice', 50), (5, 'Eve', 60)"
   },
   {
     "type": "command",

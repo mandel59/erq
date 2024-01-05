@@ -8,7 +8,7 @@ table graph(x, y) = values [
 ];;
 
 -- Transitive closure of a graph
-view closure(x, y) =
+view recursive closure(x, y) =
   graph{x, y};
   a: closure join b: graph on a.y = b.x { a.x, b.y }
   distinct;;
