@@ -1,52 +1,27 @@
 # Erq - Easy Relational Query Language
 
-No more SELECT in your queries.
+## Introduction
 
-## Syntax comparison
+Erq is an alternative query language for relational databases. It is designed to be easy to learn and use, while being as expressive and powerful as SQL.
 
----
+I originally used SQLite to analyze my own kanji database. However, the verbose and cumbersome syntax of SQL prevented me from doing ad hoc analysis quickly. So I created Erq, which simplifies the syntax of SQL.
 
-```sql
-SELECT *
-FROM employees
+## Usage
+
+Erq CLI works like SQLite CLI. You can use it to query SQLite databases.
+
+Basically, you can use Erq CLI like this:
+
+```shell
+erq your_database.db <your_query.erq >your_output.txt
 ```
 
-```eql
-employees
+Or you can use it interactively:
+
+```shell
+erq your_database.db
 ```
 
----
+## Syntax Comparison with SQL
 
-```sql
-SELECT id, name, birth
-FROM employees
-WHERE birth < '2000-01-01'
-```
-
-```erq
-employees
-[birth < '2000-01-01']
-{id, name, birth}
-```
-
-Erq use brackets for restriction and braces for projection.
-
---- 
-
-```sql
-SELECT e.id, sum(s.value) AS total
-FROM employees AS e
-JOIN salary AS s ON s.employee_id = e.id
-WHERE s.date BETWEEN '2020-01-01' AND '2020-12-31'
-GROUP BY e.id
-HAVING total >= 10000 
-ORDER BY total DESC
-```
-
-```erq
-e: employees
-join s: salary on (s.employee_id = e.id)
-[s.date between '2020-01-01' and '2020-12-31']
-{e.id => total: sum(s.value) desc}
-[total >= 10000]
-```
+See [Syntax Comparison with SQL](./doc/syntax-comparison.md).
