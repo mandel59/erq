@@ -3,4 +3,7 @@ let [x, y] = [Math.abs(a), Math.abs(b)];
 while (y > 0) [x, y] = [y, x % y];
 return x;
 ```;;
-{ gcd(18, 24) };;
+
+with x(x) as (range(1, 20))
+with y(y) as (range(1, 20))
+x join y { x, y, gcd(x, y) };;
