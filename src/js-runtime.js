@@ -34,19 +34,42 @@ export class JSRuntime {
   setFunction(name, params, body) {
     const context = this.getContext();
     const jsFunction = `(function (${params.join(",")}) {\n${body}\n})`;
-    this.funcs.set(name, jsFunction);
-    this._registerFunction(context, name);
+    this._registerFunction(context, name, jsFunction);
   }
-  _registerFunction(context, name) {
-    const jsFunction = this.funcs.get(name);
+  /**
+   * 
+   * @param {string} name 
+   */
+  removeFunction(name) {
+    const context = this.getContext();
+    this._unregisterFunction(context, name);
+  }
+  _registerFunction(context, name, jsFunction) {
+    if (this.funcs.has(name)) {
+      this._unregisterFunction(context, name);
+    }
     if (context.unwrapResult(context.evalCode(`(${JSON.stringify(name)} in globalThis)`)).consume(context.dump)) {
-      throw new JSRuntimeError(`Object ${name} already exists`);
+      throw new JSRuntimeError(`Object ${JSON.stringify(name)} already exists`);
     }
     const evalResult = context.evalCode(`globalThis[${JSON.stringify(name)}] = ${jsFunction};`);
     if (evalResult.error) {
       this._throwError(context, evalResult);
     }
     context.unwrapResult(evalResult).dispose();
+    this.funcs.set(name, jsFunction);
+  }
+  _unregisterFunction(context, name) {
+    if (!this.funcs.has(name)) {
+      throw new JSRuntimeError(`Function ${JSON.stringify(name)} does not exist`);
+    }
+    if (context.unwrapResult(context.evalCode(`(${JSON.stringify(name)} in globalThis)`)).consume(context.dump)) {
+      const evalResult = context.evalCode(`delete globalThis[${JSON.stringify(name)}];`);
+      if (evalResult.error) {
+        this._throwError(context, evalResult);
+      }
+      context.unwrapResult(evalResult).dispose();
+    }
+    this.funcs.delete(name);
   }
   getContext() {
     if (!this.context) {
@@ -54,8 +77,8 @@ export class JSRuntime {
         throw new Error("Runtime not initialized");
       }
       this.context = this.runtime.newContext();
-      for (const func of this.funcs.keys()) {
-        this._registerFunction(this.context, func);
+      for (const [func, jsFunction] of this.funcs.entries()) {
+        this._registerFunction(this.context, func, jsFunction);
       }
     }
     return this.context;
