@@ -20,5 +20,24 @@
   {
     "type": "select",
     "query": "select gcd(18, 24)"
+  },
+  {
+    "type": "command",
+    "command": "meta-create-function",
+    "args": [
+      "square",
+      [
+        "x"
+      ],
+      "return x * x;",
+      {
+        "returns": "real",
+        "language": "js"
+      }
+    ]
+  },
+  {
+    "type": "select",
+    "query": "select square(3)"
   }
 ]
