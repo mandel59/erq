@@ -544,7 +544,16 @@ export async function child() {
       }
     }
     else if (command === "meta-create-function") {
-      const [fn, ps, { rawblock: [tag, body] }] = args;
+      const [fn, ps, code, opts] = args;
+      let tag, body;
+      if (typeof code === "string") {
+        body = code;
+      } else if ("rawblock" in code) {
+        ({ rawblock: [tag, body] } = code);
+      }
+      if ("language" in opts && typeof opts.language === "string") {
+        tag = opts.language;
+      }
       if (tag === "js" || tag === "javascript") {
         const rt = await getJSRuntime();
         rt.setFunction(fn, ps, body);

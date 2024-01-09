@@ -4,3 +4,6 @@ while (y > 0) [x, y] = [y, x % y];
 return x;
 ```;;
 { gcd(18, 24) };;
+
+create function square(x real) returns real, language js as 'return x * x;';;
+{ square(3) };;

@@ -7,3 +7,7 @@ return x;
 with x(x) as (range(1, 20))
 with y(y) as (range(1, 20))
 x join y { x, y, gcd(x, y) };;
+
+create function square(x real) returns real, language js as 'return x * x;';;
+with x(x) as (range(1, 20))
+x { x, square(x) };;

@@ -13,7 +13,8 @@
           "js",
           "let [x, y] = [Math.abs(a), Math.abs(b)];\nwhile (y > 0) [x, y] = [y, x % y];\nreturn x;\n"
         ]
-      }
+      },
+      {}
     ]
   },
   {

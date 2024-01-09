@@ -604,10 +604,17 @@ LoadOption
   / ("format" __)? f:("csv"/"ndjson") { return ["format", f]; }
 
 CreateFunction
-  = "create" __ "function" __ n:Name _ ps:FunctionParams _ "as" __ x:RawBlock
+  = "create" __ "function" __ n:Name _ ps:FunctionParams _ opts:FunctionOptions _ "as" __ x:(RawBlock/ParsedStringLiteral)
   {
-    return [n, ps, x];
+    return [n, ps, x, opts];
   }
+
+FunctionOptions
+  = opts:FunctionOption|.., _ "," _| { return Object.fromEntries(opts); }
+
+FunctionOption
+  = "language" __ l:Name { return ["language", l]; }
+  / "returns" __ t:TypeName { return ["returns", t]; }
 
 CreateTableFromJson
   = "create" __ "table"
@@ -617,7 +624,13 @@ CreateTableFromJson
 
 FunctionParams
   = "(" _ ")" { return []; }
-  / "(" _ n1:Identifier ns:(_ "," _ n:Identifier { return n; })* _ ")" { return [n1, ...ns]; }
+  / "(" _ ns:FunctionParam|1.., _ "," _| (_ ",")? _ ")" { return ns; }
+
+FunctionParam
+  = n:Identifier t:(_ t:TypeName { return t; })? {
+    // TODO: use type information
+    return n;
+  }
 
 TableDef
   = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })* cos:(_ "," _ c:TableConstraint { return c; })*
