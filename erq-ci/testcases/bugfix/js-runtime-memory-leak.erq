@@ -1,0 +1,6 @@
+create function sqr(x) as ```js
+return x*x;
+```;;
+range(1, 1000){s: sqr(value)}[s=1000*1000];;
+range(1, 10000){s: sqr(value)}[s=10000*10000];;
+range(1, 100000){s: sqr(value)}[s=100000*100000];;

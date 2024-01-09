@@ -1,8 +1,19 @@
+export class JSRuntimeError extends Error {
+  get name() {
+    return this.constructor.name;
+  }
+  constructor(message, errorName) {
+    super(errorName ? `${errorName}: ${message}` : message);
+  }
+}
+
 export class JSRuntime {
   /** @type {import("quickjs-emscripten").QuickJSWASMModule | undefined} */
   QuickJS;
   /** @type {import("quickjs-emscripten").QuickJSRuntime | undefined} */
   runtime;
+  /** @type {import("quickjs-emscripten").QuickJSContext | undefined} */
+  context;
   /** @type {Map<string, string>} */
   funcs = new Map();
   async initialize() {
@@ -12,7 +23,6 @@ export class JSRuntime {
       const runtime = this.runtime = QuickJS.newRuntime();
       runtime.setMemoryLimit(1024 * 640);
       runtime.setMaxStackSize(1024 * 320);
-      runtime.setModuleLoader((name) => this.funcs.get(name));
     }
   }
   /**
@@ -22,13 +32,39 @@ export class JSRuntime {
    * @param {string} body 
    */
   setFunction(name, params, body) {
-    this.funcs.set(name, `export default function(${params.join(",")}) {\n${body}\n};`);
+    const context = this.getContext();
+    const jsFunction = `(function (${params.join(",")}) {\n${body}\n})`;
+    this.funcs.set(name, jsFunction);
+    this._registerFunction(context, name);
   }
-  /**
-   * @param {string} name 
-   */
-  getFunction(name) {
-    return this.funcs.get(name);
+  _registerFunction(context, name) {
+    const jsFunction = this.funcs.get(name);
+    if (context.unwrapResult(context.evalCode(`(${JSON.stringify(name)} in globalThis)`)).consume(context.dump)) {
+      throw new JSRuntimeError(`Object ${name} already exists`);
+    }
+    const evalResult = context.evalCode(`globalThis[${JSON.stringify(name)}] = ${jsFunction};`);
+    if (evalResult.error) {
+      this._throwError(context, evalResult);
+    }
+    context.unwrapResult(evalResult).dispose();
+  }
+  getContext() {
+    if (!this.context) {
+      if (!this.runtime) {
+        throw new Error("Runtime not initialized");
+      }
+      this.context = this.runtime.newContext();
+      for (const func of this.funcs.keys()) {
+        this._registerFunction(this.context, func);
+      }
+    }
+    return this.context;
+  }
+  resetContext() {
+    if (this.context) {
+      this.context.dispose();
+      this.context = undefined;
+    }
   }
   /**
    * 
@@ -38,10 +74,10 @@ export class JSRuntime {
    */
   callFunction(name, ...args) {
     if (!this.runtime) {
-      throw new Error("Runtime not initialized");
+      throw new JSRuntimeError("Runtime not initialized");
     }
 
-    const context = this.runtime.newContext();
+    const context = this.getContext();
 
     const argsHandle = context.newArray();
     args.forEach((arg, i) => {
@@ -70,25 +106,32 @@ export class JSRuntime {
           if (arg == null) {
             context.setProp(argsHandle, String(i), context.null);
           }
-          throw new Error("Unsupported argument type");
+          throw new JSRuntimeError("Unsupported argument type");
         default:
-          throw new Error("Unsupported argument type");
+          throw new JSRuntimeError("Unsupported argument type");
       }
     })
     context.setProp(context.global, "args", argsHandle);
     argsHandle.dispose();
 
-    const evalResult = context.evalCode(`import func from ${JSON.stringify(name)};`
-      + `globalThis.result = func.apply(null, globalThis.args);`);
+    const evalResult = context.evalCode(`globalThis[${JSON.stringify(name)}].apply(null, globalThis.args);`);
     if (evalResult.error) {
-      const error = evalResult.error.consume(context.dump);
-      context.dispose();
-      throw new Error(error);
+      this._throwError(context, evalResult);
     }
-    context.unwrapResult(evalResult).dispose();
-    const value = context.getProp(context.global, "result").consume(context.dump);
-    context.dispose();
+    const value = context.unwrapResult(evalResult).consume(context.dump);
     return value;
+  }
+  _throwError(context, evalResult) {
+    const error = evalResult.error.consume(context.dump);
+    this.resetContext();
+    if (typeof error === "string") {
+      throw new JSRuntimeError(error);
+    } else if ("message" in error) {
+      if ("name" in error) {
+        throw new JSRuntimeError(`${error.name}: ${error.message}`);
+      }
+      throw new JSRuntimeError(error.message);
+    }
   }
 }
 
