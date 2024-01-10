@@ -55,7 +55,7 @@ IfStatement
     { return { type: "if", condition: e, thenStatements: t }; }
 
 ForStatement
-  = "for" __ a:ForVarAssignments _ "of" __ t:Table _ ("do" __)? body:BlockStatement
+  = "for" __ a:ForVarAssignments _ "of" __ t:Table _ body:BlockStatement
   {
     return {
       type: "for",
@@ -96,7 +96,9 @@ Variable
 
 BlockStatement
   = s:Statement { return [s]; }
-  / "(" _ ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
+  / Do? "(" _ ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
+
+Do = "do" __
 
 Statement1
   = s:Attach { return { type: "attach", query: s }; }
@@ -524,18 +526,19 @@ Begin
   }
 
 Commit
-  = "commit"
+  = Do? "commit" boundary
+  { return "commit"; }
 
 Savepoint
-  = "savepoint" __ n:Name
+  = Do? "savepoint" __ n:Name
   { return `savepoint ${n}`; }
 
 Release
-  = "release" __ n:Name
+  = Do? "release" __ n:Name
   { return `release ${n}`; }
 
 Rollback
-  = "rollback" boundary savepoint:(_ "to" boundary n:Name { return n; })?
+  = Do? "rollback" boundary savepoint:(_ "to" boundary n:Name { return n; })?
   {
     if (savepoint != null) {
       return `rollback to ${savepoint}`;
@@ -545,12 +548,12 @@ Rollback
   }
 
 Analyze
-  = "analyze" __ s:Name _ "." _ n:Name { return `analyze ${s}.${n}`; }
-  / "analyze" __ n:Name { return `analyze ${n}`; }
-  / "analyze" boundary { return "analyze"; }
+  = Do? "analyze" __ s:Name _ "." _ n:Name { return `analyze ${s}.${n}`; }
+  / Do? "analyze" __ n:Name { return `analyze ${n}`; }
+  / Do? "analyze" boundary { return "analyze"; }
 
 LoadRawBlock
-  = "load" __ "table" boundary
+  = Do? "load" __ "table" boundary
     ifNotExists:(_ "if" __ "not" __ "exists" boundary { return true; })?
     _ table:TableNameWithVariable _ d:("(" _ td:TableDef (_ ",")? _ ")" _ { return td; })?
     "from" __ x:(
@@ -615,7 +618,7 @@ LoadOption
   / ("format" __)? f:("csv"/"ndjson") { return ["format", f]; }
 
 CreateFunction
-  = "create" __ "function" __ n:Name _ ps:FunctionParams _ opts:FunctionOptions _ "as" __ x:(RawBlock/ParsedStringLiteral)
+  = Do? "create" __ "function" __ n:Name _ ps:FunctionParams _ opts:FunctionOptions _ "as" __ x:(RawBlock/ParsedStringLiteral)
   {
     return [n, ps, x, opts];
   }
@@ -628,7 +631,7 @@ FunctionOption
   / "returns" __ t:TypeName { return ["returns", t]; }
 
 CreateTableFromJson
-  = "create" __ "table"
+  = Do? "create" __ "table"
     ine:(__ "if" __ "not" __ "exists")? __
     table:TableNameWithVariable _ d:("(" _ td:TableDef (_ ",")? _ ")" _ { return td; })?
     boundary "from" __ "json" _ "(" _ e:Table _ ")" { return [table, d, e, Boolean(ine)]; }
@@ -697,17 +700,17 @@ ConflictClause
   = _ "on" __ "conflict" __ k:("rollback"/"abort"/"fail"/"ignore"/"replace") { return ` on conflict ${k}`; }
 
 Attach
-  = "attach" __ e:Expression _ "as" __ n:Name {
+  = Do? "attach" __ e:Expression _ "as" __ n:Name {
     return `attach ${e} as ${n}`;
   }
 
 Detach
-  = "detach" __ n:Name {
+  = Do? "detach" __ n:Name {
     return `detach ${n}`;
   }
 
 Create
-  = "create" __ "temporary" __ tv:("table" / "view") boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:Name _ boundary "as" __ t:Table
+  = Do? "create" __ "temporary" __ tv:("table" / "view") boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:Name _ boundary "as" __ t:Table
   {
     if (ine) {
       return `create temporary ${tv} if not exists ${n} as ${t}`;
@@ -723,7 +726,7 @@ Create
       return `create ${tv} ${n} as ${t}`;
     }
   }
-  / "create" boundary uniq:(_ "unique" boundary { return " unique"; })? _ "index" boundary
+  / Do? "create" boundary uniq:(_ "unique" boundary { return " unique"; })? _ "index" boundary
     ine:(_ "if" __ "not" __ "exists" boundary { return " if not exists"; })? _ n:TableName _
       "on" __ tn:Name cond:(_ "[" _ cond:Expression _ "]" { return ` where ${cond}`; })? _ "(" _ ic:IndexedColumns ")"
   {
@@ -733,7 +736,7 @@ Create
   {
     return `create virtual table ${n} using ${tn}(${a})`;
   }
-  / "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef (_ ",")? _ ")"
+  / Do? "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef (_ ",")? _ ")"
   {
     if (ine != null) {
       return `create table if not exists ${n} (${td.def})`;
@@ -741,7 +744,7 @@ Create
       return `create table ${n} (${td.def})`;
     }
   }
-  / "create" temp:(__ "temporary" { return " temporary"; })? __ "trigger" boundary
+  / Do? "create" temp:(__ "temporary" { return " temporary"; })? __ "trigger" boundary
     ine:(_ "if" __ "not" __ "exists" boundary { return " if not exists"; })?
     _ trig:TableName
     _ triggerPhase:("before"/"after"/"instead" __ "of" boundary { return "instead of"; })
@@ -777,14 +780,14 @@ BlockTriggerStatement
   / "(" ss:TriggerStatement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
 
 Alter
-  = "alter" __ "table" __ n:TableName _ "rename" __ "to" __ d:Name { return `alter table ${n} rename to ${d}`; }
-  / "alter" __ "table" __ n:TableName _ "rename" __ c:Name _ boundary "to" __ d:Name { return `alter table ${n} rename ${c} to ${d}`; }
-  / "alter" __ "table" __ n:TableName _ "add" __ d:ColumnDef { return `alter table ${n} add ${d.def}`; }
-  / "alter" __ "table" __ n:TableName _ "drop" __ c:Name { return `alter table ${n} drop ${c}`; }
+  = Do? "alter" __ "table" __ n:TableName _ "rename" __ "to" __ d:Name { return `alter table ${n} rename to ${d}`; }
+  / Do? "alter" __ "table" __ n:TableName _ "rename" __ c:Name _ boundary "to" __ d:Name { return `alter table ${n} rename ${c} to ${d}`; }
+  / Do? "alter" __ "table" __ n:TableName _ "add" __ d:ColumnDef { return `alter table ${n} add ${d.def}`; }
+  / Do? "alter" __ "table" __ n:TableName _ "drop" __ c:Name { return `alter table ${n} drop ${c}`; }
 
 Insert
   = ts:WithClause*
-    "insert" __ "into" __ n:TableName
+    Do? "insert" __ "into" __ n:TableName
     a:(_ nl:ColumnNameList { return ` (${nl.join(", ")})` })?
     _ t:Table up:UpsertClause*
   {
@@ -831,14 +834,14 @@ UpsertAction
 
 Delete
   = ts:WithClause*
-    "delete" __ "from" __ n:TableName _
+    Do? "delete" __ "from" __ n:TableName _
     "where" __ e:Expression
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}delete from ${n} where ${e}`;
   }
   / ts:WithClause*
-    "delete" __ n:TableName _ e:BracketCondExpressionSeries
+    Do? "delete" __ n:TableName _ e:BracketCondExpressionSeries
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
     return `${withclause}delete from ${n} where ${e}`;
@@ -846,7 +849,7 @@ Delete
 
 Update
   = ts:WithClause*
-    "update" __ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
+    Do? "update" __ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
     ss:(_ s:SetClause { return s; })*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
@@ -873,17 +876,17 @@ UpdateLHS
   / t:Name
 
 Truncate
-  = "truncate" __ "table" __ n:TableName
+  = Do? "truncate" __ "table" __ n:TableName
   { return `delete from ${n}`; }
 
 Vacuum
-  = "vacuum" __ n:Name _ boundary "into" boundary s:SQLStringLiteral
+  = Do? "vacuum" __ n:Name _ boundary "into" boundary s:SQLStringLiteral
   { return `vacuum ${n} into ${s}`; }
-  / "vacuum" __ "into" boundary s:SQLStringLiteral
+  / Do? "vacuum" __ "into" boundary s:SQLStringLiteral
   { return `vacuum into ${s}`; }
-  / "vacuum" __ n:Name
+  / Do? "vacuum" __ n:Name
   { return `vacuum ${n}`; }
-  / "vacuum"
+  / Do? "vacuum"
   { return `vacuum`; }
 
 Pragma
@@ -937,15 +940,15 @@ IndexedColumn
   }
 
 Reindex
-  = "reindex" __ n:TableName { return `reindex ${n}`; }
-  / "reindex" boundary { return `reindex`; }
+  = Do? "reindex" __ n:TableName { return `reindex ${n}`; }
+  / Do? "reindex" boundary { return `reindex`; }
 
 Drop
-  = "drop" __ "temporary" __ tv:("table" / "view" / "trigger") __ n:TableName
+  = Do? "drop" __ "temporary" __ tv:("table" / "view" / "trigger") __ n:TableName
   {
     return `drop temporary ${tv} ${n}`;
   }
-  / "drop" __ tv:("table" / "view" / "index" / "trigger") ie:(__ "if" __ "exists")? __ n:TableName
+  / Do? "drop" __ tv:("table" / "view" / "index" / "trigger") ie:(__ "if" __ "exists")? __ n:TableName
   {
     if (ie) {
       return `drop ${tv} if exists ${n}`;

@@ -1,0 +1,10 @@
+do commit;;
+from commit;;
+do rollback;;
+from rollback;;
+do analyze;;
+from analyze;;
+do vacuum;;
+from vacuum;;
+do reindex;;
+from reindex;;

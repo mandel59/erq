@@ -1,0 +1,42 @@
+[
+  {
+    "type": "commit",
+    "query": "commit"
+  },
+  {
+    "type": "select",
+    "query": "select * from `commit`"
+  },
+  {
+    "type": "rollback",
+    "query": "rollback"
+  },
+  {
+    "type": "select",
+    "query": "select * from `rollback`"
+  },
+  {
+    "type": "analyze",
+    "query": "analyze"
+  },
+  {
+    "type": "select",
+    "query": "select * from `analyze`"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum"
+  },
+  {
+    "type": "select",
+    "query": "select * from `vacuum`"
+  },
+  {
+    "type": "reindex",
+    "query": "reindex"
+  },
+  {
+    "type": "select",
+    "query": "select * from `reindex`"
+  }
+]
