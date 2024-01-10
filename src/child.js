@@ -648,6 +648,20 @@ export async function child() {
           if (!ok) return false;
           continue;
         }
+        if (statement.type === "while") {
+          const { condition: conditionSql, bodyStatements } = statement;
+          const sql = `select case when ${preprocess(conditionSql, env)} then 1 else 0 end`;
+          console.error(sql);
+          const stmt = db.prepare(sql);
+          let condition = stmt.pluck().get(Object.fromEntries(env.entries()));
+          while (condition) {
+            const ok = await runSqls(bodyStatements, env);
+            if (!ok) return false;
+            console.error(sql);
+            condition = stmt.pluck().get(Object.fromEntries(env.entries()));
+          }
+          continue;
+        }
         if (statement.type === "for") {
           const {
             assignments,

@@ -39,6 +39,7 @@ Statement
   / "explain" __ s:Statement1 { return { type: "select", query: `explain ${s.query}`, dest: s.dest }; }
   / IfStatement
   / ForStatement
+  / WhileStatement
   / Statement1
 
 MetaStatement
@@ -60,6 +61,16 @@ ForStatement
       type: "for",
       assignments: a,
       sourceTable: t,
+      bodyStatements: body,
+    };
+  }
+
+WhileStatement
+  = "while" __ "(" _ e:Expression _ ")" _ body:BlockStatement
+  {
+    return {
+      type: "while",
+      condition: e,
       bodyStatements: body,
     };
   }

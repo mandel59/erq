@@ -1,0 +1,15 @@
+create table p(p integer primary key);;
+create table x(x integer primary key);;
+
+x <- range(2, 100);;
+
+while (exists x) (
+  p <- from x{min(x)};;
+  delete x[
+    x in {n: from x{max(x)}, p_max: from p{max(p)}}
+      join range(1, n / p_max)
+      {value * p_max}
+  ];;
+);;
+
+p{group_concat(p order by p)};;

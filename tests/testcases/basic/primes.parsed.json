@@ -1,0 +1,32 @@
+[
+  {
+    "type": "create",
+    "query": "create table p (p integer primary key)"
+  },
+  {
+    "type": "create",
+    "query": "create table x (x integer primary key)"
+  },
+  {
+    "type": "insert",
+    "query": "insert into x select * from `range`(2, 100)"
+  },
+  {
+    "type": "while",
+    "condition": "exists (select * from x)",
+    "bodyStatements": [
+      {
+        "type": "insert",
+        "query": "insert into p select min(x) from x"
+      },
+      {
+        "type": "delete",
+        "query": "delete from x where x in (select value * p_max from (select (select max(x) from x) as n, (select max(p) from p) as p_max) join `range`(1, n / p_max))"
+      }
+    ]
+  },
+  {
+    "type": "select",
+    "query": "select group_concat(p order by p asc) from p"
+  }
+]
