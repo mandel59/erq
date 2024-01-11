@@ -6,6 +6,8 @@
   "type": "module",
   "files": [
     "dist/**",
+    "doc/**",
+    "examples/**",
     "src/**",
     "bin/**",
     "jsconfig.json",
