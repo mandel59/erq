@@ -1167,6 +1167,10 @@ Table2
   / vs:ValuesList {
     return new TableBuilder(null, `(${vs})`).rawSQL(vs);
   }
+  / l:Literal {
+    const vs = `values (${l})`;
+    return new TableBuilder(null, `(${vs})`).rawSQL(vs);
+  }
   / tr:TableReference {
     if (tr.table) {
       return tr.table;
@@ -1340,6 +1344,7 @@ TableExpression
   / "(" _ t:Table _ ")" { return { name: null, expression: `(${t})` }; }
   / "lateral" __ "values" _ "[" _ es:Expressions (_ ",")? _ "]" { return { name: null, expression: `deserialize_values(serialize_values(${es}))` }; }
   / t:ValuesList { return { name: null, expression: `(${t})` }; }
+  / l:Literal { return { name: null, expression: `(values (${l}))` } }
   / s:Name _ "." _ n:Name _ "(" _ ")" { return { name: n, expression: `${s}.${n}()` }; }
   / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${s}.${n}(${es})` }; }
   / s:Name _ "." _ t:Name { return { name: t, expression: `${s}.${t}` }; }
