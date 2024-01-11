@@ -1472,6 +1472,7 @@ RecordOrExpression
 RowValue
   = "{" _ es:Expressions (_ ",")? _ "}" { return `(${es})`; }
   / "from" __ t:Table { return `(${t})`; }
+  / t:TableName _ "." _ cnl:BraceColumnNameList { return `(${cnl.map(cn => `${t}.${cn}`)})`; }
   / v:ValuesList { return `(${v})`; }
 
 Expression1
