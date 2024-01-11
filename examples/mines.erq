@@ -12,7 +12,7 @@ insert or replace
   cells{x, y, mined} <- cells{x, y, 1} order by random() limit 10;;
 
 -- show the grid
-cells{y asc => cells: group_concat(case when mined then '[*]' else '[ ]' end, '' order by x)};;
+cells{y asc => cells: group_concat(if mined then '[*]' else '[ ]', '' order by x)};;
 
 -- create a table of cells with the number of mines adjacent to each cell
 table adjacents
