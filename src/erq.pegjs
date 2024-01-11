@@ -50,7 +50,7 @@ MetaStatement
 
 IfStatement
   = "if" _ "(" _ e:Expression _ ")" _ ("then" __)? t:BlockStatement els:(_ "else" __ f:BlockStatement { return f; })?
-    { return { type: "if", condition: e, thenStatements: t, elseStatements: f }; }
+    { return { type: "if", condition: e, thenStatements: t, elseStatements: els }; }
 
 ForStatement
   = "for" __ a:ForVarAssignments _ "of" __ t:Table _ body:BlockStatement
