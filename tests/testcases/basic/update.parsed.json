@@ -1,0 +1,26 @@
+[
+  {
+    "type": "update",
+    "query": "update or rollback t set x = e where p"
+  },
+  {
+    "type": "update",
+    "query": "update or abort t set x = e where p"
+  },
+  {
+    "type": "update",
+    "query": "update or fail t set x = e where p"
+  },
+  {
+    "type": "update",
+    "query": "update or ignore t set x = e where p"
+  },
+  {
+    "type": "update",
+    "query": "update or replace t set x = e where p"
+  },
+  {
+    "type": "update",
+    "query": "update t set x = e where p"
+  }
+]

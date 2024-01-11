@@ -1,0 +1,13 @@
+insert or rollback t <- values [1];;
+insert or abort t <- values [1];;
+insert or fail t <- values [1];;
+insert or ignore t <- values [1];;
+insert or replace t <- values [1];;
+insert t <- values [1];;
+t <- values [1];;
+insert or rollback into t values [1];;
+insert or abort into t values [1];;
+insert or fail into t values [1];;
+insert or ignore into t values [1];;
+insert or replace into t values [1];;
+insert into t values [1];;

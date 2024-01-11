@@ -792,9 +792,12 @@ Alter
   / Do? "alter" __ "table" __ n:TableName _ "add" __ d:ColumnDef { return `alter table ${n} add ${d.def}`; }
   / Do? "alter" __ "table" __ n:TableName _ "drop" __ c:Name { return `alter table ${n} drop ${c}`; }
 
+OrConflictClause
+  = _ "or" __ k:("rollback"/"abort"/"fail"/"ignore"/"replace") boundary { return ` or ${k}`; }
+
 Insert
   = ts:WithClause*
-    Do? "insert" __ "into" __ n:TableName
+    Do? "insert" boundary oc:OrConflictClause? _ "into" __ n:TableName
     a:(_ nl:ColumnNameList { return ` (${nl.join(", ")})` })?
     _ t:Table up:UpsertClause*
   {
@@ -803,9 +806,10 @@ Insert
       // workaround for syntax ambiguity
       t = `select * from (${t}) where 1`;
     }
-    return `${withclause}insert into ${n}${a ?? ""} ${t}${up.join("")}`;
+    return `${withclause}insert${oc ?? ""} into ${n}${a ?? ""} ${t}${up.join("")}`;
   }
-  / ts:WithClause* n:TableName
+  / ts:WithClause*
+    oc:(Do? "insert" boundary oc:OrConflictClause? _ { return oc; })? n:TableName
     a:(_ nl:(ColumnNameList / BraceColumnNameList) { return ` (${nl.join(", ")})` })?
     _ "<-" _ t:Table up:UpsertClause*
   {
@@ -814,7 +818,7 @@ Insert
       // workaround for syntax ambiguity
       t = `select * from (${t}) where 1`;
     }
-    return `${withclause}insert into ${n}${a ?? ""} ${t}${up.join("")}`;
+    return `${withclause}insert${oc ?? ""} into ${n}${a ?? ""} ${t}${up.join("")}`;
   }
   ;
 
@@ -856,11 +860,11 @@ Delete
 
 Update
   = ts:WithClause*
-    Do? "update" __ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
+    Do? "update" boundary oc:OrConflictClause? _ n:TableName cond:(_ e:BracketCondExpressionSeries { return e; })?
     ss:(_ s:SetClause { return s; })*
   {
     const withclause = ts.length > 0 ? "with " + ts.join(", ") + " " : "";
-    return `${withclause}update ${n} set ${ss.join(", ")}${cond ? ` where ${cond}` : ""}`
+    return `${withclause}update${oc ?? ""} ${n} set ${ss.join(", ")}${cond ? ` where ${cond}` : ""}`
   }
 
 BracketCondExpression

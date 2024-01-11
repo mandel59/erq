@@ -1,0 +1,6 @@
+update or rollback t[p] set x = e;;
+update or abort t[p] set x = e;;
+update or fail t[p] set x = e;;
+update or ignore t[p] set x = e;;
+update or replace t[p] set x = e;;
+update t[p] set x = e;;

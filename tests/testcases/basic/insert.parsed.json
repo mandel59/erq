@@ -1,0 +1,54 @@
+[
+  {
+    "type": "insert",
+    "query": "insert or rollback into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or abort into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or fail into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or ignore into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or replace into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or rollback into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or abort into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or fail into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or ignore into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert or replace into t values (1)"
+  },
+  {
+    "type": "insert",
+    "query": "insert into t values (1)"
+  }
+]
