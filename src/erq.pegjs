@@ -1263,10 +1263,10 @@ Filter
   / "select" __ rs:ValueWildCardReferences {
     return (tb) => tb.select(rs);
   }
-  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList (_ ",")? _ ")" {
+  / dw:JoinType? "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList (_ ",")? _ ")" {
     return (tb) => tb.joinUsing(tr, u, dw);
   }
-  / dw:("left" / "right" / "full" / "inner" / "cross") __ "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
+  / dw:JoinType? "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on, dw);
   }
   / "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList (_ ",")? _ ")" {
@@ -1278,7 +1278,7 @@ Filter
   / "natural" __ "join" __ tr:TableReference {
     return (tb) => tb.join(tr, null, "natural");
   }
-  / dw:("left" / "right" / "full" / "inner" / "cross")? _ "-:" _ nl:Name _ nr:(":" _ nr:Name _ { return nr; })? ":>" _ tr:TableReference {
+  / dw:JoinType? "-:" _ nl:Name _ nr:(":" _ nr:Name _ { return nr; })? ":>" _ tr:TableReference {
     if (nr == null) {
       return (tb) => tb.joinUsing(tr, [nl], dw);
     }
@@ -1288,6 +1288,9 @@ Filter
     return (tb) => tb.window(w);
   }
   ;
+
+JoinType
+  = dw:("left" / "right" / "full" / "inner" / "cross") __ { return dw; }
 
 ValueReferences
   = rs:ValueReferenceOrUnpack|1.., _ "," _| {
