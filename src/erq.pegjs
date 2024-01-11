@@ -1178,8 +1178,8 @@ Table2
   ;
 
 ValuesList
-  = "lateral" __ "values" _ "[" _ es:(Record/Expression)|1.., _ "," _| (_ ",")? _ "]" {
-    return `deserialize_values(serialize_values(${es.join(", ")}))`;
+  = "lateral" __ "values" _ "[" _ es:Expressions (_ ",")? _ "]" {
+    return `deserialize_values(serialize_values(${es}))`;
   }
   / "values" __ a:ColumnNameList? "[" _ vs:(
       es:(Record/Expression)|1.., _ "," _| { return es.map(e => `(${e})`).join(", "); }
