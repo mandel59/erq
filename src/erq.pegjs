@@ -1427,9 +1427,9 @@ Expression
   / Expression1
 
 CaseExpression
-  = "case" __ w:WhenClause+ el:ElseClause? boundary "end" boundary
+  = "case" boundary w:WhenClause+ el:ElseClause? (_ "end" boundary)?
   {
-    let sql = `case `;
+    let sql = `case`;
     for (const e of w) {
       sql += e;
     }
@@ -1439,11 +1439,10 @@ CaseExpression
     sql += "end";
     return sql;
   }
-  / "case" __ ex:ExpressionOrRowValue _ w:WhenClause+ el:ElseClause? boundary "end" boundary
+  / "case" __ ex:ExpressionOrRowValue w:WhenClause+ el:ElseClause? (_ "end" boundary)?
   {
     let sql = `case `;
     sql += ex;
-    sql += " ";
     for (const e of w) {
       sql += e;
     }
@@ -1453,16 +1452,16 @@ CaseExpression
     sql += "end";
     return sql;
   }
-  / "if" __ c:Expression _ boundary "then" __ e:Expression _ el:ElseClause? boundary "end" boundary
+  / "if" __ c:Expression _ "then" __ e:Expression el:ElseClause? (_ "end" boundary)?
   {
-    return `case when ${c} then ${e} ${el ?? ""}end`;
+    return `case when ${c} then ${e}${el ?? ""} end`;
   }
 
 WhenClause
-  = "when" __ c:ExpressionOrRowValue _ boundary "then" __ e:Expression _ { return `when ${c} then ${e} `; }
+  = _ "when" __ c:ExpressionOrRowValue _ boundary "then" __ e:Expression { return ` when ${c} then ${e}`; }
 
 ElseClause
-  = "else" __ e:Expression _ { return `else ${e} `; }
+  = _ "else" __ e:Expression { return ` else ${e}`; }
 
 ExpressionOrRowValue
   = Expression
