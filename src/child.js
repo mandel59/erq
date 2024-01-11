@@ -208,21 +208,28 @@ export async function child() {
           const [sn, tn, cn] = (m2 != null) ? [m1, m2, m3] : [tables.find(t => t.name === m1)?.schema, m1, m3];
           if (schemas.includes(sn)) {
             const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
+            let candidates;
             if (m2 != null) {
               const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
-              return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
+              candidates = columns.map(c => `${qtn}.${quoteSQLName(c.name)}`);
             } else {
               const qtn = quoteSQLName(tn);
-              return [columns.map(c => `${qtn}.${quoteSQLName(c.name)}`), q];
+              candidates = columns.map(c => `${qtn}.${quoteSQLName(c.name)}`);
             }
+            return [candidates, q]
           } else if (schemas.includes(tn)) {
-            const ts = tables
+            let candidates = tables
               .filter(t => t.schema === tn)
               .map(t => quoteSQLName(t.name))
               .filter(name => name.startsWith(cn))
               .map(name => `${quoteSQLName(tn)}.${name}`);
-            if (ts.length > 0) {
-              return [ts, q];
+            if (tn === "main") {
+              candidates = candidates.concat(
+                modules.filter(n => n.startsWith(cn)).map(n => `main.${n}(`)
+              );
+            }
+            if (candidates.length > 0) {
+              return [candidates, q];
             }
           } else if (modules.includes(tn)) {
             const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
@@ -251,7 +258,7 @@ export async function child() {
             ...tableNamesFQ,
             ...modules,
             ...columnNames,
-            ...functionNames,
+            ...functionNames.map(n => `${n}(`),
             ...pragmas.map(p => `pragma_${p}`)]).values())
             .filter(n => {
               return n.replace(/`/g, "").startsWith(qq);
