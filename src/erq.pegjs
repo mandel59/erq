@@ -1436,7 +1436,7 @@ CaseExpression
     if (el != null) {
       sql += el;
     }
-    sql += "end";
+    sql += " end";
     return sql;
   }
   / "case" __ ex:ExpressionOrRowValue w:WhenClause+ el:ElseClause? (_ "end" boundary)?
@@ -1449,7 +1449,7 @@ CaseExpression
     if (el != null) {
       sql += el;
     }
-    sql += "end";
+    sql += " end";
     return sql;
   }
   / "if" __ c:Expression _ "then" __ e:Expression el:ElseClause? (_ "end" boundary)?
