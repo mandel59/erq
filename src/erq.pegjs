@@ -1711,29 +1711,29 @@ Identifier "identifier"
   ;
 
 Literal "literal"
-  = $("true" boundary)
-  / $("false" boundary)
-  / $("null" boundary)
+  = "true"i boundary { return "1"; }
+  / "false"i boundary { return "0"; }
+  / "null"i boundary { return "null"; }
   / StringLiteral
   / NumericLiteral
   ;
 
 StringLiteral
   = SQLStringLiteral
-  / &"E'" e:EscapedString { return e; }
+  / &"E'"i e:EscapedString { return e; }
   / s:JSONString { return quote(s); }
 
 ParsedStringLiteral
   = l:SQLStringLiteral { return parseSQLStringLiteral(l); }
-  / "E'" e:$EscapedStringBody "'" { return parseEscapedStringBody(e); }
+  / "E'"i e:$EscapedStringBody "'" { return parseEscapedStringBody(e); }
   / s:JSONString { return s; }
 
 SQLStringLiteral
   = $("'" ("''" / [^'\u0000])* "'")+
 
 EscapedString
-  = "E''" { return "''"; } // printf('') returns null. this is a workaround.
-  / "E'" s:EscapedStringBody "'" {
+  = "E''"i { return "''"; } // printf('') returns null. this is a workaround.
+  / "E'"i s:EscapedStringBody "'" {
     let fs = "";
     let args = "";
     for (const [f, ...a] of s) {
