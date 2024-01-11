@@ -647,12 +647,16 @@ FunctionParam
   }
 
 TableDef
-  = c1:ColumnDef cs:(_ "," _ c:ColumnDef { return c; })* cos:(_ "," _ c:TableConstraint { return c; })*
+  = cs:ColumnDef|1.., _ "," _| vcs:(cc:ConflictClause? _ "=>" _ vs:ColumnDef|.., _ "," _| { return { cc, cs: vs }; })? cos:(_ "," _ c:TableConstraint { return c; })*
   {
-    let def = c1.def;
-    for (const c of cs) def += `, ${c.def}`;
-    for (const co of cos) def += `, ${co.def}`;
-    return { def, columns: [c1, ...cs], constraints: cos };
+    if (vcs) {
+      const pkbody = `primary key (${cs.map(c => c.name).join(", ")})${vcs.cc ?? ""}`;
+      const pk = { def: pkbody, name: undefined, body: pkbody };
+      const def = [...cs, ...vcs.cs, ...cos, pk].map(c => c.def).join(", ");
+      return { def, columns: [cs, vcs.cs], constraints: [...cos, pk] };
+    }
+    const def = [...cs, ...cos].map(c => c.def).join(", ");
+    return { def, columns: cs, constraints: cos };
   }
 
 ColumnDef
@@ -1663,7 +1667,7 @@ FunctionCall
   ;
 
 NotTypeName
-  = ("constraint"/"primary"/"not"/"unique"/"check"/"default"/"collate"/"references"/"generated"/"as") boundary
+  = ("constraint"/"primary"/"not"/"unique"/"check"/"default"/"collate"/"references"/"generated"/"as"/"on") boundary
 
 TypeName
   = !NotTypeName x:(
