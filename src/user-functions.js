@@ -5,6 +5,7 @@ import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { feature } from "topojson-client";
 import iconv from "iconv-lite";
 import { geomToGeoJSON } from "./geo/geom-to-geojson.js";
+import { serialize, deserialize } from "@ungap/structured-clone";
 
 /**
  * @param {(name: string, options: import("better-sqlite3").RegistrationOptions, func: (...params: any[]) => any) => void} defineFunction 
@@ -305,6 +306,99 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
 
   defineFunction("json_hash", { deterministic: true }, function (json, algorithm) {
     return memoizedJsonHash(JSON.parse(json), { algorithm });
+  })
+
+  defineFunction("serialize_values", { deterministic: true, varargs: true, safeIntegers: true }, function (...args) {
+    return JSON.stringify(serialize(args));
+  })
+
+  defineAggregate("serialize_group_values", {
+    safeIntegers: true,
+    start: () => [],
+    step: (/** @type {any[]} */ array, /** @type {any} */ next) => {
+      array.push(next);
+    },
+    inverse: (/** @type {any[]} */ array, /** @type {any} */ _dropped) => {
+      array.shift();
+    },
+    result: (/** @type {any[]} */ array) => {
+      return JSON.stringify(serialize(array));
+    },
+  })
+
+  /**
+   * 
+   * @param {*} jsvalue 
+   * @returns {[string, any]}
+   */
+  function jsValueToSqliteRow(jsvalue) {
+    if (jsvalue === undefined) {
+      return ['undefined', null];
+    }
+    if (jsvalue === null) {
+      return ['null', null];
+    }
+    if (typeof jsvalue === "bigint") {
+      if (jsvalue > BigInt(Number.MAX_SAFE_INTEGER) || jsvalue < BigInt(Number.MIN_SAFE_INTEGER)) {
+        return ['bigint', jsvalue];
+      } else {
+        return ['bigint', jsvalue];
+      }
+    }
+    if (typeof jsvalue === "boolean") {
+      return ['boolean', jsvalue ? 1 : 0];
+    }
+    if (typeof jsvalue === "number") {
+      return ['number', jsvalue];
+    }
+    if (typeof jsvalue === "string") {
+      return ['string', jsvalue];
+    }
+    const c = Object.getPrototypeOf(jsvalue)?.constructor?.name;
+    switch (c) {
+      case "Date":
+        return ['Date', jsvalue.toISOString().replace("T", " ").replace("Z", "")];
+      case "Uint8Array":
+        return ['Uint8Array', jsvalue];
+      default:
+        return [c, String(jsvalue)];
+    }
+  }
+
+  defineTable("deserialize_values", {
+    safeIntegers: true,
+    parameters: ["_json"],
+    columns: ["value"],
+    rows: function* (json) {
+      if (json == null) return;
+      if (typeof json !== "string") throw new TypeError("deserialize_values(json) json must be text");
+      const values = deserialize(JSON.parse(json));
+      if (Array.isArray(values)) {
+        for (const value of values) {
+          yield [jsValueToSqliteRow(value)[1]];
+        }
+      } else {
+        yield [jsValueToSqliteRow(values)[1]];
+      }
+    }
+  })
+
+  defineTable("deserialize_values_with_type", {
+    safeIntegers: true,
+    parameters: ["_json"],
+    columns: ["type", "value"],
+    rows: function* (json) {
+      if (json == null) return;
+      if (typeof json !== "string") throw new TypeError("deserialize_values_with_type(json) json must be text");
+      const values = deserialize(JSON.parse(json));
+      if (Array.isArray(values)) {
+        for (const value of values) {
+          yield jsValueToSqliteRow(value);
+        }
+      } else {
+        yield jsValueToSqliteRow(values);
+      }
+    }
   })
 
   defineFunction("atob", { deterministic: true }, function (base64) {
