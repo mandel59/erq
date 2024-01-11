@@ -1269,12 +1269,6 @@ Filter
   / dw:JoinType? "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
     return (tb) => tb.join(tr, on, dw);
   }
-  / "join" __ tr:TableReference _ boundary "using" __ "(" _ u:NameList (_ ",")? _ ")" {
-    return (tb) => tb.joinUsing(tr, u);
-  }
-  / "join" __ tr:TableReference on:(_ boundary "on" __ e:Expression { return e; })? {
-    return (tb) => tb.join(tr, on);
-  }
   / "natural" __ "join" __ tr:TableReference {
     return (tb) => tb.join(tr, null, "natural");
   }
