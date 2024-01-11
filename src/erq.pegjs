@@ -674,7 +674,7 @@ ColumnConstraint
   }
 
 ColumnConstraintBody
-  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(_ "autoincrement" boundary {return " autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
+  = "primary" __ "key" d:(__ d:("asc"/"desc") { return ` ${d}`; })? boundary cc:ConflictClause? a:(_ "auto" _ "increment" boundary {return " autoincrement"; })? { return `primary key${d ?? ""}${cc ?? ""}${a ?? ""}`; }
   / "not" __ "null" boundary cc:ConflictClause? { return `not null${cc ?? ""}`; }
   / "unique" boundary cc:ConflictClause? { return `unique${cc ?? ""}`; }
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
