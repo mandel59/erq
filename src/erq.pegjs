@@ -879,6 +879,18 @@ BracketCondExpressionSeries
 
 SetClause
   = "set" __ l:UpdateLHS _ "=" _ e:Expression { return `${l} = ${e}`; }
+  / "set" __ t:Name _ "+=" _ e:Expression { return `${t} = ${t} + (${e})`; }
+  / "set" __ t:Name _ "-=" _ e:Expression { return `${t} = ${t} - (${e})`; }
+  / "set" __ t:Name _ "*=" _ e:Expression { return `${t} = ${t} * (${e})`; }
+  / "set" __ t:Name _ "/=" _ e:Expression { return `${t} = ${t} / (${e})`; }
+  / "set" __ t:Name _ "%=" _ e:Expression { return `${t} = ${t} % (${e})`; }
+  / "set" __ t:Name _ "&=" _ e:Expression { return `${t} = ${t} & (${e})`; }
+  / "set" __ t:Name _ "|=" _ e:Expression { return `${t} = ${t} | (${e})`; }
+  / "set" __ t:Name _ "^=" _ e:Expression { return `${t} = ${t} ^ (${e})`; }
+  / "set" __ t:Name _ "<<=" _ e:Expression { return `${t} = ${t} << (${e})`; }
+  / "set" __ t:Name _ ">>=" _ e:Expression { return `${t} = ${t} >> (${e})`; }
+  / "set" __ t:Name _ "||=" _ e:Expression { return `${t} = ${t} || (${e})`; }
+  / "set" __ t:Name _ "??=" _ e:Expression { return `${t} = coalesce(${t}, ${e})`; }
 
 UpdateLHS
   = "{" _ ans:Name|1.., _ "," _| (_ ",")? _ "}" _ { return `(${ans.join(", ")})`; }
