@@ -1,0 +1,40 @@
+-- create a table of cells
+create table cells (x integer, y integer => mined integer check(mined in [0, 1])) strict, without rowid;;
+
+-- initialize 10x10 grid of cells
+cells{x, y, mined}
+  <- x: range(0, 9)
+    join y: range(0, 9)
+    {x.value, y.value, 0};;
+
+-- randomly mine 10 cells
+insert or replace
+  cells{x, y, mined} <- cells{x, y, 1} order by random() limit 10;;
+
+-- show the grid
+cells{y asc => cells: group_concat(case when mined then '[*]' else '[ ]' end, '' order by x)};;
+
+-- create a table of cells with the number of mines adjacent to each cell
+table adjacents
+  = c: cells
+    {
+      x, y, mined,
+      adjacent:
+        from cells[mined]
+          [x in [c.x - 1, c.x, c.x + 1]]
+          [y in [c.y - 1, c.y, c.y + 1]]
+          {count()}
+    };;
+
+-- show the number of mines adjacent to each cell
+adjacents
+  {
+    *,
+    mark:
+      case
+        when mined then '*'
+        when adjacent = 0 then ' '
+        else adjacent
+      end
+  }
+  {y asc => cells: group_concat(E'[\(mark)]', '' order by x)};;
