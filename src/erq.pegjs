@@ -1178,10 +1178,7 @@ Table2
   ;
 
 ValuesList
-  = "lateral" __ "values" _ "[" _ es:Expressions (_ ",")? _ "]" {
-    return `deserialize_values(serialize_values(${es}))`;
-  }
-  / "values" __ a:ColumnNameList? "[" _ vs:(
+  = "values" __ a:ColumnNameList? "[" _ vs:(
       es:(Record/Expression)|1.., _ "," _| { return es.map(e => `(${e})`).join(", "); }
     ) (_ ",")? _ "]"
   {
@@ -1343,6 +1340,7 @@ TableExpression
   }
   / "(" _ t:Table1 _ ")" { return { name: null, expression: `(${t.toSQL(true)})`, table: t }; }
   / "(" _ t:Table _ ")" { return { name: null, expression: `(${t})` }; }
+  / "lateral" __ "values" _ "[" _ es:Expressions (_ ",")? _ "]" { return { name: null, expression: `deserialize_values(serialize_values(${es}))` }; }
   / t:ValuesList { return { name: null, expression: `(${t})` }; }
   / s:Name _ "." _ n:Name _ "(" _ ")" { return { name: n, expression: `${s}.${n}()` }; }
   / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${s}.${n}(${es})` }; }
