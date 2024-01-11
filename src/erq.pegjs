@@ -49,10 +49,8 @@ MetaStatement
   / f:SetOutputFormat { return { type: "command", command: "meta-set-output", args:[f] } }
 
 IfStatement
-  = "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement _ "else" __ f:BlockStatement
+  = "if" _ "(" _ e:Expression _ ")" _ ("then" __)? t:BlockStatement els:(_ "else" __ f:BlockStatement { return f; })?
     { return { type: "if", condition: e, thenStatements: t, elseStatements: f }; }
-  / "if" _ "(" _ e:Expression _ ")" _ t:BlockStatement
-    { return { type: "if", condition: e, thenStatements: t }; }
 
 ForStatement
   = "for" __ a:ForVarAssignments _ "of" __ t:Table _ body:BlockStatement
@@ -76,7 +74,7 @@ WhileStatement
   }
 
 ForEachClause
-  = _ "foreach" _ "(" _ a:ForVarAssignments _ ")" _ body:BlockStatement
+  = _ "for" _ "each" _ "(" _ a:ForVarAssignments _ ")" _ body:BlockStatement
   {
     return {
       assignments: a,
@@ -95,8 +93,8 @@ Variable
   = $("@" Identifier)
 
 BlockStatement
-  = s:Statement { return [s]; }
-  / Do? "(" _ ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
+  = Do? "(" _ ss:Statement|1.., _ ";;" _| _ ";;" _ ")" { return ss; }
+  / s:Statement { return [s]; }
 
 Do = "do" __
 
