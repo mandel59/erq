@@ -736,13 +736,9 @@ Create
   {
     return `create virtual table ${n} using ${tn}(${a})`;
   }
-  / Do? "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef (_ ",")? _ ")"
+  / Do? "create" __ "table" boundary ine:(_ "if" __ "not" __ "exists" boundary)? _ n:TableName _ "(" _ td:TableDef (_ ",")? _ ")" opts:TableOptions?
   {
-    if (ine != null) {
-      return `create table if not exists ${n} (${td.def})`;
-    } else {
-      return `create table ${n} (${td.def})`;
-    }
+    return `create table${ine ? " if not exists" : ""} ${n} (${td.def})${opts ? ` ${opts.join(", ")}` : ""}`;
   }
   / Do? "create" temp:(__ "temporary" { return " temporary"; })? __ "trigger" boundary
     ine:(_ "if" __ "not" __ "exists" boundary { return " if not exists"; })?
@@ -774,6 +770,13 @@ Create
       return `create ${tv} ${qn} as ${t}`;
     }
   }
+
+TableOptions
+  = _ opts:TableOption|1.., _ "," _| { return opts; }
+
+TableOption
+  = "strict" boundary { return "strict"; }
+  / "without" __ "rowid" boundary { return "without rowid"; }
 
 BlockTriggerStatement
   = s:TriggerStatement { return [s]; }
