@@ -1,0 +1,5 @@
+load module iconv;;
+
+{ wrong_data: '¤¢¤¤¤¦¤¨¤ª' }
+  { *, blob_data: iconv::encode(wrong_data, 'iso8859-1') }
+  { *, correct_data: iconv::decode(blob_data, 'euc-jp') };;

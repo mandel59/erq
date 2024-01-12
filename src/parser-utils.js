@@ -393,3 +393,33 @@ export class TableBuilder {
     return this;
   }
 }
+
+/**
+ * 
+ * @param {string[]} path 
+ * @returns 
+ */
+function moduleNameMangling(path) {
+  return path.map((name) => unquoteSQLName(name)).join("::")
+}
+
+/**
+ * 
+ * @param {string[]} path 
+ * @returns 
+ */
+export function modulePathNameToName(path) {
+  return moduleNameMangling(path);
+}
+
+/**
+ * 
+ * @param {string[]} path 
+ * @returns 
+ */
+export function modulePathNameToSQLName(path) {
+  if (path.length === 1) {
+    return path[0];
+  }
+  return quoteSQLName(moduleNameMangling(path));
+}

@@ -11,6 +11,7 @@ import {
   quote,
   escapeVegaField,
   TableBuilder,
+  modulePathNameToSQLName,
 } from "../src/parser-utils.js";
 
 }}
@@ -44,6 +45,7 @@ Statement
 
 MetaStatement
   = l:LoadRawBlock { return { type: "command", command: "meta-load", args: l }}
+  / l:LoadModule { return { type: "command", command: "meta-load-module", args: l }}
   / c:CreateFunction { return { type: "command", command: "meta-create-function", args:c } }
   / c:CreateTableFromJson { return { type: "command", command: "meta-create-table-from-json", args:c } }
   / f:SetOutputFormat { return { type: "command", command: "meta-set-output", args:[f] } }
@@ -550,6 +552,14 @@ Analyze
   / Do? "analyze" __ n:Name { return `analyze ${n}`; }
   / Do? "analyze" boundary { return "analyze"; }
 
+LoadModule
+  = Do? "load" __ "module" __ modulePath:ModulePathName alias:(_ "as" __ n:Name { return n; })?
+    { return [modulePath, alias]; }
+
+ModulePathName
+  = ns:Name|1.., _ "::" _|
+  { return ns; }
+
 LoadRawBlock
   = Do? "load" __ "table" boundary
     ifNotExists:(_ "if" __ "not" __ "exists" boundary { return true; })?
@@ -1006,7 +1016,7 @@ TableName1
 
 MetaTableName
   = i:$("@" Identifier) { return `\u0000t${i}\u0000`; }
-  / Name
+  / m:ModulePathName { return modulePathNameToSQLName(m); }
 
 Table
   = WithTable
@@ -1242,7 +1252,7 @@ Record
   }
 
 TableReference
-  = n:Name _ ":" _ e:TableExpression { return { name: n, expression: e.expression, rename: true }; }
+  = n:Name _ !("::") ":" _ e:TableExpression { return { name: n, expression: e.expression, rename: true }; }
   / e:TableExpression { return { name: e.name, expression: e.expression, table: e.table, rename: false }; }
   ;
 
@@ -1356,12 +1366,12 @@ TableExpression
   / "lateral" __ "values" _ "[" _ es:Expressions (_ ",")? _ "]" { return { name: null, expression: `deserialize_values(serialize_values(${es}))` }; }
   / t:ValuesList { return { name: null, expression: `(${t})` }; }
   / l:Literal { return { name: null, expression: `(select ${l} as value)` } }
-  / s:Name _ "." _ n:Name _ "(" _ ")" { return { name: n, expression: `${s}.${n}()` }; }
-  / s:Name _ "." _ n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${s}.${n}(${es})` }; }
-  / s:Name _ "." _ t:Name { return { name: t, expression: `${s}.${t}` }; }
-  / n:Name _ "(" _ ")" { return { name: n, expression: `${n}()` }; }
-  / n:Name _ "(" _ es:Expressions _ ")" { return { name: n, expression: `${n}(${es})` }; }
-  / n:Name { return { name: n, expression: n } }
+  / s:Name _ "." _ m:ModulePathName _ "(" _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${s}.${n}()` }; }
+  / s:Name _ "." _ m:ModulePathName _ "(" _ es:Expressions _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${s}.${n}(${es})` }; }
+  / s:Name _ "." _ m:ModulePathName { const t = modulePathNameToSQLName(m); return { name: t, expression: `${s}.${t}` }; }
+  / m:ModulePathName _ "(" _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${n}()` }; }
+  / m:ModulePathName _ "(" _ es:Expressions _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${n}(${es})` }; }
+  / m:ModulePathName { const n = modulePathNameToSQLName(m); return { name: n, expression: n } }
   ;
 
 Expressions
@@ -1520,9 +1530,9 @@ Value
   / RaiseFunctionCall
   / FunctionCall
   / n1:Name ns:(
-    _ "." _ n2:Name n3:(
+    _ "." _ n2:ModulePathName n3:(
       _ "." _ n:Name { return n; }
-    )? { return n3 != null ? `.${n2}.${n3}` : `.${n2}`; }
+    )? { return n3 != null ? `.${modulePathNameToSQLName(n2)}.${n3}` : `.${modulePathNameToSQLName(n2)}`; }
   )? ! (_ "." _ "*") { return ns != null ? `${n1}${ns}` : n1; }
   ;
 
@@ -1667,7 +1677,7 @@ RaiseFunctionCall
   / "raise" _ "(" _ t:("rollback" / "abort" / "fail") _ "," _ message:Expression _ ")" { return `raise(${t}, ${message})`; }
 
 FunctionCall
-  = n:Name _ "(" _ rs:(
+  = m:ModulePathName _ "(" _ rs:(
     ")" { return `)`; }
     / "*" _ ")" { return `*)`; }
     / "distinct" __ es:Expressions oc:OrderClause? _ ")" {
@@ -1678,7 +1688,7 @@ FunctionCall
       if (oc == null) return `${es})`;
       return `${es} order by ${oc.map(([v, dir]) => `${v} ${dir}`).join(", ")})`;
     }
-  ) { return `${n}(${rs}`; }
+  ) { return `${modulePathNameToSQLName(m)}(${rs}`; }
   ;
 
 NotTypeName

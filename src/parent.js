@@ -178,7 +178,12 @@ export async function parent() {
     output: stderr,
     terminal: isTTY,
     completer: (line, callback) => {
-      ipcCall("completer", [line]).then(value => callback(null, value));
+      ipcCall("completer", [line]).then(value => {
+        if (DEBUG) {
+          console.error("[completer]: %s", JSON.stringify(value));
+        }
+        callback(null, value)
+      });
     },
     prompt: 'erq> ',
     history: loadHistory(),

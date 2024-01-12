@@ -10,6 +10,7 @@ import {
   reParseColumnName,
   quoteSQLName,
   unquoteSQLName,
+  modulePathNameToName,
 } from "./parser-utils.js";
 import { getJSRuntime } from "./js-runtime.js";
 import { evalDestination } from "./eval-utils.js";
@@ -112,7 +113,7 @@ export async function child() {
       throw new Error(`module ${name} not found`);
     }
     const { default: module } = await importModule();
-    return await module.load({ context: moduleContext, modulePrefix });
+    await module.load({ context: moduleContext, modulePrefix });
   }
 
   function registerModule(name, importModule) {
@@ -420,6 +421,13 @@ export async function child() {
       return false;
     } else if (command === "meta-set-output") {
       outputFormat = args[0];
+      return true;
+    }
+    else if (command === "meta-load-module") {
+      const [modulePath, name] = args;
+      const moduleName = modulePathNameToName(modulePath);
+      const modulePrefix = `${name ? unquoteSQLName(name) : moduleName}::`;
+      await loadModule(moduleName, modulePrefix);
       return true;
     }
     else if (command === "meta-load") {

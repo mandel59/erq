@@ -1,0 +1,16 @@
+[
+  {
+    "type": "command",
+    "command": "meta-load-module",
+    "args": [
+      [
+        "iconv"
+      ],
+      null
+    ]
+  },
+  {
+    "type": "select",
+    "query": "select *, `iconv::decode`(blob_data, 'euc-jp') as correct_data from (select *, `iconv::encode`(wrong_data, 'iso8859-1') as blob_data from (select '¤¢¤¤¤¦¤¨¤ª' as wrong_data))"
+  }
+]
