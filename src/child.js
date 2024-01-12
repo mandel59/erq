@@ -104,8 +104,30 @@ export async function child() {
     db.aggregate(name, options);
   }
 
-  const { defineUserFunctions } = await import("../src/user-functions.js");
-  defineUserFunctions(defineFunction, defineTable, defineAggregate);
+  const modules = new Map();
+
+  const loadModule = async (name, modulePrefix) => {
+    const importModule = modules.get(name);
+    if (!importModule) {
+      throw new Error(`module ${name} not found`);
+    }
+    const { default: module } = await importModule();
+    return await module.load({ context: moduleContext, modulePrefix });
+  }
+
+  function registerModule(name, importModule) {
+    modules.set(name, importModule);
+  }
+
+  const moduleContext = {
+    defineTable,
+    defineFunction,
+    defineAggregate,
+    registerModule,
+  }
+
+  registerModule("global", () => import("./modules/global.js"));
+  await loadModule("global", "");
 
   /** @type {Map<string, (...args: any[]) => Promise<any>>} */
   const ipcExported = new Map();

@@ -1,18 +1,16 @@
 import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname } from "node:path";
-import jsdom from "jsdom";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
-import { feature } from "topojson-client";
-import iconv from "iconv-lite";
-import { geomToGeoJSON } from "./geo/geom-to-geojson.js";
 import { serialize, deserialize } from "@ungap/structured-clone";
 
-/**
- * @param {(name: string, options: import("better-sqlite3").RegistrationOptions, func: (...params: any[]) => any) => void} defineFunction 
- * @param {(name: string, options: Parameters<import("better-sqlite3").Database["table"]>[1]) => void} defineTable 
- * @param {(name: string, options: Parameters<import("better-sqlite3").Database["aggregate"]>[1]) => void} defineAggregate
- */
-export function defineUserFunctions(defineFunction, defineTable, defineAggregate) {
+import { createErqNodeJsModule } from "../create-erq-nodejs-module.js";
+
+export default createErqNodeJsModule('global', async ({ registerModule, defineTable, defineFunction, defineAggregate }) => {
+
+  registerModule("dom", () => import("./dom.js"));
+  registerModule("geo", () => import("./geo.js"));
+  registerModule("iconv", () => import("./iconv.js"));
+
   defineTable("string_split", {
     parameters: ["_string", "_delimiter"],
     columns: ["value"],
@@ -95,62 +93,6 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
       }
     }
   });
-
-  defineTable("xml_tree", {
-    parameters: ["_xml", "content_type", "url", "referrer"],
-    columns: ["id", "parent", "type", "name", "value", "attributes"],
-    rows: function* (
-      /** @type {string | null} */ xml,
-      /** @type {string | null} */ contentType,
-      /** @type {string | null} */ url,
-      /** @type {string | null} */ referrer,
-    ) {
-      /**
-       * @param {string} contentType 
-       * @returns {contentType is 'text/html' | 'application/xhtml+xml' | 'application/xml' | 'text/xml' | 'image/svg+xml'}
-       */
-      function isSupportedContentType(contentType) {
-        return contentType === "text/html"
-          || contentType === "application/xhtml+xml"
-          || contentType === "application/xml"
-          || contentType === "text/xml"
-          || contentType === "image/svg+xml";
-      }
-      if (xml == null) {
-        return;
-      }
-      if (contentType == null) {
-        contentType = "application/xml";
-      }
-      if (!isSupportedContentType(contentType)) {
-        throw new Error(`xml_tree(xml,contentType,url,referrer) unsupported content type ${contentType}`);
-      }
-      const { window } = new jsdom.JSDOM(xml, {
-        contentType,
-        url,
-        referrer,
-      });
-      const result = window.document.evaluate("//node()", window.document, null, window.XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-      /** @type {Map<Node, number>} */
-      const idmap = new Map();
-      let id = 0;
-      /** @type {Node} */
-      let n;
-      while (n = result.iterateNext()) {
-        id += 1;
-        const attrs = /** @type {Element} */ (n).attributes;
-        yield [
-          id,
-          idmap.get(n.parentNode) ?? 0,
-          n.nodeType,
-          n.nodeName,
-          n.nodeValue,
-          attrs ? JSON.stringify(Object.fromEntries(Array.from(attrs, (attr) => [attr.name, attr.value]))) : null,
-        ];
-        idmap.set(n, id);
-      }
-    }
-  })
 
   defineFunction("process_cwd", { deterministic: false }, function () {
     return process.cwd();
@@ -323,13 +265,13 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
   defineAggregate("serialize_group_values", {
     safeIntegers: true,
     start: () => [],
-    step: (/** @type {any[]} */ array, /** @type {any} */ next) => {
+    step: (array, next) => {
       array.push(next);
     },
-    inverse: (/** @type {any[]} */ array, /** @type {any} */ _dropped) => {
+    inverse: (array, _dropped) => {
       array.shift();
     },
-    result: (/** @type {any[]} */ array) => {
+    result: (array) => {
       return JSON.stringify(serialize(array));
     },
   })
@@ -564,84 +506,6 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
     }
   })
 
-  defineTable("topojson_feature", {
-    parameters: ["_topology", "_object"],
-    columns: ["id", "type", "properties", "geometry", "bbox"],
-    rows: function* (topology, object) {
-      if (topology == null || object == null) {
-        return;
-      }
-      if (typeof object !== "string") {
-        throw new TypeError("topojson_feature(topology,object) object must be a string");
-      }
-      if (Buffer.isBuffer(topology)) {
-        topology = topology.toString("utf-8");
-      }
-      const t = JSON.parse(topology);
-      const o = t.objects[object];
-      if (o == null) {
-        throw new Error(`topojson_feature(topology,object) object ${object} not found`);
-      }
-      /** @type {*} */
-      const f = feature(t, o);
-      /** @type {Array<import("geojson").Feature>} */
-      let fs;
-      /**
-       * @param {*} obj
-       * @returns {obj is import("geojson").FeatureCollection}
-       */
-      function isFeatureCollection(obj) {
-        return obj.type === "FeatureCollection";
-      }
-      if (isFeatureCollection(f)) {
-        fs = f.features;
-      } else {
-        fs = [f];
-      }
-      for (const f of fs) {
-        if (!(typeof f.id === "number" || typeof f.id === "string" || f.id == null)) {
-          throw new Error("topojson_feature(topology,object) feature.id must be a number or a string");
-        }
-        yield [
-          f.id,
-          f.type,
-          JSON.stringify(f.properties),
-          JSON.stringify(f.geometry),
-          f.bbox != null ? JSON.stringify(f.bbox) : null,
-        ];
-      }
-    }
-  })
-
-  defineTable("gpkg_wkb_feature", {
-    parameters: ["_geom"],
-    columns: ["type", "geometry", "bbox"],
-    rows: function* (geom) {
-      if (!Buffer.isBuffer(geom)) throw new TypeError("gpkg_wkb_feature(geom) geom must be a blob");
-      yield {
-        type: "Feature",
-        geometry: JSON.stringify(geomToGeoJSON(geom)),
-        bbox: null,
-      }
-    }
-  })
-
-  defineFunction("iconv_decode", { deterministic: true }, function (buffer, encoding) {
-    if (buffer == null) return null;
-    if (encoding == null) return null;
-    if (!Buffer.isBuffer(buffer)) throw new TypeError("iconv_decode(buffer,encoding) buffer must be a blob");
-    if (typeof encoding !== "string") throw new TypeError("iconv_decode(buffer,encoding) encoding must be a string");
-    return iconv.decode(buffer, encoding);
-  })
-
-  defineFunction("iconv_encode", { deterministic: true }, function (str, encoding) {
-    if (str == null) return null;
-    if (encoding == null) return null;
-    if (typeof str !== "string") throw new TypeError("iconv_encode(str,encoding) str must be a string");
-    if (typeof encoding !== "string") throw new TypeError("iconv_encode(str,encoding) encoding must be a string");
-    return iconv.encode(str, encoding);
-  })
-
   defineFunction("normalize", { deterministic: true }, function (str) {
     if (str == null) return null;
     if (typeof str !== "string") throw new TypeError("normalize(str,form) str must be a string");
@@ -655,4 +519,5 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
     if (typeof form !== "string") throw new TypeError("normalize(str,form) form must be a string");
     return str.normalize(form);
   })
-}
+
+});
