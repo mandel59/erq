@@ -308,7 +308,15 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
     return memoizedJsonHash(JSON.parse(json), { algorithm });
   })
 
-  defineFunction("serialize_values", { deterministic: true, varargs: true, safeIntegers: true }, function (...args) {
+  defineFunction("json_serialize", { safeIntegers: true }, function (value) {
+    return JSON.stringify(serialize(JSON.parse(value)));
+  })
+
+  defineFunction("structured_serialize", { safeIntegers: true }, function (value) {
+    return JSON.stringify(serialize(value));
+  })
+
+  defineFunction("serialize_values", { varargs: true, safeIntegers: true }, function (...args) {
     return JSON.stringify(serialize(args));
   })
 
@@ -360,10 +368,41 @@ export function defineUserFunctions(defineFunction, defineTable, defineAggregate
         return ['Date', jsvalue.toISOString().replace("T", " ").replace("Z", "")];
       case "Uint8Array":
         return ['Uint8Array', jsvalue];
+      case "Object":
+        return ['Object', `{${String(Object.keys(jsvalue))}}`];
+      case "Array":
+        return ['Array', `[${String(jsvalue)}]`];
       default:
         return [c, String(jsvalue)];
     }
   }
+
+  defineFunction("structured_deserialize", { varargs: true }, function (json, ...path) {
+    if (json == null) return null;
+    if (typeof json !== "string") throw new TypeError("deserialize(json) json must be text");
+    let value = deserialize(JSON.parse(json));
+    for (const p of path) {
+      if (value == null) return null;
+      if (typeof value !== "object") return null;
+      switch (Object.getPrototypeOf(value)?.constructor?.name) {
+        case "Map":
+          value = value.get(p);
+          break;
+        case "Set":
+          value = value.has(p);
+          break;
+        case "Array":
+          value = value[p];
+          break;
+        case "Object":
+          value = value[p];
+          break;
+        default:
+          value = null;
+      }
+    }
+    return jsValueToSqliteRow(value)[1];
+  })
 
   defineTable("deserialize_values", {
     safeIntegers: true,
