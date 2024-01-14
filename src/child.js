@@ -147,47 +147,6 @@ export async function child() {
     return result;
   }
 
-  function getTables() {
-    const tables =
-      /** @type {{schema: string, name: string, type: string, ncol: number, wr: 0 | 1, strict: 0 | 1}[]} */
-      (db.prepare("pragma table_list").all());
-    return tables;
-  }
-
-  function getAllModules() {
-    const names =
-      /** @type {string[]} */
-      (db.prepare("select name from pragma_module_list where name not glob 'pragma_*'").pluck().all());
-    return names;
-  }
-
-  function getAllFunctionNames() {
-    const names =
-      /** @type {string[]} */
-      (db.prepare("select name from pragma_function_list").pluck().all());
-    return names.map(name => quoteSQLName(name));
-  }
-
-  function getColumns(schema, table) {
-    if (schema == null) {
-      const columns =
-        /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
-        (db.prepare(`pragma table_xinfo(${quoteSQLName(table)})`).all());
-      return columns;
-    }
-    const columns =
-      /** @type {{cid: number, name: string, type: string, notnull: 0 | 1, dflt_value: any, pk: 0 | 1, hidden: 0 | 1 | 2}[]} */
-      (db.prepare(`pragma ${quoteSQLName(schema)}.table_xinfo(${quoteSQLName(table)})`).all());
-    return columns;
-  }
-
-  function getPragmaNames() {
-    const tables =
-      /** @type {{name: string}[]} */
-      (db.prepare("pragma pragma_list").all());
-    return tables.map(({ name }) => name);
-  }
-
   const erqCliCompleter = new ErqCliCompleter(db);
 
   /**
