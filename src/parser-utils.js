@@ -10,12 +10,15 @@ export function merge(x, ...args) {
   });
 }
 
-export const patName = "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}][\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}]*";
-export const patQuot = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*`";
-export const patPart = "(?<![\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}])`[^`]*";
-export const reName = new RegExp(`^${patName}$`, "u");
-export const reFQNamePart = new RegExp(`(?:(?:${patName}|${patQuot})\\.){0,2}(?:${patName}|${patQuot}|${patPart})?$`, "u");
-export const reIdent = /^[_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}][\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}\p{Mc}\p{Nd}\p{Pc}\p{Cf}]*$/u;
+export const patIdent = "[_\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}][\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\p{Mc}\\p{Nd}\\p{Pc}\\p{Cf}]*";
+export const patQuot = "(?:(?:`[^`]*`)+)";
+export const patQuotPart = "(?:`[^`]*(?:``[^`]*)*`?)";
+export const patName = `(?:${patQuot}|${patIdent})`;
+export const patNamePart = `(?:${patQuotPart}|${patIdent})`;
+export const patModule = `(?:${patName}(?:::${patName})*)`;
+export const patModulePart = `(?:(?:${patName}::)*(?:${patName}:{0,2}|${patNamePart}))`;
+export const reIdent = new RegExp(`^${patIdent}$`, "u");
+export const reFQNamePart = new RegExp(`(?:${patQuotPart}|(?:${patName}\\.${patModule}\\.${patNamePart}?)|${patModule}\\.${patNamePart}?|${patModulePart})?$`, "u");
 
 /**
  * Parse dot-separated name like `t.c` or `s.t.c`.
@@ -24,10 +27,10 @@ export const reIdent = /^[_\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}][\p{Lu}\p{Ll}\p{
  * `m[2]`: table name if schema name is specified.
  * `m[3]`: column name.
  */
-export const reParseColumnName = new RegExp(`^(${patName}|${patQuot})(?:\\.(${patName}|${patQuot}))?\\.(${patName}|${patQuot}|${patPart})?$`, "u");
+export const reParseColumnName = new RegExp(`^(${patIdent}|${patQuot})(?:\\.(${patIdent}|${patQuot}))?\\.(${patIdent}|${patQuot}|${patQuotPart})?$`, "u");
 
 export function quoteSQLName(name) {
-  if (!reName.test(name)) {
+  if (!reIdent.test(name)) {
     if (name.includes("\u0000")) {
       throw new RangeError("SQL name cannot contain NUL character");
     }

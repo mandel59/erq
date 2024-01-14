@@ -16,6 +16,15 @@ export class ErqCliCompleter {
       (this.db.prepare("pragma table_list").all());
     return tables;
   }
+  /**
+   * @param {"table" | "view"} type 
+   */
+  getTablesOnly(type) {
+    const tables =
+      /** @type {{schema: string, name: string, type: string, ncol: number, wr: 0 | 1, strict: 0 | 1}[]} */
+      (this.db.prepare("select * from pragma_table_list where type = ? and name not glob 'sqlite_*'").all(type));
+    return tables;
+  }
   getPragmaNames() {
     const tables =
       /** @type {{name: string}[]} */
@@ -50,10 +59,21 @@ export class ErqCliCompleter {
     const m = reFQNamePart.exec(line);
     const q = m[0];
     const qq = q.replace(/`/g, "");
+
+    // pragma completion
     const isPragma = /pragma\s+\w*$/.test(line);
     if (isPragma) {
       return [this.getPragmaNames().filter(n => n.startsWith(q)), q];
     }
+
+    const matchDropTable = new RegExp(`drop\\s+(table|view)\\s+(?:if\\s+exists\\s+)?(?:\\S+|\`[^\`]*\`?)*$`, "u").exec(line);
+    if (matchDropTable) {
+      const t = /** @type {"table"|"view"} */ (matchDropTable[1]);
+      return [this.getTablesOnly(t).flatMap(t => {
+        return [quoteSQLName(t.name), `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`];
+      }).filter(n => n.startsWith(q)).sort(), q];
+    }
+
     try {
       const tables = this.getTables();
       const modules = this.getAllModules();
