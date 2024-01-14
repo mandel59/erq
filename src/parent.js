@@ -4,6 +4,8 @@ import process, { stdin, stderr } from "node:process";
 import { readFile } from "node:fs/promises";
 import readline from "node:readline";
 
+import chalk from "chalk";
+
 import { options, DEBUG } from "./options.js";
 import { loadHistory, saveHistory } from "./history.js";
 import { isTTY } from "./io.js";
@@ -123,7 +125,7 @@ export async function parent() {
 
   if (options.init) {
     input = await readFile(options.init, "utf-8");
-    input += "\n;;";
+    input += "\n;;\n";
     while (input !== "") {
       const sqls = parseErq();
       if (sqls == null) {
@@ -153,17 +155,40 @@ export async function parent() {
         console.error("%s: %s", error.name, error.message);
       }
       if (error && error.location) {
-        const start = error.location.start.offset;
-        const end = error.location.end.offset;
         console.error(" at line %d column %d", error.location.start.line, error.location.start.column);
         if (stderr.isTTY) {
+          const startLine = error.location.start.line;
+          const endLine = error.location.end.line;
           console.error("---");
-          console.error(
-            '%s',
-            input.slice(0, start)
-            + '\x1b[1m\x1b[37m\x1b[41m'
-            + input.slice(start, end)
-            + '\x1b[0m' + input.slice(end));
+          const reLine = /[^\n]*\n|[^\n]+/y;
+          let i = 0, m;
+          while (m = reLine.exec(input)) {
+            i += 1;
+            const line = m[0].slice(0, -1);
+            if (startLine <= i && i <= endLine) {
+              let highlited = "";
+              if (i === startLine && i === endLine) {
+                const start = error.location.start.column - 1;
+                const end = error.location.end.column - 1;
+                highlited += line.slice(0, start);
+                highlited += chalk.bgRed.white(line.slice(start, end));
+                highlited += line.slice(end);
+              } else if (i === startLine) {
+                const start = error.location.start.column - 1;
+                highlited += line.slice(0, start);
+                highlited += chalk.bgRed.white(line.slice(start));
+              } else if (i === endLine) {
+                const end = error.location.end.column - 1;
+                highlited += chalk.bgRed.white(line.slice(0, end));
+                highlited += line.slice(end);
+              } else {
+                highlited += chalk.bgRed.white(line);
+              }
+              console.error(`${chalk.cyan(i.toString().padStart(4, " ") + ": ")}${highlited}`);
+            } else if (startLine - 2 <= i && i <= endLine + 2) {
+              console.error(`${chalk.cyan(i.toString().padStart(4, " ") + ": ")}${line}`);
+            }
+          }
           console.error("---");
         }
       }
@@ -237,10 +262,7 @@ export async function parent() {
 
   if (isTTY) { rl.prompt(); }
   rl.on("line", async (line) => {
-    if (input !== "") {
-      input += "\n";
-    }
-    input += line;
+    input += line + "\n";
     if (!isTTY) {
       // slurp all input before run
       return;
@@ -271,7 +293,7 @@ export async function parent() {
   });
   rl.on("close", async () => {
     if (input !== null) {
-      input += "\n;;";
+      input += "\n;;\n";
       const sqls = await parseErq();
       if (sqls == null) {
         ipcSend("quit", [1], null);
