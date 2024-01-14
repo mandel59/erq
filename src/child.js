@@ -6,8 +6,6 @@ import Database from "better-sqlite3";
 import { uncons } from "./async-iter.js";
 import { options, DEBUG } from "./options.js";
 import {
-  reFQNamePart,
-  reParseColumnName,
   quoteSQLName,
   unquoteSQLName,
   modulePathNameToName,
@@ -15,7 +13,7 @@ import {
 import { getJSRuntime } from "./js-runtime.js";
 import { evalDestination } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
-import { erqKeywords, keywords } from "./keywords.js";
+import { ErqCliCompleter } from "./completer.js";
 
 export async function child() {
   if (DEBUG) {
@@ -190,112 +188,14 @@ export async function child() {
     return tables.map(({ name }) => name);
   }
 
+  const erqCliCompleter = new ErqCliCompleter(db);
+
+  /**
+   * Complete Erq query
+   * @param {string} line 
+   */
   async function completer(line) {
-    const m = reFQNamePart.exec(line);
-    const q = m[0];
-    const qq = q.replace(/`/g, "");
-    const isPragma = /pragma\s+\w*$/.test(line);
-    if (isPragma) {
-      return [getPragmaNames().filter(n => n.startsWith(q)), q];
-    }
-    try {
-      const tables = getTables();
-      const modules = getAllModules();
-      const pragmas = getPragmaNames();
-      const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
-      const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
-      const tableNames = tables.map(t => quoteSQLName(t.name)).concat(modules.map(m => quoteSQLName(m)));
-      let _getAllColumnNames;
-      const getAllColumnNames = () => {
-        if (_getAllColumnNames) return _getAllColumnNames;
-        return _getAllColumnNames = Array.from(new Set(tables.flatMap(t => {
-          try {
-            return getColumns(t.schema, t.name)
-              .filter(c => c.hidden !== 1)
-              .map(c => quoteSQLName(c.name));
-          } catch {
-            // If the view is invalid, getColumn throws an SqliteError.
-            // Ignore it.
-            return [];
-          }
-        })).values());
-      }
-      // column completion
-      {
-        const m = reParseColumnName.exec(q);
-        if (m != null) {
-          const m1 = unquoteSQLName(m[1]);
-          const m2 = m[2] && unquoteSQLName(m[2]);
-          const m3 = m[3] ? unquoteSQLName(m[3]) : "";
-          // set sn as the schema name and tn as the table name.
-          const [sn, tn, cn] = (m2 != null) ? [m1, m2, m3] : [tables.find(t => t.name === m1)?.schema, m1, m3];
-          if (schemas.includes(sn)) {
-            const columns = getColumns(sn, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
-            let candidates;
-            if (m2 != null) {
-              const qtn = `${quoteSQLName(sn)}.${quoteSQLName(tn)}`;
-              candidates = columns.map(c => `${qtn}.${quoteSQLName(c.name)}`);
-            } else {
-              const qtn = quoteSQLName(tn);
-              candidates = columns.map(c => `${qtn}.${quoteSQLName(c.name)}`);
-            }
-            return [candidates, q]
-          } else if (schemas.includes(tn)) {
-            let candidates = tables
-              .filter(t => t.schema === tn)
-              .map(t => quoteSQLName(t.name))
-              .filter(name => name.startsWith(cn))
-              .map(name => `${quoteSQLName(tn)}.${name}`);
-            if (tn === "main") {
-              candidates = candidates.concat(
-                modules.filter(n => n.startsWith(cn)).map(n => `main.${n}(`)
-              );
-            }
-            if (candidates.length > 0) {
-              return [candidates, q];
-            }
-          } else if (modules.includes(tn)) {
-            const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
-            return [columns.map(c => `${tn}.${quoteSQLName(c.name)}`), q];
-          } else if (tn.startsWith("pragma_") && pragmas.includes(tn.slice("pragma_".length))) {
-            const columns = getColumns(null, tn).filter(c => c.hidden !== 1 && c.name.startsWith(cn));
-            return [columns.map(c => `${tn}.${quoteSQLName(c.name)}`), q];
-          } else {
-            const cs = getAllColumnNames().filter(name => name.startsWith(cn));
-            if (cs.length > 0) {
-              return [cs, q.replace(/^.*\./, "")];
-            }
-          }
-        }
-      }
-      // other name completion
-      {
-        const columnNames = getAllColumnNames();
-        const functionNames = getAllFunctionNames();
-        const matches
-          = Array.from(new Set([
-            ...keywords,
-            ...erqKeywords,
-            ...schemas,
-            ...tableNames,
-            ...tableNamesFQ,
-            ...modules,
-            ...columnNames,
-            ...functionNames.map(n => `${n}(`),
-            ...pragmas.map(p => `pragma_${p}`)]).values())
-            .filter(n => {
-              return n.replace(/`/g, "").startsWith(qq);
-            })
-            .sort();
-        if (matches.length > 0) {
-          return [matches, q];
-        }
-      }
-    } catch (error) {
-      // ignore error
-      console.error(error);
-    }
-    return [[], q];
+    return erqCliCompleter.complete(line);
   }
   ipcExport(completer);
 
