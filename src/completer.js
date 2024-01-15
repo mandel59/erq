@@ -4,11 +4,17 @@ import { quoteSQLName, reFQNamePart, reParseColumnName, unquoteSQLName } from ".
 export class ErqCliCompleter {
   /** @type {import("better-sqlite3").Database} */
   db;
+  /** @type {(prefix: string) => string[]} */
+  findModules;
   /**
-   * @param {import("better-sqlite3").Database} db 
+   * @param {ErqCliContext} context 
+   * @typedef ErqCliContext
+   * @property {import("better-sqlite3").Database} db
+   * @property {(prefix: string) => string[]} findModules
    */
-  constructor(db) {
-    this.db = db;
+  constructor(context) {
+    this.db = context.db;
+    this.findModules = context.findModules;
   }
   getTables() {
     const tables =
@@ -72,6 +78,12 @@ export class ErqCliCompleter {
       return [this.getTablesOnly(t).flatMap(t => {
         return [quoteSQLName(t.name), `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`];
       }).filter(n => n.startsWith(q)).sort(), q];
+    }
+
+    const matchLoadModule = new RegExp(`load\\s+module\\s+(?:\\S+|\`[^\`]*\`?)*$`, "u").exec(line);
+    if (matchLoadModule) {
+      const modules = this.findModules(q);
+      return [modules.sort(), q];
     }
 
     try {

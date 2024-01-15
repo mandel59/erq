@@ -118,6 +118,16 @@ export async function child() {
     modules.set(name, importModule);
   }
 
+  function findModules(prefix) {
+    const list = [];
+    for (const name of modules.keys()) {
+      if (name.startsWith(prefix)) {
+        list.push(name);
+      }
+    }
+    return list;
+  }
+
   const moduleContext = {
     defineTable,
     defineFunction,
@@ -147,7 +157,10 @@ export async function child() {
     return result;
   }
 
-  const erqCliCompleter = new ErqCliCompleter(db);
+  const erqCliCompleter = new ErqCliCompleter({
+    db,
+    findModules,
+  });
 
   /**
    * Complete Erq query
