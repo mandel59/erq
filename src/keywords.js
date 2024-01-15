@@ -274,6 +274,7 @@ export const erqKeywords = new Set([
   "match",
   "milliseconds",
   "minutes",
+  "module",
   "month",
   "more",
   "name",
