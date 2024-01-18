@@ -1,9 +1,14 @@
 export class JSRuntimeError extends Error {
+  /** @type {string | undefined} */
+  runtimeStack;
   get name() {
     return this.constructor.name;
   }
-  constructor(message, errorName) {
+  constructor(message, errorName, options) {
     super(errorName ? `${errorName}: ${message}` : message);
+    if (options?.stack) {
+      this.runtimeStack = options.stack;
+    }
   }
 }
 
@@ -232,10 +237,8 @@ export class JSRuntime {
     if (typeof error === "string") {
       throw new JSRuntimeError(error);
     } else if ("message" in error) {
-      if ("name" in error) {
-        throw new JSRuntimeError(`${error.name}: ${error.message}`);
-      }
-      throw new JSRuntimeError(error.message);
+      const stack = error?.stack;
+      throw new JSRuntimeError(error.message, error.name, { stack });
     }
   }
 }

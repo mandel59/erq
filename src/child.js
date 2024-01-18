@@ -10,7 +10,7 @@ import {
   unquoteSQLName,
   modulePathNameToName,
 } from "./parser-utils.js";
-import { getJSRuntime } from "./js-runtime.js";
+import { JSRuntimeError, getJSRuntime } from "./js-runtime.js";
 import { evalDestination } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
@@ -890,6 +890,9 @@ export async function child() {
       }
     } catch (error) {
       console.error("%s: %s", error.name, error.message);
+      if (error instanceof JSRuntimeError && error.runtimeStack) {
+        console.error(error.runtimeStack.trimEnd());
+      }
       return false;
     } finally {
       sigint = false;
