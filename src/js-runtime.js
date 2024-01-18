@@ -5,7 +5,7 @@ export class JSRuntimeError extends Error {
     return this.constructor.name;
   }
   constructor(message, errorName, options) {
-    super(errorName ? `${errorName}: ${message}` : message);
+    super(errorName ? `${errorName}: ${message}` : message || "Unknown error");
     if (options?.stack) {
       this.runtimeStack = options.stack;
     }
