@@ -113,42 +113,43 @@ export class JSRuntime {
 
     const context = this.getContext();
 
-    const argsHandle = context.newArray();
+    const argHandles = [];
+    const deferDispose = [];
     args.forEach((arg, i) => {
       switch (typeof arg) {
         case "string":
-          {
-            const handle = context.newString(arg);
-            context.setProp(argsHandle, String(i), handle);
-            handle.dispose();
-          }
+          argHandles.push(context.newString(arg));
+          deferDispose.push(true);
           break;
         case "number":
-          {
-            const handle = context.newNumber(arg);
-            context.setProp(argsHandle, String(i), handle);
-            handle.dispose();
-          }
+          argHandles.push(context.newNumber(arg));
+          deferDispose.push(true);
           break;
         case "boolean":
-          if (arg)
-            context.setProp(argsHandle, String(i), context.true);
-          else
-            context.setProp(argsHandle, String(i), context.false);
+          if (arg) argHandles.push(context.true);
+          else argHandles.push(context.false);
+          deferDispose.push(false);
           break;
         case "object":
           if (arg == null) {
-            context.setProp(argsHandle, String(i), context.null);
+            argHandles.push(context.null);
+            deferDispose.push(false);
           }
           throw new JSRuntimeError("Unsupported argument type");
         default:
           throw new JSRuntimeError("Unsupported argument type");
       }
-    })
-    context.setProp(context.global, "args", argsHandle);
-    argsHandle.dispose();
+    });
 
-    const evalResult = context.evalCode(`globalThis[${JSON.stringify(name)}].apply(null, globalThis.args);`);
+    const fnHandle = context.getProp(context.global, name);
+    const evalResult = context.callFunction(fnHandle, context.global, ...argHandles);
+    fnHandle.dispose();
+    for (let i = 0; i < argHandles.length; i++) {
+      if (deferDispose[i]) {
+        argHandles[i].dispose();
+      }
+    }
+
     if (evalResult.error) {
       this._throwError(context, evalResult);
     }
@@ -168,42 +169,43 @@ export class JSRuntime {
 
     const context = this.getContext();
 
-    const argsHandle = context.newArray();
+    const argHandles = [];
+    const deferDispose = [];
     args.forEach((arg, i) => {
       switch (typeof arg) {
         case "string":
-          {
-            const handle = context.newString(arg);
-            context.setProp(argsHandle, String(i), handle);
-            handle.dispose();
-          }
+          argHandles.push(context.newString(arg));
+          deferDispose.push(true);
           break;
         case "number":
-          {
-            const handle = context.newNumber(arg);
-            context.setProp(argsHandle, String(i), handle);
-            handle.dispose();
-          }
+          argHandles.push(context.newNumber(arg));
+          deferDispose.push(true);
           break;
         case "boolean":
-          if (arg)
-            context.setProp(argsHandle, String(i), context.true);
-          else
-            context.setProp(argsHandle, String(i), context.false);
+          if (arg) argHandles.push(context.true);
+          else argHandles.push(context.false);
+          deferDispose.push(false);
           break;
         case "object":
           if (arg == null) {
-            context.setProp(argsHandle, String(i), context.null);
+            argHandles.push(context.null);
+            deferDispose.push(false);
           }
           throw new JSRuntimeError("Unsupported argument type");
         default:
           throw new JSRuntimeError("Unsupported argument type");
       }
-    })
-    context.setProp(context.global, "args", argsHandle);
-    argsHandle.dispose();
+    });
 
-    const evalResult = context.evalCode(`globalThis[${JSON.stringify(name)}].apply(null, globalThis.args);`);
+    const fnHandle = context.getProp(context.global, name);
+    const evalResult = context.callFunction(fnHandle, context.global, ...argHandles);
+    fnHandle.dispose();
+    for (let i = 0; i < argHandles.length; i++) {
+      if (deferDispose[i]) {
+        argHandles[i].dispose();
+      }
+    }
+
     if (evalResult.error) {
       this._throwError(context, evalResult);
     }
