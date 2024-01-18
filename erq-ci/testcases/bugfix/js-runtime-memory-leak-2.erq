@@ -1,0 +1,5 @@
+create table function plus_minus(x) as ```js
+  yield x;
+  yield -x;
+```;;
+r: range(1, 50000) join s: plus_minus(r.value) {s: s.value} [s % 50000 = 0];;

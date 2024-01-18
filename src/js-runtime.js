@@ -227,10 +227,12 @@ export class JSRuntime {
       const resultObject = context.unwrapResult(result);
       const done = context.getProp(resultObject, "done").consume(context.dump);
       if (done) {
+        resultObject.dispose();
         iterator.dispose();
         break;
       }
       yield context.getProp(resultObject, "value").consume(context.dump);
+      resultObject.dispose();
     }
   }
   _throwError(context, evalResult) {
