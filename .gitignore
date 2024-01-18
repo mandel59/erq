@@ -5,3 +5,4 @@ coverage
 *.tgz
 dist/erq.js
 dist/erq.cjs
+erq-ci/package-lock.json
