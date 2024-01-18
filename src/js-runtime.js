@@ -210,23 +210,20 @@ export class JSRuntime {
       this._throwError(context, evalResult);
     }
     const iterator = context.unwrapResult(evalResult);
-    const next = context.getProp(iterator, "next");
-    try {
-      while (true) {
-        const result = context.callFunction(next, iterator);
-        if (result.error) {
-          this._throwError(context, result);
-        }
-        const resultObject = context.unwrapResult(result);
-        const done = context.getProp(resultObject, "done").consume(context.dump);
-        if (done) {
-          break;
-        }
-        yield context.getProp(resultObject, "value").consume(context.dump);
+    while (true) {
+      const result = context.getProp(iterator, "next")
+        .consume(next => context.callFunction(next, iterator));
+      if (result.error) {
+        iterator.dispose();
+        this._throwError(context, result);
       }
-    } finally {
-      next.dispose();
-      iterator.dispose();
+      const resultObject = context.unwrapResult(result);
+      const done = context.getProp(resultObject, "done").consume(context.dump);
+      if (done) {
+        iterator.dispose();
+        break;
+      }
+      yield context.getProp(resultObject, "value").consume(context.dump);
     }
   }
   _throwError(context, evalResult) {
