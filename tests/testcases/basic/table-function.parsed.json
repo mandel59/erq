@@ -1,0 +1,58 @@
+[
+  {
+    "type": "command",
+    "command": "meta-create-function",
+    "args": [
+      "t1",
+      [
+        "x"
+      ],
+      {
+        "rawblock": [
+          "js",
+          "  for (let y = 0; y < x; y++) {\n    yield y;\n  }\n"
+        ]
+      },
+      {
+        "type": "table"
+      }
+    ]
+  },
+  {
+    "type": "select",
+    "query": "select * from t1(5)"
+  },
+  {
+    "type": "command",
+    "command": "meta-create-function",
+    "args": [
+      "t2",
+      [
+        "x"
+      ],
+      {
+        "rawblock": [
+          "js",
+          "  const arr = [...x];\n  for (let i = 0; i < arr.length; i++) {\n    yield [i, arr[i]];\n  }\n"
+        ]
+      },
+      {
+        "returns": [
+          [
+            "index",
+            null
+          ],
+          [
+            "value",
+            null
+          ]
+        ],
+        "type": "table"
+      }
+    ]
+  },
+  {
+    "type": "select",
+    "query": "select * from t2('😄 hello')"
+  }
+]

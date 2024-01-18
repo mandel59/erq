@@ -39,6 +39,17 @@ export class JSRuntime {
   /**
    * 
    * @param {string} name 
+   * @param {string[]} params 
+   * @param {string} body 
+   */
+  setGeneratorFunction(name, params, body) {
+    const context = this.getContext();
+    const jsFunction = `(function *(${params.join(",")}) {\n${body}\n})`;
+    this._registerFunction(context, name, jsFunction);
+  }
+  /**
+   * 
+   * @param {string} name 
    */
   removeFunction(name) {
     const context = this.getContext();
@@ -143,6 +154,78 @@ export class JSRuntime {
     }
     const value = context.unwrapResult(evalResult).consume(context.dump);
     return value;
+  }
+  /**
+   * 
+   * @param {string} name 
+   * @param {any[]} args 
+   * @returns 
+   */
+  *callGeneratorFunction(name, ...args) {
+    if (!this.runtime) {
+      throw new JSRuntimeError("Runtime not initialized");
+    }
+
+    const context = this.getContext();
+
+    const argsHandle = context.newArray();
+    args.forEach((arg, i) => {
+      switch (typeof arg) {
+        case "string":
+          {
+            const handle = context.newString(arg);
+            context.setProp(argsHandle, String(i), handle);
+            handle.dispose();
+          }
+          break;
+        case "number":
+          {
+            const handle = context.newNumber(arg);
+            context.setProp(argsHandle, String(i), handle);
+            handle.dispose();
+          }
+          break;
+        case "boolean":
+          if (arg)
+            context.setProp(argsHandle, String(i), context.true);
+          else
+            context.setProp(argsHandle, String(i), context.false);
+          break;
+        case "object":
+          if (arg == null) {
+            context.setProp(argsHandle, String(i), context.null);
+          }
+          throw new JSRuntimeError("Unsupported argument type");
+        default:
+          throw new JSRuntimeError("Unsupported argument type");
+      }
+    })
+    context.setProp(context.global, "args", argsHandle);
+    argsHandle.dispose();
+
+    const evalResult = context.evalCode(`globalThis[${JSON.stringify(name)}].apply(null, globalThis.args);`);
+    if (evalResult.error) {
+      this._throwError(context, evalResult);
+    }
+    const iterator = context.unwrapResult(evalResult);
+    const next = context.getProp(iterator, "next");
+    try {
+      while (true) {
+        const result = context.callFunction(next, iterator);
+        if (result.error) {
+          this._throwError(context, result);
+        }
+        const resultObject = context.unwrapResult(result);
+        const done = context.getProp(resultObject, "done").consume(context.dump);
+        if (done) {
+          break;
+        }
+        yield context.getProp(resultObject, "value").consume(context.dump);
+      }
+    } finally {
+      next.dispose();
+      iterator.dispose();
+    }
   }
   _throwError(context, evalResult) {
     const error = evalResult.error.consume(context.dump);

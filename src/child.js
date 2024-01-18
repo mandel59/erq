@@ -464,12 +464,34 @@ export async function child() {
       if ("language" in opts && typeof opts.language === "string") {
         tag = opts.language;
       }
+      const type = opts.type ?? "scalar";
       if (tag === "js" || tag === "javascript") {
         const rt = await getJSRuntime();
-        rt.setFunction(fn, ps, body);
-        db.function(fn, { varargs: true }, (...args) => {
-          return rt.callFunction(fn, ...args);
-        });
+        if (type === "scalar") {
+          rt.setFunction(fn, ps, body);
+          db.function(fn, { varargs: true }, (...args) => {
+            return rt.callFunction(fn, ...args);
+          });
+        } else if (type === "table") {
+          let returns = opts.returns;
+          if (!Array.isArray(returns)) {
+            returns = [["value", returns]];
+          }
+          rt.setGeneratorFunction(fn, ps, body);
+          db.table(fn, {
+            parameters: ps,
+            columns: returns.map(([name, _type]) => name),
+            *rows(...args) {
+              for (const value of rt.callGeneratorFunction(fn, ...args)) {
+                if (Array.isArray(value)) {
+                  yield value;
+                } else {
+                  yield [value];
+                }
+              }
+            },
+          });
+        }
         console.error("ok");
         return true;
       }

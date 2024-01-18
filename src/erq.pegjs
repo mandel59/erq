@@ -626,9 +626,11 @@ LoadOption
   / ("format" __)? f:("csv"/"ndjson") { return ["format", f]; }
 
 CreateFunction
-  = Do? "create" __ "function" __ n:Name _ ps:FunctionParams _ opts:FunctionOptions _ "as" __ x:(RawBlock/ParsedStringLiteral)
+  = Do? "create" __
+    type:("table" __ { return "table"; })?
+    "function" __ n:Name _ ps:FunctionParams _ opts:FunctionOptions _ "as" __ x:(RawBlock/ParsedStringLiteral)
   {
-    return [n, ps, x, opts];
+    return [n, ps, x, {...opts, type: type ?? undefined}];
   }
 
 FunctionOptions
@@ -636,7 +638,7 @@ FunctionOptions
 
 FunctionOption
   = "language" __ l:Name { return ["language", l]; }
-  / "returns" __ t:TypeName { return ["returns", t]; }
+  / "returns" __ t:(TypeName/RowType) { return ["returns", t]; }
 
 CreateTableFromJson
   = Do? "create" __ "table"
@@ -1704,6 +1706,13 @@ TypeName
     { return [n1, ...ns].join(" ") }
   )
   { return x; }
+
+RowType
+  = "(" _ f:RowTypeField|1.., _ "," _| _ ("," _)? ")" { return f; }
+
+RowTypeField
+  = n:Name __ t:TypeName { return [unquoteSQLName(n), t]; }
+  / n:Name { return [unquoteSQLName(n), null]; }
 
 SignedNumber
   = s:[-+]? _ n:NumericLiteral {

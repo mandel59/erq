@@ -1,0 +1,16 @@
+create table function t1(x) as ```js
+  for (let y = 0; y < x; y++) {
+    yield y;
+  }
+```;;
+
+t1(5);;
+
+create table function t2(x) returns (index, value) as ```js
+  const arr = [...x];
+  for (let i = 0; i < arr.length; i++) {
+    yield [i, arr[i]];
+  }
+```;;
+
+t2('😄 hello');;
