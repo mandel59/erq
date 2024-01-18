@@ -893,6 +893,9 @@ export async function child() {
       if (error instanceof JSRuntimeError && error.runtimeStack) {
         console.error(error.runtimeStack.trimEnd());
       }
+      if (DEBUG && error?.stack) {
+        console.error(error.stack);
+      }
       return false;
     } finally {
       sigint = false;
