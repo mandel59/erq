@@ -139,6 +139,7 @@ export class JSRuntime {
           if (arg == null) {
             argHandles.push(context.null);
             deferDispose.push(false);
+            break;
           }
           throw new JSRuntimeError("Unsupported argument type");
         default:
@@ -195,6 +196,7 @@ export class JSRuntime {
           if (arg == null) {
             argHandles.push(context.null);
             deferDispose.push(false);
+            break;
           }
           throw new JSRuntimeError("Unsupported argument type");
         default:
