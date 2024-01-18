@@ -1,0 +1,11 @@
+create table function fib(n) returns (i, fib) as ```js
+  let a = 0n, b = 1n;
+  for (var i = 1; i <= n; i++) {
+    let tmp = a;
+    a = b;
+    b = tmp + b;
+    yield [i, String(a)];
+  }
+```;;
+
+fib(200)[i in range(1, 10); values [50, 100, 150, 200]];;
