@@ -10,6 +10,7 @@ import { options, DEBUG } from "./options.js";
 import { loadHistory, saveHistory } from "./history.js";
 import { isTTY } from "./io.js";
 import * as parser from "../dist/erq.js";
+import { ErqClient } from "./erq-client.js";
 
 export async function parent() {
   if (DEBUG) {
@@ -21,11 +22,13 @@ export async function parent() {
 
   // ipc setups
 
-  const child = fork(fileURLToPath(new URL("../bin/erq-cli.js", import.meta.url)), process.argv.slice(2), {
-    stdio: ['ignore', 'inherit', 'inherit', 'ipc']
+  const client = ErqClient.connect(process.argv.slice(2), {
+    stdin: 'ignore',
+    stdout: 'inherit',
+    stderr: 'inherit',
   });
 
-  child.on("exit", (code, signal) => {
+  client.on("exit", (code, signal) => {
     if (isTTY && history) {
       saveHistory(history);
     }
@@ -36,57 +39,11 @@ export async function parent() {
     process.exit(code);
   });
 
-  let ipcCallId = 0;
-  function ipcCall(method, params) {
-    ++ipcCallId;
-    const id = ipcCallId;
-    return new Promise((resolve, reject) => {
-      const callback = (message) => {
-        if (message == null || typeof message !== "object") return;
-        if (message.id !== id) return;
-        if ("error" in message) {
-          reject(message.error);
-        } else {
-          resolve(message.result);
-        }
-        child.off("message", callback);
-      }
-      child.on("message", callback);
-      ipcSend(method, params, id);
-    })
-  }
-  function ipcSend(method, params, id) {
-    child.send({ method, params, id })
-  }
-
-  const readyPromise = new Promise((resolve) => {
-    const callback = (message) => {
-      if (message === "ready") {
-        resolve();
-        child.off("message", callback);
-      }
-    }
-    child.on("message", callback);
-  });
-
-  /**
-   * 
-   * @param {{ command: string, args: any[] }} param0 
-   * @returns {Promise<boolean>}
-   */
-  async function runCLICommand({ command, args }) {
-    return ipcCall("runCLICommand", [{ command, args }]);
-  }
-
-  function runSqls(statements) {
-    return ipcCall("runSqls", [statements]);
-  }
-
   // signal setups
 
   function handleSignal(signal) {
     return function () {
-      child.kill(signal);
+      client.kill(signal);
     }
   }
   process.on("SIGINT", handleSignal("SIGINT"));
@@ -105,20 +62,20 @@ export async function parent() {
   let state = "read";
   let input = "";
 
-  await readyPromise;
+  await client.ready;
 
   if (options.format) {
-    const ok = await runCLICommand({ command: "format", args: [options.format] });
+    const ok = await client.runCLICommand({ command: "format", args: [options.format] });
     if (!ok) {
-      ipcSend("quit", [1], null);
+      client.ipcSend("quit", [1], null);
       return;
     }
   }
 
   for (const l of options.load) {
-    const ok = await runCLICommand({ command: "load", args: [l] });
+    const ok = await client.runCLICommand({ command: "load", args: [l] });
     if (!ok) {
-      ipcSend("quit", [1], null);
+      client.ipcSend("quit", [1], null);
       return;
     }
   }
@@ -129,12 +86,12 @@ export async function parent() {
     while (input !== "") {
       const sqls = parseErq();
       if (sqls == null) {
-        ipcSend("quit", [1], null);
+        client.ipcSend("quit", [1], null);
         return;
       }
-      const ok = await runSqls(sqls);
+      const ok = await client.runSqls(sqls);
       if (!ok) {
-        ipcSend("quit", [1], null);
+        client.ipcSend("quit", [1], null);
         return;
       }
     }
@@ -203,7 +160,7 @@ export async function parent() {
     output: stderr,
     terminal: isTTY,
     completer: (line, callback) => {
-      ipcCall("completer", [line]).then(value => {
+      client.ipcCall("completer", [line]).then(value => {
         if (DEBUG) {
           console.error("[completer]: %s", JSON.stringify(value));
         }
@@ -232,23 +189,23 @@ export async function parent() {
       if (isTTY) { rl.prompt(); }
     } else if (state === "eval") {
       let ok = false;
-      ipcCall("interrupt", []).then(() => ok = true);
+      client.ipcCall("interrupt", []).then(() => ok = true);
       setTimeout(() => {
         if (!ok) {
           state = "hang";
         }
       }, 200);
     } else {
-      child.kill("SIGKILL");
+      client.kill("SIGKILL");
     }
   }
   rl.on("SIGINT", handleSigint);
 
   function handleSigtstp() {
-    child.kill("SIGSTOP");
+    client.kill("SIGSTOP");
     rl.pause();
     process.once("SIGCONT", () => {
-      child.kill("SIGCONT");
+      client.kill("SIGCONT");
       stdin.setRawMode(true);
       if (state === "read") {
         // resume the stream
@@ -275,11 +232,11 @@ export async function parent() {
           if (sqls == null) {
             break;
           }
-          await runSqls(sqls);
+          await client.runSqls(sqls);
         }
       } finally {
         state = "read";
-        await ipcCall("resetSigint", []);
+        await client.ipcCall("resetSigint", []);
         setPrompt();
         if (isTTY) {
           rl.prompt();
@@ -296,14 +253,14 @@ export async function parent() {
       input += "\n;;\n";
       const sqls = await parseErq();
       if (sqls == null) {
-        ipcSend("quit", [1], null);
+        client.quit(1);
         return;
       }
-      const ok = await runSqls(sqls);
+      const ok = await client.runSqls(sqls);
       if (!ok) {
-        ipcSend("quit", [1], null);
+        client.quit(1);
       } else {
-        ipcSend("quit", [0], null);
+        client.quit(0);
       }
     }
   });
