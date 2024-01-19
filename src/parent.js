@@ -1,5 +1,3 @@
-import { fork } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import process, { stdin, stderr } from "node:process";
 import { readFile } from "node:fs/promises";
 import readline from "node:readline";
