@@ -1,0 +1,9 @@
+table t(a, b, c) = values [
+  {1, null, null},
+  {null, 2, null},
+  {null, null, 3},
+];;
+
+t output ndjson;;
+
+t output ndjson with omit null;;

@@ -132,14 +132,14 @@ FormatClause
     / "sparse" boundary { return { format: "sparse" }; }
     / "array" boundary { return { format: "dense" }; }
     / "object" boundary { return { format: "sparse" }; }
-    / "ndjson" boundary { return { format: "sparse" }; }
+    / "ndjson" boundary opts:NdjsonOptions? { return { format: "sparse", formatOptions: opts ?? {} }; }
     / "raw" boundary { return { format: "raw" }; }
-    / "csv" opts:CsvOptions? { return { format: "csv", formatOptions: { ...opts } }; }
+    / "csv" boundary opts:CsvOptions? { return { format: "csv", formatOptions: opts ?? {} }; }
     / v:Vega { return { format: v }; }
   ) { return f; }
 
 CsvOptions
-  = __ ("with" __)? opts:(
+  = _ ("with" __)? opts:(
     "header" boundary { return { header: true }; }
     / "no" __ "header" boundary { return { header: false }; }
     / "delimiter" __ s:ParsedStringLiteral { return { delimiter: s }; }
@@ -147,6 +147,11 @@ CsvOptions
     / "no" __ "quote" boundary { return { quote: '' }; }
     / "escape" __ s:ParsedStringLiteral { return { escape: s }; }
     / "encoding" __ s:ParsedStringLiteral { return { encoding: s }; }
+  )|1..,_ "," _| { return Object.assign({}, ...opts); }
+
+NdjsonOptions
+  = _ ("with" __)? opts:(
+    "omit" __ "null" { return { omitNull: true }; }
   )|1..,_ "," _| { return Object.assign({}, ...opts); }
 
 DestinationClause

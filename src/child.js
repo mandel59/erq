@@ -640,6 +640,7 @@ export async function child() {
         console.error(sql);
         const t0 = performance.now();
         const stmt = db.prepare(sql);
+        stmt.safeIntegers(true);
         if (typeof format === "object" && format.type === "vega") {
           stmt.raw(false);
           const t0 = performance.now();
@@ -755,23 +756,68 @@ export async function child() {
            * @returns {Promise<(r: any[]) => Promise<void>>}
            */
           const createFormatter = async (format, formatOptions, outputStream) => {
+            /**
+             * @param {Buffer} v
+             */
+            async function writeBufferAsJsonArray(v) {
+              // write buffer
+              if (!outputStream.write("[")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              let j = 0;
+              for (const c of v) {
+                if (j > 0) {
+                  if (!outputStream.write(",")) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                }
+                if (!outputStream.write(String(c))) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                }
+                j++;
+              }
+              if (!outputStream.write("]")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+            }
             if (format !== "eqp") {
               console.error(JSON.stringify(columnNames));
             }
             if (format === "sparse") return async (r) => {
-              const kvs = r.map((value, j) => {
-                const k = columnNames[j];
-                if (value != null && typeof value === "object") {
-                  // convert Buffer object to Array object
-                  return [k, Array.from(value)];
+              const omitNull = formatOptions.omitNull ?? false;
+              if (!outputStream.write("{")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              let first = true;
+              for (let i = 0; i < r.length; i++) {
+                const v = r[i];
+                if (omitNull && v == null) continue;
+                if (first) {
+                  first = false;
+                } else {
+                  if (!outputStream.write(",")) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
                 }
-                if (typeof value === "bigint") {
-                  return [k, String(value)];
+                if (!outputStream.write(JSON.stringify(columnNames[i]))) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
-                return [k, value];
-              });
-              const obj = Object.fromEntries(kvs.filter(([k, v]) => v !== null));
-              if (!outputStream.write(JSON.stringify(obj) + "\n")) {
+                if (!outputStream.write(":")) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                }
+                if (typeof v === "bigint") {
+                  if (!outputStream.write(String(v))) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                } else if (v !== null && typeof v === "object") {
+                  await writeBufferAsJsonArray(v);
+                } else {
+                  if (!outputStream.write(JSON.stringify(v))) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                }
+              }
+              if (!outputStream.write("}\n")) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
               }
             }
@@ -826,16 +872,29 @@ export async function child() {
             }
             return async (r) => {
               // default dense format
-              if (!outputStream.write(JSON.stringify(r.map(value => {
-                if (value != null && typeof value === "object") {
-                  // convert Buffer object to Array object
-                  return Array.from(value);
+              if (!outputStream.write("[")) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              for (let i = 0; i < r.length; i++) {
+                const v = r[i];
+                if (i > 0) {
+                  if (!outputStream.write(",")) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
                 }
-                if (typeof value === "bigint") {
-                  return String(value);
+                if (typeof v === "bigint") {
+                  if (!outputStream.write(String(v))) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                } else if (v !== null && typeof v === "object") {
+                  await writeBufferAsJsonArray(v);
+                } else {
+                  if (!outputStream.write(JSON.stringify(v))) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
                 }
-                return value;
-              })) + "\n")) {
+              }
+              if (!outputStream.write("]\n")) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
               }
             }

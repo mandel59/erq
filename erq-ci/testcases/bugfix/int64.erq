@@ -1,0 +1,2 @@
+{text: cast(0x7fffffffffffffff as text), int64: 0x7fffffffffffffff};;
+{text: cast(0x7fffffffffffffff as text), int64: 0x7fffffffffffffff} output ndjson;;
