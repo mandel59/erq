@@ -566,9 +566,10 @@ LoadRawBlock
     _ table:TableNameWithVariable _ d:("(" _ td:TableDef (_ ",")? _ ")" _ { return td; })?
     "from" __ x:(
       RawBlock
+      / e:EscapedString { return { sql: `select ${e}`, as: "path" }; }
       / ParsedStringLiteral
       / v:Variable { return { variable: v }; }
-      / "(" e:Expression ")" { return { sql: `select ${e}` }; })
+      / "(" e:Expression ")" { return { sql: `select ${e}`, as: "content" }; })
     opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
   {
     const def = d && d.def;
@@ -602,10 +603,10 @@ LoadRawBlock
         variable,
       };
     } else if ("sql" in x) {
-      const sql = x.sql;
       return {
         ...base,
-        sql,
+        sql: x.sql,
+        as: x.as,
       };
     }
   }

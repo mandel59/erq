@@ -326,7 +326,12 @@ export async function child() {
       const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
       let content = args.content;
       if (args.sql != null) {
-        content = db.prepare(args.sql).pluck().get();
+        const value = db.prepare(args.sql).pluck().get();
+        if (args.as === "content") {
+          content = value;
+        } else if (args.as === "path") {
+          path = value;
+        }
       }
       if (format === "csv") {
         const [{ default: iconv }, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
@@ -449,7 +454,7 @@ export async function child() {
         }
         return true;
       } else {
-        console.error("unknown content type: %s", contentType);
+        console.error("unknown content type: %s", format);
         return false;
       }
     }
