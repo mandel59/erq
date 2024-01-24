@@ -1,0 +1,8 @@
+view v = range(1, 3) { x: value, y: value * 2, z: value * 3 };;
+set format ndjson;;
+v;;
+set format csv with header;;
+v;;
+set format raw;;
+v;;
+E'\n';;

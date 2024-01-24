@@ -183,8 +183,8 @@ export async function child() {
 
   // global state
 
-  /** @type {"dense" | "sparse"} */
-  let outputFormat = "dense";
+  /** @type {{ format: string; formatOptions?: any; }} */
+  let outputFormat = { format: "dense" };
   let defaultDestination = { type: "stdout" };
 
   /**
@@ -279,10 +279,10 @@ export async function child() {
     else if (command === "format") {
       if (args.length === 1) {
         if (args[0] === "array") {
-          outputFormat = "dense";
+          outputFormat = { format: "dense" };
           return true;
         } else if (args[0] === "object") {
-          outputFormat = "sparse";
+          outputFormat = { format: "sparse" };
           return true;
         }
       }
@@ -629,8 +629,8 @@ export async function child() {
           type,
           query: sourceSql,
           returning,
-          format = outputFormat,
-          formatOptions = {},
+          format = outputFormat.format,
+          formatOptions = outputFormat.formatOptions ?? {},
           dest = defaultDestination,
         } = statement;
         if (sigint) {

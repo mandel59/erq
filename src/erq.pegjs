@@ -120,13 +120,7 @@ Statement1
   / t:TriggerStatement f:FormattingClause? { return { ...t, ...f }; }
 
 SetOutputFormat
-  = "set" __ "format" __ f:(
-    "dense" boundary { return "dense"; }
-    / "sparse" boundary { return "sparse"; }
-    / "array" boundary { return "dense"; }
-    / "object" boundary { return "sparse"; }
-    / Vega
-  ) { return f; }
+  = "set" __ &"format" f:FormatClause { return f; }
 
 FormattingClause
   = _ "output" d:DestinationClause f:FormatClause? { return { ...f, ...d }; }
@@ -138,6 +132,7 @@ FormatClause
     / "sparse" boundary { return { format: "sparse" }; }
     / "array" boundary { return { format: "dense" }; }
     / "object" boundary { return { format: "sparse" }; }
+    / "ndjson" boundary { return { format: "sparse" }; }
     / "raw" boundary { return { format: "raw" }; }
     / "csv" opts:CsvOptions? { return { format: "csv", formatOptions: { ...opts } }; }
     / v:Vega { return { format: v }; }
