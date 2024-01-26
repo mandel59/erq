@@ -67,7 +67,7 @@ export function preprocess(db, env, sourceSql) {
  * @returns {any}
  */
 export function evalSQLValue(db, env, sql) {
-  return db.prepare(preprocess(db, env, sql)).pluck().get(Object.fromEntries(env.entries()));
+  return db.prepare(sql).pluck().get(Object.fromEntries(env.entries()));
 }
 
 /**
@@ -88,7 +88,7 @@ export function evalDestination(db, env, dest) {
     case "file":
       let file;
       if (dest.sql) {
-        file = evalSQLValue(db, env, dest.sql);
+        file = evalSQLValue(db, env, preprocess(db, env, dest.sql));
       } else {
         file = dest.file;
       }

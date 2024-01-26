@@ -303,7 +303,7 @@ export async function child() {
       const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
       let content = args.content;
       if (args.sql != null) {
-        const value = evalSQLValue(db, env, args.sql);
+        const value = evalSQLValue(db, env, preprocess(db, env, args.sql));
         if (args.as === "content") {
           content = value;
         } else if (args.as === "path") {
