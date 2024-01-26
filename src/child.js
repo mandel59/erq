@@ -11,7 +11,7 @@ import {
   modulePathNameToName,
 } from "./parser-utils.js";
 import { JSRuntimeError, getJSRuntime } from "./js-runtime.js";
-import { evalDestination } from "./eval-utils.js";
+import { evalDestination, preprocess, evalSQLValue } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
 
@@ -41,29 +41,6 @@ export async function child() {
       return quoteSQLName(n);
     }
     return table;
-  }
-
-  function preprocess(sourceSql, env) {
-    const re = /\u0000(.)([^\u0000]*)\u0000/g
-    return sourceSql.replace(re, (_, type, name) => {
-      if (DEBUG) {
-        console.error("preprocess %s %s", type, name);
-      }
-      if (type === "v") {
-        return env.get(name.slice(1));
-      } else if (type === "t") {
-        const t = resolveTable(name, env);
-        if (DEBUG) {
-          console.error("resolved table %s", t);
-        }
-        return t;
-      } else if (type === "e") {
-        const stmt = db.prepare(name);
-        return stmt.pluck().get(Object.fromEntries(env.entries()));
-      } else {
-        throw new Error(`unknown type: ${type}`);
-      }
-    });
   }
 
   /** @type {[string, string][]} */
@@ -326,7 +303,7 @@ export async function child() {
       const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
       let content = args.content;
       if (args.sql != null) {
-        const value = db.prepare(args.sql).pluck().get();
+        const value = evalSQLValue(db, env, args.sql);
         if (args.as === "content") {
           content = value;
         } else if (args.as === "path") {
@@ -508,7 +485,7 @@ export async function child() {
     else if (command === "meta-create-table-from-json") {
       const t0 = performance.now();
       const [tableWithVariable, def, jsonsqlSource, ifNotExists] = args;
-      const jsonsql = jsonsqlSource && preprocess(jsonsqlSource, env);
+      const jsonsql = jsonsqlSource && preprocess(db, env, jsonsqlSource);
       if (DEBUG) {
         console.error(jsonsql);
       }
@@ -577,7 +554,7 @@ export async function child() {
         }
         if (statement.type === "if") {
           const { condition: conditionSql, thenStatements, elseStatements } = statement;
-          const sql = `select case when ${preprocess(conditionSql, env)} then 1 else 0 end`;
+          const sql = `select case when ${preprocess(db, env, conditionSql)} then 1 else 0 end`;
           console.error(sql);
           const stmt = db.prepare(sql);
           const condition = stmt.pluck().get(Object.fromEntries(env.entries()));
@@ -587,7 +564,7 @@ export async function child() {
         }
         if (statement.type === "while") {
           const { condition: conditionSql, bodyStatements } = statement;
-          const sql = `select case when ${preprocess(conditionSql, env)} then 1 else 0 end`;
+          const sql = `select case when ${preprocess(db, env, conditionSql)} then 1 else 0 end`;
           console.error(sql);
           const stmt = db.prepare(sql);
           let condition = stmt.pluck().get(Object.fromEntries(env.entries()));
@@ -608,7 +585,7 @@ export async function child() {
           const sourceSql = `select ${assignments.map(({ name, expression }) => {
             if (expression == null) return name;
             return `${expression} as ${name}`
-          }).join(", ")} from (${preprocess(sourceTable, env)})`
+          }).join(", ")} from (${preprocess(db, env, sourceTable)})`
           console.error(sourceSql);
           const t0 = performance.now();
           const stmt = db.prepare(sourceSql);
@@ -641,7 +618,7 @@ export async function child() {
         if (sigint) {
           break;
         }
-        const sql = preprocess(sourceSql, env);
+        const sql = preprocess(db, env, sourceSql);
         console.error(sql);
         const t0 = performance.now();
         const stmt = db.prepare(sql);
@@ -677,7 +654,7 @@ export async function child() {
           console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
           const spec = { ...format.view, data: { values } };
           if (format.format === "spec") {
-            const { outputStream, closeOutputStream } = evalDestination(dest);
+            const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
             try {
               if (!outputStream.write(JSON.stringify(spec))) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
@@ -704,7 +681,7 @@ export async function child() {
           }).finalize();
           if (format.format === "svg") {
             const svg = await vgView.toSVG();
-            const { outputStream, closeOutputStream } = evalDestination(dest);
+            const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
             try {
               if (!outputStream.write(svg)) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
@@ -724,7 +701,7 @@ export async function child() {
           // @ts-ignore
           const png = canvas.toBuffer();
           const size = png.length;
-          const { outputStream, closeOutputStream } = evalDestination(dest);
+          const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
           if (format.format === "png") {
             outputStream.write(png);
             continue;
@@ -905,7 +882,7 @@ export async function child() {
             }
           }
 
-          let { outputStream, closeOutputStream } = evalDestination(dest);
+          let { outputStream, closeOutputStream } = evalDestination(db, env, dest);
           if (formatOptions.encoding) {
             const { default: iconv } = await import("iconv-lite");
             const encoder = iconv.encodeStream(formatOptions.encoding);

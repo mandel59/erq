@@ -158,6 +158,7 @@ DestinationClause
   = _ "to" __ d:(
     "stdout" boundary { return { type: "stdout" }; }
     / "stderr" boundary { return { type: "stderr" }; }
+    / ("file" boundary _)? e:EscapedString { return { type: "file", sql: `select ${e}` }; }
     / ("file" boundary _)? f:ParsedStringLiteral { return { type: "file", file: f }; }
   ) { return { dest: d } ; }
 
