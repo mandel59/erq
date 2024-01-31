@@ -1,0 +1,14 @@
+t1; t2 order by x;;
+t1; t2 distinct order by x;;
+t1 except t2 order by x;;
+t1 except t2 distinct order by x;;
+t1 intersect t2 order by x;;
+t1 intersect t2 distinct order by x;;
+t1 order by x;;
+t1 distinct order by x;;
+t1 {x asc};;
+t1 {x asc} order by y;;
+t1 {x asc => count()};;
+t1 {x asc, z}; t2 {y asc, z} order by z;;
+t1 {x asc, z} except t2 {y asc, z} order by z;;
+t1 {x asc, z} intersect t2 {y asc, z} order by z;;

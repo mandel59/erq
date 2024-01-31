@@ -1,0 +1,58 @@
+[
+  {
+    "type": "select",
+    "query": "select * from t1 union all select * from t2 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select distinct * from t1 union select distinct * from t2 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select * from t1 except select * from t2 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select distinct * from t1 except select * from t2 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select * from t1 intersect select * from t2 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select distinct * from t1 intersect select * from t2 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select * from t1 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select distinct * from t1 order by x asc"
+  },
+  {
+    "type": "select",
+    "query": "select x from t1 order by (x) asc"
+  },
+  {
+    "type": "select",
+    "query": "select x from t1 order by y asc, (x) asc"
+  },
+  {
+    "type": "select",
+    "query": "select x, count() from t1 group by (x) order by (x) asc"
+  },
+  {
+    "type": "select",
+    "query": "select * from (select x, z from t1 order by (x) asc) union all select * from (select y, z from t2 order by (y) asc) order by z asc"
+  },
+  {
+    "type": "select",
+    "query": "select * from (select x, z from t1 order by (x) asc) except select * from (select y, z from t2 order by (y) asc) order by z asc"
+  },
+  {
+    "type": "select",
+    "query": "select * from (select x, z from t1 order by (x) asc) intersect select * from (select y, z from t2 order by (y) asc) order by z asc"
+  }
+]

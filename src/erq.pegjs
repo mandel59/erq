@@ -1072,8 +1072,8 @@ ExceptIntersectTable
 TableUnion
   = tss:ConcatenatedTables
     tex:ExceptIntersectTable*
-    order:OrderClause?
     distinct:DistinctClause?
+    order:OrderClause?
     limitOffset:LimitOffsetClause?
     alias:AsClause?
     cs:(
@@ -1088,20 +1088,17 @@ TableUnion
     const union = distinct ? " union " : " union all "
     let sql;
     t1.distinct(distinct);
-    if (ts.length === 0) {
+    if (ts.length === 0 && tex.length === 0) {
       if (order != null) {
         t1 = t1.orderBy(order);
       }
-      if (tex.length === 0) {
-        sql = t1.toSQL(true);
-      } else {
-        sql = t1.toSQL(false);
-        for (const [k, t] of tex) {
-          sql = `${sql} ${k} ${t.toSQL(false)}`;
-        }
-      }
+      sql = t1.toSQL(true);
     } else {
-      sql = `${t1.toSQL(false)}${union}${ts.map(tb => tb.distinct(distinct).toSQL(false)).join(union)}`;
+      sql = t1.toSQL(false)
+      if (ts.length > 0) {
+        sql += union;
+        sql += ts.map(tb => tb.distinct(distinct).toSQL(false)).join(union);
+      }
       for (const [k, t] of tex) {
         sql = `${sql} ${k} ${t.toSQL(false)}`;
       }
