@@ -1413,6 +1413,7 @@ BinOp
   / "*"
   / "/"
   / "%"
+  / "not" __ "between" boundary { return "not between"; }
   / "between" boundary { return "between"; }
   / "and" boundary { return "and"; }
   / "or" boundary { return "or"; }
@@ -1424,8 +1425,10 @@ BinOp
   / "like" boundary { return "like"; }
   / "not" __ "regexp" boundary { return "not regexp"; }
   / "regexp" boundary { return "regexp"; }
+  / "not" __ "match" boundary { return "not match"; }
   / "match" boundary { return "match"; }
   / "collate" boundary { return "collate"; }
+  / "escape" boundary { return "escape"; }
   ;
 
 BinCompOp

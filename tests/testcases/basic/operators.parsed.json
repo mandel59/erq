@@ -1,0 +1,178 @@
+[
+  {
+    "type": "select",
+    "query": "select ~1"
+  },
+  {
+    "type": "select",
+    "query": "select +1"
+  },
+  {
+    "type": "select",
+    "query": "select -1"
+  },
+  {
+    "type": "select",
+    "query": "select 'A' = 'a' collate 'nocase'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' || 'b'"
+  },
+  {
+    "type": "select",
+    "query": "select '{\"a\":1}' -> 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select '{\"a\":1}' ->> 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 1 * 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 / 2.0"
+  },
+  {
+    "type": "select",
+    "query": "select 1 % 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 + 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 - 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 & 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 | 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 << 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 >> 2"
+  },
+  {
+    "type": "select",
+    "query": "select 'a_b' like '_\\__' escape '\\'"
+  },
+  {
+    "type": "select",
+    "query": "select 1 < 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 <= 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 > 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 >= 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 = 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 == 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 <> 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 != 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 is 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 is not 2"
+  },
+  {
+    "type": "select",
+    "query": "select 1 between 2 and 3"
+  },
+  {
+    "type": "select",
+    "query": "select 1 not between 2 and 3"
+  },
+  {
+    "type": "select",
+    "query": "select 1 in (1, 2)"
+  },
+  {
+    "type": "select",
+    "query": "select 1 not in (1, 2)"
+  },
+  {
+    "type": "select",
+    "query": "select 1 in (select 1 union all select 2) and 2 in (select 3 union all select 4)"
+  },
+  {
+    "type": "select",
+    "query": "select 1 not in (select 1 union all select 2) or 2 not in (select 3 union all select 4)"
+  },
+  {
+    "type": "select",
+    "query": "select x match 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select x not match 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' like 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' not like 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' regexp 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' not regexp 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' glob 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select 'a' not glob 'a'"
+  },
+  {
+    "type": "select",
+    "query": "select not 0"
+  },
+  {
+    "type": "select",
+    "query": "select 1 and 1"
+  },
+  {
+    "type": "select",
+    "query": "select 1 or 1"
+  }
+]
