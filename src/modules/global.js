@@ -94,6 +94,38 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     }
   });
 
+  defineFunction("regexp_group", { deterministic: true }, function (string, pattern) {
+    const re = new RegExp(pattern, "u");
+    const m = re.exec(string);
+    if (m) {
+      if (m.groups) {
+        return JSON.stringify(m.groups);
+      } else {
+        return JSON.stringify(m.slice(1));
+      }
+    }
+    return null;
+  });
+
+  defineTable("regexp_all", {
+    parameters: ["_string", "_pattern"],
+    columns: ["substr", "groups"],
+    rows: function* (
+      /** @type {string} */ string,
+      /** @type {string} */ pattern) {
+      const re = new RegExp(pattern, "gu");
+      let m;
+      while (m = re.exec(string)) {
+        const substr = m[0];
+        if (m.groups) {
+          yield [substr, JSON.stringify(m.groups)];
+        } else {
+          yield [substr, JSON.stringify(m.slice(1))];
+        }
+      }
+    }
+  });
+
   defineFunction("process_cwd", { deterministic: false }, function () {
     return process.cwd();
   });
