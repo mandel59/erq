@@ -35,7 +35,8 @@
     "erq": "bin/erq-cli.js"
   },
   "scripts": {
-    "test": "c8 ava",
+    "test": "c8 ava && sh ./scripts/ci.sh",
+    "test:unit": "c8 ava",
     "test:ci": "sh ./scripts/ci.sh",
     "prepare": "peggy -o dist/erq.js --format es --allowed-start-rules start,cli_readline src/erq.pegjs"
   },
