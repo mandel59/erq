@@ -27,7 +27,8 @@
     "@types/node": "^18.0.6",
     "@types/topojson-client": "^3.1.4",
     "ava": "^4.3.1",
-    "c8": "^8.0.1"
+    "c8": "^8.0.1",
+    "peggy": "^3.0.2"
   },
   "description": "Erq - Easy Relational Query Language",
   "license": "MIT",
@@ -53,7 +54,6 @@
     "jsdom": "^20.0.0",
     "lodash.mergewith": "^4.6.2",
     "ndjson": "^2.0.0",
-    "peggy": "^3.0.2",
     "quickjs-emscripten": "^0.23.0",
     "topojson-client": "^3.1.0",
     "vega": "^5.25.0",
