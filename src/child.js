@@ -622,9 +622,9 @@ export async function child() {
         console.error(sql);
         const t0 = performance.now();
         const stmt = db.prepare(sql);
-        stmt.safeIntegers(true);
         if (typeof format === "object" && format.type === "vega") {
           stmt.raw(false);
+          stmt.safeIntegers(false);
           const t0 = performance.now();
           const values = stmt.all(Object.fromEntries(env.entries())).map(record => {
             // SQLite can't return JSON object directly, so it returns JSON string.
@@ -725,7 +725,7 @@ export async function child() {
         }
         if (type === "select" || type === "pragma" || returning) {
           stmt.raw(true);
-          // stmt.safeIntegers(true);
+          stmt.safeIntegers(true);
           const columns = stmt.columns();
           const columnNames = columns.map(c => c.name);
           let interrupted = false;
