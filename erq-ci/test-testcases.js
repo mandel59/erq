@@ -15,7 +15,10 @@ for (const dir of dirs) {
     if (!file.endsWith(".erq")) continue;
     const erqBaseName = basename(file, '.erq');
     const outFile = files.find((f) => f.startsWith(`${erqBaseName}.out`));
-    if (!outFile) continue;
+    if (!outFile) {
+      console.warn(`WARN Skipping test case ${dir}/${basename(file, '.erq')}`);
+      continue;
+    }
     if (outFile.endsWith('.png')) {
       test(`${dir}/${basename(file, '.erq')}`, async (t) => {
         const erqInput = createReadStream(`testcases/${dir}/${file}`);
