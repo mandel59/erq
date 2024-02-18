@@ -18,4 +18,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Initial release of the library.
 - Basic functionality to analyze and manipulate SQLite databases.
 
+[0.1.1]: https://github.com/mandel59/erq/releases/tag/v0.1.1
 [0.1.0]: https://github.com/mandel59/erq/releases/tag/v0.1.0
