@@ -1,0 +1,5 @@
+range(0, 20, 1) { x: value, y: value }
+  output vega lite png with
+    mark bar,
+    encoding { x: x q {axis:null}, y: y q {axis:null} },
+    options { width: 100, height: 100 };;
