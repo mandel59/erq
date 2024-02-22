@@ -661,7 +661,7 @@ export async function child() {
                 clients.push(client);
                 promises.push(client.runSqls(bodyStatements, vars).then(ok => {
                   if (!ok) {
-                    throw new Error("parallel statement failed");
+                    throw new Error("parallel failed");
                   }
                 }));
               }
