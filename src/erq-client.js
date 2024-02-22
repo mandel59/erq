@@ -2,7 +2,6 @@ import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { EventEmitter } from "node:events";
 import { serializeVars } from "./serialize-vars.js";
-import { DEBUG } from "./options.js";
 
 export class ErqClient extends EventEmitter {
   /** @type {import("node:child_process").ChildProcess | undefined} */
