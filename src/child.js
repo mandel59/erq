@@ -662,11 +662,15 @@ export async function child() {
                   cwd: initCwd,
                 });
                 clients.push(client);
-                promises.push(client.runSqls(bodyStatements, vars).then(ok => {
+                const promise = client.runSqls(bodyStatements, vars).then(ok => {
                   if (!ok) {
                     throw new Error("parallel failed");
                   }
-                }));
+                });
+                promise.catch(() => {
+                  // ignore unhandled rejection
+                });
+                promises.push(promise);
               }
               await Promise.race([Promise.all(promises), interruptedPromise]);
               const t1 = performance.now();
