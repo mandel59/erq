@@ -2,6 +2,7 @@ import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { EventEmitter } from "node:events";
 import { serializeVars } from "./serialize-vars.js";
+import { DEBUG } from "./options.js";
 
 export class ErqClient extends EventEmitter {
   /** @type {import("node:child_process").ChildProcess | undefined} */
@@ -18,10 +19,16 @@ export class ErqClient extends EventEmitter {
    * @property {import("stream").Stream | 'pipe' | 'ignore' | 'inherit'} [stdin]
    * @property {import("stream").Stream | 'pipe' | 'ignore' | 'inherit'} [stdout]
    * @property {import("stream").Stream | 'pipe' | 'ignore' | 'inherit'} [stderr]
+   * @property {string} [cwd]
+   * @property {(client: ErqClient) => void} [setup]
    */
-  static connect(args, options) {
+  static async connect(args, options) {
     const client = new ErqClient();
     client.connect(args, options);
+    if (options?.setup) {
+      options.setup.call(null, client);
+    }
+    await client.ready;
     return client;
   }
   /**
@@ -33,8 +40,11 @@ export class ErqClient extends EventEmitter {
     const stdin = options.stdin ?? "pipe";
     const stdout = options.stdout ?? "pipe";
     const stderr = options.stderr ?? "pipe";
+    const cwd = options.cwd;
     const child = this.child = fork(fileURLToPath(new URL("../bin/erq-cli.js", import.meta.url)), args, {
-      stdio: [stdin, stdout, stderr, 'ipc']
+      stdio: [stdin, stdout, stderr, 'ipc'],
+      env: Object.fromEntries(Object.entries(process.env).filter(([key]) => key.startsWith("ERQ_"))),
+      cwd,
     });
     child.on("exit", (code, signal) => {
       this.emit("exit", code, signal);

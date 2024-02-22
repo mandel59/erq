@@ -20,47 +20,40 @@ export async function parent() {
 
   // ipc setups
 
-  const client = ErqClient.connect(process.argv.slice(2), {
+  const client = await ErqClient.connect(process.argv.slice(2), {
     stdin: 'ignore',
     stdout: 'inherit',
     stderr: 'inherit',
+    setup: (client) => {
+      client.on("exit", (code, signal) => {
+        if (isTTY && history) {
+          saveHistory(history);
+        }
+        if (signal != null) {
+          console.error(signal);
+          process.exit(1);
+        }
+        process.exit(code);
+      });
+
+      // signal setups
+
+      function handleSignal(signal) {
+        return function () {
+          client.kill(signal);
+        }
+      }
+      process.on("SIGINT", handleSignal("SIGINT"));
+      process.on("SIGTERM", handleSignal("SIGTERM"));
+      process.on("SIGQUIT", handleSignal("SIGQUIT"));
+    },
   });
-
-  client.on("exit", (code, signal) => {
-    if (isTTY && history) {
-      saveHistory(history);
-    }
-    if (signal != null) {
-      console.error(signal);
-      process.exit(1);
-    }
-    process.exit(code);
-  });
-
-  // signal setups
-
-  function handleSignal(signal) {
-    return function () {
-      client.kill(signal);
-    }
-  }
-  process.on("SIGINT", handleSignal("SIGINT"));
-  process.on("SIGTERM", handleSignal("SIGTERM"));
-  process.on("SIGQUIT", handleSignal("SIGQUIT"));
-
-  // const syntax = readFileSync(fileURLToPath(new URL("../src/erq.pegjs", import.meta.url).href), "utf-8")
-  // const parser = peggy.generate(syntax, {
-  //   allowedStartRules: ["start", "cli_readline"],
-  //   trace: DEBUG,
-  // });
 
   // global states
 
   /** @type {"read" | "eval" | "hang"} */
   let state = "read";
   let input = "";
-
-  await client.ready;
 
   if (options.format) {
     const ok = await client.runCLICommand({ command: "format", args: [options.format] });
@@ -75,23 +68,6 @@ export async function parent() {
     if (!ok) {
       client.ipcSend("quit", [1], null);
       return;
-    }
-  }
-
-  if (options.init) {
-    input = await readFile(options.init, "utf-8");
-    input += "\n;;\n";
-    while (input !== "") {
-      const sqls = parseErq();
-      if (sqls == null) {
-        client.ipcSend("quit", [1], null);
-        return;
-      }
-      const ok = await client.runSqls(sqls);
-      if (!ok) {
-        client.ipcSend("quit", [1], null);
-        return;
-      }
     }
   }
 

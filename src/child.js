@@ -19,8 +19,10 @@ import { deserializeVars } from "./serialize-vars.js";
 
 export async function child() {
   if (DEBUG) {
-    console.error("child process start");
+    console.error("child process start pid:%s", process.pid);
   }
+
+  const initCwd = process.cwd();
 
   function resolveTable(table, env) {
     if (Array.isArray(table)) {
@@ -653,10 +655,11 @@ export async function child() {
                   const v = variable.slice(1);
                   vars.push([v, row[v]]);
                 }
-                const client = ErqClient.connect(process.argv.slice(2), {
+                const client = await ErqClient.connect(process.argv.slice(2), {
                   stdin: 'ignore',
                   stdout: 'ignore',
                   stderr: 'ignore',
+                  cwd: initCwd,
                 });
                 clients.push(client);
                 promises.push(client.runSqls(bodyStatements, vars).then(ok => {
@@ -1063,6 +1066,9 @@ export async function child() {
    * @param {[string, string, string][]} [vars] 
    */
   async function runScript(erqScript, vars = []) {
+    if (DEBUG) {
+      console.error("pid:%s runScript:%s", process.pid, JSON.stringify(erqScript));
+    }
     const parser = await import("../dist/erq.js");
     const sqls = parser.parse(erqScript, { startRule: "script" })
     return await runSqls(sqls, vars);
@@ -1075,7 +1081,10 @@ export async function child() {
    * @param {[string, string, string][]} [vars] 
    */
   async function runFile(filepath, vars) {
-    const erqScript = await readFile(filepath, "utf-8")
+    if (DEBUG) {
+      console.error("pid:%s runFile:%s", process.pid, JSON.stringify(filepath));
+    }
+    const erqScript = await readFile(filepath, "utf-8");
     return await runScript(erqScript, vars);
   }
   ipcExport(runFile);
@@ -1131,6 +1140,14 @@ export async function child() {
       });
     }
   })
+
+  if (options.init) {
+    const ok = await runFile(options.init);
+    if (!ok) {
+      await quit(1);
+      // never reach here
+    }
+  }
 
   process.send("ready");
 }
