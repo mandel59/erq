@@ -5,3 +5,5 @@ commit;;
 rollback;;
 -- `range` keyword is interpreted as range virtual table in Erq.
 range;;
+-- `do` keyword is not interpreted as top level table name.
+do { true };;

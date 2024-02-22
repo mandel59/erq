@@ -22,5 +22,9 @@
   {
     "type": "select",
     "query": "select * from `range`"
+  },
+  {
+    "type": "select",
+    "query": "select 1"
   }
 ]
