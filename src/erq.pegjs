@@ -87,6 +87,15 @@ ForEachClause
     };
   }
 
+ParallelClause
+  = _ "parallel" _ "(" _ a:ForVarAssignments _ ")" _ body:BlockStatement
+  {
+    return {
+      assignments: a,
+      bodyStatements: body,
+    };
+  }
+
 ForVarAssignments
   = ForVarAssignment|.., _ "," _|
 
@@ -120,6 +129,7 @@ Statement1
   / s:Analyze { return { type: "analyze", query: s }; }
   / s:Reindex { return { type: "reindex", query: s }; }
   / t:Table f:ForEachClause { return { type: "for", sourceTable: t, ...f }; }
+  / t:Table f:ParallelClause { return { type: "parallel", sourceTable: t, ...f }; }
   / t:TriggerStatement f:FormattingClause? { return { ...t, ...f }; }
 
 SetOutputFormat

@@ -14,6 +14,8 @@ import { JSRuntimeError, getJSRuntime } from "./js-runtime.js";
 import { evalDestination, preprocess, evalSQLValue } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
+import { ErqClient } from "./erq-client.js";
+import { deserializeVars } from "./serialize-vars.js";
 
 export async function child() {
   if (DEBUG) {
@@ -607,6 +609,70 @@ export async function child() {
           }
           continue;
         }
+        if (statement.type === "parallel") {
+          const {
+            assignments,
+            sourceTable,
+            bodyStatements,
+          } = statement
+          const sourceSql = `select ${assignments.map(({ name, expression }) => {
+            if (expression == null) return name;
+            return `${expression} as ${name}`
+          }).join(", ")} from (${preprocess(db, env, sourceTable)})`
+          console.error(sourceSql);
+          const t0 = performance.now();
+          const stmt = db.prepare(sourceSql);
+          stmt.safeIntegers(true);
+          const vars = [...env.entries()];
+          const t1 = performance.now();
+          const records = stmt.all(Object.fromEntries(env.entries()));
+          const t = t1 - t0;
+          const i = records.length;
+          const rows = (i === 1) ? "1 row" : `${i} rows`;
+          console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
+          /** @type {ErqClient[]} */
+          const clients = [];
+          /** @type {Promise<void>[]} */
+          const promises = [];
+          try {
+            for (const row of records) {
+              for (const { variable } of assignments) {
+                const v = variable.slice(1);
+                vars.push([v, row[v]]);
+              }
+              const client = ErqClient.connect(process.argv.slice(2), {
+                stdin: 'ignore',
+                stdout: 'ignore',
+                stderr: 'ignore',
+              });
+              clients.push(client);
+              promises.push(client.runSqls(bodyStatements, vars).then(ok => {
+                if (!ok) {
+                  throw new Error("parallel statement failed");
+                }
+              }));
+            }
+            await Promise.all(promises);
+          } catch (error) {
+            console.error("%s: %s", error.name, error.message);
+            if (DEBUG && error?.stack) {
+              console.error(error.stack);
+            }
+            return false;
+          } finally {
+            for (const client of clients) {
+              try {
+                client.quit(0);
+              } catch (error) {
+                console.error("%s: %s", error.name, error.message);
+                if (DEBUG && error?.stack) {
+                  console.error(error.stack);
+                }
+              }
+            }
+          }
+          continue;
+        }
         const {
           type,
           query: sourceSql,
@@ -947,12 +1013,12 @@ export async function child() {
   /**
    * 
    * @param {any[]} sqls 
-   * @param {[string, string][]} [vars] 
+   * @param {[string, string, string][]} [vars] 
    * @returns 
    */
   async function runSqls(sqls, vars = []) {
     const env = new Map(globalVars)
-    for (const [k, v] of vars) {
+    for (const [k, v] of deserializeVars(vars)) {
       env.set(k, v);
     }
     return await runSqlsWithEnv(sqls, env);
@@ -962,7 +1028,7 @@ export async function child() {
   /**
    * Evaluate Erq script
    * @param {string} erqScript 
-   * @param {[string, string][]} [vars] 
+   * @param {[string, string, string][]} [vars] 
    */
   async function runScript(erqScript, vars = []) {
     const parser = await import("../dist/erq.js");
@@ -974,7 +1040,7 @@ export async function child() {
   /**
    * Run Erq script file
    * @param {string} filepath 
-   * @param {[string, string][]} [vars] 
+   * @param {[string, string, string][]} [vars] 
    */
   async function runFile(filepath, vars) {
     const erqScript = await readFile(filepath, "utf-8")

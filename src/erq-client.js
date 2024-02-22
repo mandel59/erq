@@ -1,6 +1,7 @@
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { EventEmitter } from "node:events";
+import { serializeVars } from "./serialize-vars.js";
 
 export class ErqClient extends EventEmitter {
   /** @type {import("node:child_process").ChildProcess | undefined} */
@@ -120,7 +121,7 @@ export class ErqClient extends EventEmitter {
    * @returns 
    */
   runSqls(statements, vars = []) {
-    return this.ipcCall("runSqls", [statements, vars]);
+    return this.ipcCall("runSqls", [statements, serializeVars(vars)]);
   }
   /**
    * Evaluate an Erq script
@@ -128,7 +129,7 @@ export class ErqClient extends EventEmitter {
    * @param {[string, string][]} [vars]
    */
   runScript(erqScript, vars = []) {
-    return this.ipcCall("runScript", [erqScript, vars]);
+    return this.ipcCall("runScript", [erqScript, serializeVars(vars)]);
   }
   /**
    * Run an Erq script file
@@ -136,7 +137,7 @@ export class ErqClient extends EventEmitter {
    * @param {[string, string][]} [vars]
    */
   runFile(filepath, vars = []) {
-    return this.ipcCall("runFile", [filepath, vars]);
+    return this.ipcCall("runFile", [filepath, serializeVars(vars)]);
   }
   /**
    * Get Erq context
