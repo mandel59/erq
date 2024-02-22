@@ -151,8 +151,19 @@ export async function child() {
   ipcExport(completer);
 
   let sigint = false;
+  const interruptedSymbol = Symbol("Interrupted");
+  let interruptedPromise, interruptedPromiseReject;
+  function resetInterruptedPromise() {
+    interruptedPromise = new Promise((resolve, reject) => interruptedPromiseReject = reject);
+    interruptedPromise.catch(() => {
+      // ignore
+    });
+  }
+  resetInterruptedPromise();
   async function interrupt() {
     sigint = true;
+    interruptedPromiseReject(interruptedSymbol);
+    resetInterruptedPromise();
   }
   ipcExport(interrupt);
   async function resetSigint() {
@@ -630,43 +641,64 @@ export async function child() {
           const i = records.length;
           const rows = (i === 1) ? "1 row" : `${i} rows`;
           console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
-          /** @type {ErqClient[]} */
-          const clients = [];
-          /** @type {Promise<void>[]} */
-          const promises = [];
-          try {
-            for (const row of records) {
-              for (const { variable } of assignments) {
-                const v = variable.slice(1);
-                vars.push([v, row[v]]);
-              }
-              const client = ErqClient.connect(process.argv.slice(2), {
-                stdin: 'ignore',
-                stdout: 'ignore',
-                stderr: 'ignore',
-              });
-              clients.push(client);
-              promises.push(client.runSqls(bodyStatements, vars).then(ok => {
-                if (!ok) {
-                  throw new Error("parallel statement failed");
+          {
+            /** @type {ErqClient[]} */
+            const clients = [];
+            /** @type {Promise<void>[]} */
+            const promises = [];
+            const t0 = performance.now();
+            try {
+              for (const row of records) {
+                for (const { variable } of assignments) {
+                  const v = variable.slice(1);
+                  vars.push([v, row[v]]);
                 }
-              }));
-            }
-            await Promise.all(promises);
-          } catch (error) {
-            console.error("%s: %s", error.name, error.message);
-            if (DEBUG && error?.stack) {
-              console.error(error.stack);
-            }
-            return false;
-          } finally {
-            for (const client of clients) {
-              try {
-                client.quit(0);
-              } catch (error) {
-                console.error("%s: %s", error.name, error.message);
-                if (DEBUG && error?.stack) {
-                  console.error(error.stack);
+                const client = ErqClient.connect(process.argv.slice(2), {
+                  stdin: 'ignore',
+                  stdout: 'ignore',
+                  stderr: 'ignore',
+                });
+                clients.push(client);
+                promises.push(client.runSqls(bodyStatements, vars).then(ok => {
+                  if (!ok) {
+                    throw new Error("parallel statement failed");
+                  }
+                }));
+              }
+              await Promise.race([Promise.all(promises), interruptedPromise]);
+              const t1 = performance.now();
+              const t = t1 - t0;
+              if (promises.length === 1) {
+                console.error("%s process has finished (%ss)", promises.length, (t / 1000).toFixed(3));
+              } else {
+                console.error("%s processes have finished (%ss)", promises.length, (t / 1000).toFixed(3));
+              }
+            } catch (error) {
+              if (error === interruptedSymbol) {
+                console.error("Interrupted");
+                const t1 = performance.now();
+                const t = t1 - t0;
+                if (promises.length === 1) {
+                  console.error("%s process aborted (%ss)", promises.length, (t / 1000).toFixed(3));
+                } else {
+                  console.error("%s processes aborted (%ss)", promises.length, (t / 1000).toFixed(3));
+                }
+                return false;
+              }
+              console.error("%s: %s", error.name, error.message);
+              if (DEBUG && error?.stack) {
+                console.error(error.stack);
+              }
+              return false;
+            } finally {
+              for (const client of clients) {
+                try {
+                  client.quit(0);
+                } catch (error) {
+                  console.error("%s: %s", error.name, error.message);
+                  if (DEBUG && error?.stack) {
+                    console.error(error.stack);
+                  }
                 }
               }
             }
