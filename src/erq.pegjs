@@ -22,6 +22,9 @@ cli_readline
   = c:CLICommand { return [c]; }
   / _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
 
+script
+  = _ ss:(Statement?)|.., _ ";;" _| _ ";;"? _ { return ss.filter(s => s != null); }
+
 CLICommand
   = "." c:$([_0-9A-Za-z]*) space* args:(
     a:(

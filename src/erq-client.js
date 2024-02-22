@@ -121,4 +121,31 @@ export class ErqClient extends EventEmitter {
   runSqls(statements) {
     return this.ipcCall("runSqls", [statements]);
   }
+  /**
+   * Evaluate an Erq script
+   */
+  runScript(erqScript) {
+    return this.ipcCall("runScript", [erqScript]);
+  }
+  /**
+   * Run an Erq script file
+   * @param {string} filepath
+   */
+  runFile(filepath) {
+    return this.ipcCall("runFile", [filepath]);
+  }
+  /**
+   * Get Erq context
+   * @returns {Promise<any>}
+   */
+  getErqContext() {
+    return this.ipcCall("getErqContext", []);
+  }
+  /**
+   * Set Erq context
+   * @param {any} context
+   */
+  setErqContext(context) {
+    return this.ipcCall("setErqContext", [context]);
+  }
 }

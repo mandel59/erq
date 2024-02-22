@@ -1,5 +1,5 @@
 import process from "node:process";
-import { open } from "node:fs/promises";
+import { open, readFile } from "node:fs/promises";
 import { Readable } from "node:stream";
 import Database from "better-sqlite3";
 
@@ -945,11 +945,52 @@ export async function child() {
   }
   ipcExport(runSqls);
 
+  /**
+   * Evaluate Erq script
+   * @param {string} erqScript 
+   */
+  async function runScript(erqScript) {
+    const parser = await import("../dist/erq.js");
+    const sqls = parser.parse(erqScript, { startRule: "script" })
+    return await runSqls(sqls);
+  }
+  ipcExport(runScript);
+
+  /**
+   * Run Erq script file
+   * @param {string} filepath 
+   */
+  async function runFile(filepath) {
+    const erqScript = await readFile(filepath, "utf-8")
+    return await runScript(erqScript);
+  }
+  ipcExport(runFile);
+
   async function quit(status) {
     db.close();
     process.exit(status);
   }
   ipcExport(quit);
+
+  function getErqContext() {
+    return {
+      globalVars,
+    }
+  }
+  ipcExport(getErqContext);
+
+  /**
+   * 
+   * @param {object} context 
+   * @param {[string, string][]} context.globalVars
+   */
+  function setErqContext(context) {
+    globalVars.splice(0, globalVars.length);
+    for (const [k, v] of context.globalVars) {
+      globalVars.push([k, v]);
+    }
+  }
+  ipcExport(setErqContext);
 
   process.on("message", async (message) => {
     if (message == null || typeof message !== "object") return;
