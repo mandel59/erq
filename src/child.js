@@ -23,6 +23,13 @@ export async function child() {
   }
 
   const initCwd = process.cwd();
+  let ready = false;
+
+  function sendReady() {
+    if (ready) return;
+    process.send("ready");
+    ready = true;
+  }
 
   function resolveTable(table, env) {
     if (Array.isArray(table)) {
@@ -623,6 +630,10 @@ export async function child() {
           continue;
         }
         if (statement.type === "parallel") {
+          if (!ready) {
+            console.error("parallel is not supported in init script");
+            return false;
+          }
           const {
             assignments,
             sourceTable,
@@ -1153,7 +1164,7 @@ export async function child() {
     }
   }
 
-  process.send("ready");
+  sendReady();
 }
 
 /**
