@@ -300,6 +300,7 @@ export const erqKeywords = new Set([
   "output",
   "over",
   "pack",
+  "parallel",
   "partition",
   "plan",
   "png",
