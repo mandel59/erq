@@ -128,8 +128,8 @@ Statement1
   / s:Rollback { return { type: "rollback", query: s }; }
   / s:Analyze { return { type: "analyze", query: s }; }
   / s:Reindex { return { type: "reindex", query: s }; }
-  / t:Table f:ForEachClause { return { type: "for", sourceTable: t, ...f }; }
-  / t:Table f:ParallelClause { return { type: "parallel", sourceTable: t, ...f }; }
+  / Do? t:Table f:ForEachClause { return { type: "for", sourceTable: t, ...f }; }
+  / Do? t:Table f:ParallelClause { return { type: "parallel", sourceTable: t, ...f }; }
   / t:TriggerStatement f:FormattingClause? { return { ...t, ...f }; }
 
 SetOutputFormat
@@ -527,7 +527,7 @@ TriggerStatement
   = i:Insert r:ReturningClause? { return r != null ? { type: "insert", query: i + r, returning: true } : { type: "insert", query: i }; }
   / d:Delete r:ReturningClause? { return r != null ? { type: "delete", query: d + r, returning: true } : { type: "delete", query: d }; }
   / u:Update r:ReturningClause? { return r != null ? { type: "update", query: u + r, returning: true } : { type: "update", query: u }; }
-  / t:Table { return { type: "select", query: t }; }
+  / Do? t:Table { return { type: "select", query: t }; }
 
 Begin
   = "begin" boundary opt:(_ opt:("deferred"/"immediate"/"exclusive") { return opt; })?
