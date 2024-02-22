@@ -1,0 +1,13 @@
+range(0, 9) parallel (@value) do (
+  attach E'testdb/parallel_\(@value).db' as db;;
+  begin;;
+  drop table if exists db.v;;
+  table db.v = range(0, 9) { value: @value * 10 + value };;
+  commit;;
+);;
+
+range(0, 9) foreach (@value) do (
+  attach E'testdb/parallel_\(@value).db' as db;;
+  db.v;;
+  detach db;;
+);;
