@@ -544,7 +544,7 @@ export async function child() {
     }
   }
 
-  async function runSqls(statements, env = new Map(globalVars)) {
+  async function runSqlsWithEnv(statements, env) {
     try {
       for (const statement of statements) {
         if (statement.type === "command") {
@@ -558,7 +558,7 @@ export async function child() {
           console.error(sql);
           const stmt = db.prepare(sql);
           const condition = stmt.pluck().get(Object.fromEntries(env.entries()));
-          const ok = await runSqls(condition ? thenStatements : elseStatements ?? [], env);
+          const ok = await runSqlsWithEnv(condition ? thenStatements : elseStatements ?? [], env);
           if (!ok) return false;
           continue;
         }
@@ -569,7 +569,7 @@ export async function child() {
           const stmt = db.prepare(sql);
           let condition = stmt.pluck().get(Object.fromEntries(env.entries()));
           while (condition) {
-            const ok = await runSqls(bodyStatements, env);
+            const ok = await runSqlsWithEnv(bodyStatements, env);
             if (!ok) return false;
             console.error(sql);
             condition = stmt.pluck().get(Object.fromEntries(env.entries()));
@@ -602,7 +602,7 @@ export async function child() {
               const v = variable.slice(1);
               env2.set(v, row[v]);
             }
-            const ok = await runSqls(bodyStatements, env2);
+            const ok = await runSqlsWithEnv(bodyStatements, env2);
             if (!ok) return false;
           }
           continue;
@@ -943,26 +943,42 @@ export async function child() {
     }
     return true;
   }
+
+  /**
+   * 
+   * @param {any[]} sqls 
+   * @param {[string, string][]} [vars] 
+   * @returns 
+   */
+  async function runSqls(sqls, vars = []) {
+    const env = new Map(globalVars)
+    for (const [k, v] of vars) {
+      env.set(k, v);
+    }
+    return await runSqlsWithEnv(sqls, env);
+  }
   ipcExport(runSqls);
 
   /**
    * Evaluate Erq script
    * @param {string} erqScript 
+   * @param {[string, string][]} [vars] 
    */
-  async function runScript(erqScript) {
+  async function runScript(erqScript, vars = []) {
     const parser = await import("../dist/erq.js");
     const sqls = parser.parse(erqScript, { startRule: "script" })
-    return await runSqls(sqls);
+    return await runSqls(sqls, vars);
   }
   ipcExport(runScript);
 
   /**
    * Run Erq script file
    * @param {string} filepath 
+   * @param {[string, string][]} [vars] 
    */
-  async function runFile(filepath) {
+  async function runFile(filepath, vars) {
     const erqScript = await readFile(filepath, "utf-8")
-    return await runScript(erqScript);
+    return await runScript(erqScript, vars);
   }
   ipcExport(runFile);
 
