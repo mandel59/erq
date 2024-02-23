@@ -1,5 +1,4 @@
 import process, { stdin, stderr } from "node:process";
-import { readFile } from "node:fs/promises";
 import readline from "node:readline";
 
 import chalk from "chalk";
