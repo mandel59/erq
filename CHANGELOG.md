@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - Select statements are now able to start with `do` keyword.
-- Table with name `do` should be quoted with backticks.
+  - Table with name `do` should be quoted with backticks.
+- Initialization scripts now only accept statements. CLI commands can't be used now.
 
 ## [0.1.1] - 2024-02-18
 
