@@ -1,0 +1,4 @@
+load table chardata(id integer, value text) from 'data/testdata-a.txt'
+  csv, delimiter ';', comment '#', skip empty lines, trim;;
+
+chardata{id, value};;

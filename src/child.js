@@ -318,9 +318,11 @@ export async function child() {
       const escape = options.escape ?? quote;
       const comment = options.comment ?? undefined;
       const format = options.format ?? contentType;
-      const relax_column_count = options.relax_column_count ?? undefined;;
-      const relax_column_count_less = options.relax_column_count_less ?? undefined;;
-      const relax_column_count_more = options.relax_column_count_more ?? undefined;;
+      const relax_column_count = options.relax_column_count ?? undefined;
+      const relax_column_count_less = options.relax_column_count_less ?? undefined;
+      const relax_column_count_more = options.relax_column_count_more ?? undefined;
+      const skip_empty_lines = options.skip_empty_lines ?? undefined;
+      const trim = options.trim ?? undefined;
       const encoding = options.encoding ?? "utf-8";
       const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
       let content = args.content;
@@ -357,6 +359,8 @@ export async function child() {
             relax_column_count,
             relax_column_count_less,
             relax_column_count_more,
+            skip_empty_lines,
+            trim,
             cast: (value, context) => {
               if (value === nullValue && !context.quoting) {
                 return null;

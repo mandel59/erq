@@ -638,7 +638,9 @@ LoadOption
   / "relax" __ "column" __ "count" __ lm:("less"/"more") boundary { return ["relax_column_count_" + lm, true]; }
   / "relax" __ "column" __ "count" boundary { return ["relax_column_count", true]; }
   / "sniff" __ "size" __ n:JSONNumber { return ["sniff_size", n]; }
-  / ("format" __)? f:("csv"/"ndjson") { return ["format", f]; }
+  / "skip" __ "empty" __ "lines" boundary { return ["skip_empty_lines", true]; }
+  / "trim" boundary { return ["trim", true]; }
+  / ("format" __)? f:("csv"/"ndjson") boundary { return ["format", f]; }
 
 CreateFunction
   = Do? "create" __
