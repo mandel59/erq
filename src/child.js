@@ -334,69 +334,83 @@ export async function child() {
       }
       if (format === "csv") {
         const [{ default: iconv }, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
-        const stream = path != null ? (await open(path)).createReadStream().pipe(iconv.decodeStream(encoding)) : Readable.from(content);
-        const csv = stream.pipe(parseCSV({
-          bom: true,
-          delimiter,
-          quote,
-          escape,
-          comment,
-          relax_column_count,
-          relax_column_count_less,
-          relax_column_count_more,
-          cast: (value, context) => {
-            if (value === nullValue && !context.quoting) {
-              return null;
+        /** @type {<T>(callback: (stream: NodeJS.ReadWriteStream | Readable) => Promise<T>) => Promise<T>} */
+        const withStream = async (callback) => {
+          if (path != null) {
+            const fd = await open(path);
+            try {
+              return await callback(fd.createReadStream({ autoClose: false }).pipe(iconv.decodeStream(encoding)));
+            } finally {
+              fd.close();
             }
-            return value;
-          },
-        }));
-        /** @type {AsyncIterable<any[]>} */
-        let records
-        let header, definition;
-        if (def) {
-          header = columnNames;
-          definition = def;
-          records = options.header ? (await uncons(csv))[1] : csv;
-        } else {
-          [header, records] = await uncons(csv);
-          if (header != null) {
-            definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+          } else {
+            return await callback(Readable.from(content));
           }
         }
-        if (definition == null) {
-          console.error("header is not defined");
-          return false;
-        }
-        await asyncTransaction(db, async () => {
-          const createTableSQL = `create table ${table} (${definition})`;
-          console.error(createTableSQL);
-          db.prepare(createTableSQL).run();
-          const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-          console.error(insertSQL);
-          const insert = db.prepare(insertSQL);
-          let i = 0;
-          const insertMany = async () => {
-            for await (const record of records) {
-              i++;
-              if (record.length === header.length) {
-                insert.run(record);
-              } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
-                insert.run(record.concat(...Array(header.length - record.length)));
-              } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
-                insert.run(record.slice(0, header.length));
-              } else {
-                throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
+        return await withStream(async (stream) => {
+          const csv = stream.pipe(parseCSV({
+            bom: true,
+            delimiter,
+            quote,
+            escape,
+            comment,
+            relax_column_count,
+            relax_column_count_less,
+            relax_column_count_more,
+            cast: (value, context) => {
+              if (value === nullValue && !context.quoting) {
+                return null;
               }
+              return value;
+            },
+          }));
+          /** @type {AsyncIterable<any[]>} */
+          let records
+          let header, definition;
+          if (def) {
+            header = columnNames;
+            definition = def;
+            records = options.header ? (await uncons(csv))[1] : csv;
+          } else {
+            [header, records] = await uncons(csv);
+            if (header != null) {
+              definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
             }
-          };
-          await insertMany();
-          const t1 = performance.now();
-          const t = t1 - t0;
-          const rows = (i === 1) ? "1 row" : `${i} rows`;
-          console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+          }
+          if (definition == null) {
+            console.error("header is not defined");
+            return false;
+          }
+          await asyncTransaction(db, async () => {
+            const createTableSQL = `create table ${table} (${definition})`;
+            console.error(createTableSQL);
+            db.prepare(createTableSQL).run();
+            const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
+            console.error(insertSQL);
+            const insert = db.prepare(insertSQL);
+            let i = 0;
+            const insertMany = async () => {
+              for await (const record of records) {
+                i++;
+                if (record.length === header.length) {
+                  insert.run(record);
+                } else if ((relax_column_count_less || relax_column_count) && record.length < header.length) {
+                  insert.run(record.concat(...Array(header.length - record.length)));
+                } else if ((relax_column_count_more || relax_column_count) && record.length > header.length) {
+                  insert.run(record.slice(0, header.length));
+                } else {
+                  throw new Error(`the row #${i} has ${record.length} fields, not matching number of columns ${header.length}`);
+                }
+              }
+            };
+            await insertMany();
+            const t1 = performance.now();
+            const t = t1 - t0;
+            const rows = (i === 1) ? "1 row" : `${i} rows`;
+            console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+          });
+          return true;
         });
-        return true;
       } else if (format === "ndjson") {
         const [{ default: iconv }, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
         const fileHandle = path != null ? await open(path) : null;
