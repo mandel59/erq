@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.4] - 2024-03-12
+
+### Fixed
+
+- load table: fix parsing errors.
+
 ## [0.1.3] - 2024-03-12
 
 ### Added
@@ -40,6 +46,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Initial release of the library.
 - Basic functionality to analyze and manipulate SQLite databases.
 
+[0.1.4]: https://github.com/mandel59/erq/releases/tag/v0.1.4
+[0.1.3]: https://github.com/mandel59/erq/releases/tag/v0.1.3
 [0.1.2]: https://github.com/mandel59/erq/releases/tag/v0.1.2
 [0.1.1]: https://github.com/mandel59/erq/releases/tag/v0.1.1
 [0.1.0]: https://github.com/mandel59/erq/releases/tag/v0.1.0
