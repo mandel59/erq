@@ -1,0 +1,19 @@
+[
+  {
+    "type": "command",
+    "command": "meta-load",
+    "args": {
+      "ifNotExists": null,
+      "table": "t",
+      "def": "a, b, c, primary key (a)",
+      "columns": [
+        "a",
+        "b",
+        "c"
+      ],
+      "options": {},
+      "contentType": "csv",
+      "content": "1,2,3\n2,3,4\n"
+    }
+  }
+]

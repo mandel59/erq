@@ -533,6 +533,7 @@ export async function child() {
       if (ifNotExists && tableExists(table)) {
         return true;
       }
+      console.error(def)
       const columnNames = def && def.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
       let header, definition;
       if (def) {

@@ -1,0 +1,5 @@
+load table t(a => b, c) from ```csv
+1,2,3
+2,3,4
+```;;
+t;;

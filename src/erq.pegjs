@@ -680,7 +680,7 @@ TableDef
       const pkbody = `primary key (${cs.map(c => c.name).join(", ")})${vcs.cc ?? ""}`;
       const pk = { def: pkbody, name: undefined, body: pkbody };
       const def = [...cs, ...vcs.cs, ...cos, pk].map(c => c.def).join(", ");
-      return { def, columns: [cs, vcs.cs], constraints: [...cos, pk] };
+      return { def, columns: [...cs, ...vcs.cs], constraints: [...cos, pk] };
     }
     const def = [...cs, ...cos].map(c => c.def).join(", ");
     return { def, columns: cs, constraints: cos };
