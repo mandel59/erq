@@ -64,14 +64,23 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   });
 
   defineFunction("regexp", { deterministic: true }, function (pattern, string) {
+    if (pattern == null || string == null) {
+      return null;
+    }
     return Number(new RegExp(pattern, "gu").test(string));
   });
 
   defineFunction("regexp_replace", { deterministic: true }, function (source_string, pattern, replace_string) {
+    if (source_string == null || pattern == null || replace_string == null) {
+      return null;
+    }
     return String(source_string).replace(new RegExp(pattern, "gu"), replace_string);
   });
 
   defineFunction("regexp_substr", { deterministic: true }, function (string, pattern) {
+    if (string == null || pattern == null) {
+      return null;
+    }
     const re = new RegExp(pattern, "gu");
     const m = re.exec(string);
     if (m) {
@@ -103,6 +112,9 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   });
 
   defineFunction("regexp_group", { deterministic: true }, function (string, pattern) {
+    if (string == null || pattern == null) {
+      return null;
+    }
     const re = new RegExp(pattern, "u");
     const m = re.exec(string);
     if (m) {
