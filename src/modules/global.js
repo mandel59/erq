@@ -86,10 +86,18 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     rows: function* (
       /** @type {string} */ string,
       /** @type {string} */ pattern) {
+      if (string == null || pattern == null) {
+        return;
+      }
       const re = new RegExp(pattern, "gu");
-      let m;
+      let m, prev;
       while (m = re.exec(string)) {
+        if (m.index === prev) {
+          re.lastIndex++;
+          continue;
+        }
         yield [m[0]];
+        prev = m.index;
       }
     }
   });
@@ -113,15 +121,23 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     rows: function* (
       /** @type {string} */ string,
       /** @type {string} */ pattern) {
+      if (string == null || pattern == null) {
+        return;
+      }
       const re = new RegExp(pattern, "gu");
-      let m;
+      let m, prev;
       while (m = re.exec(string)) {
+        if (m.index === prev) {
+          re.lastIndex++;
+          continue;
+        }
         const substr = m[0];
         if (m.groups) {
           yield [substr, JSON.stringify(m.groups)];
         } else {
           yield [substr, JSON.stringify(m.slice(1))];
         }
+        prev = m.index;
       }
     }
   });
