@@ -640,6 +640,8 @@ LoadOption
   / "sniff" __ "size" __ n:JSONNumber { return ["sniff_size", n]; }
   / "skip" __ "empty" __ "lines" boundary { return ["skip_empty_lines", true]; }
   / "trim" boundary { return ["trim", true]; }
+  / "cast" boundary { return ["cast", true]; }
+  / "no" __ "cast" boundary { return ["cast", false]; }
   / ("format" __)? f:("csv"/"ndjson") boundary { return ["format", f]; }
 
 CreateFunction

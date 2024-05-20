@@ -321,6 +321,7 @@ export async function child() {
       const relax_column_count = options.relax_column_count ?? undefined;
       const relax_column_count_less = options.relax_column_count_less ?? undefined;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;
+      const cast = options.cast ?? false;
       const skip_empty_lines = options.skip_empty_lines ?? undefined;
       const trim = options.trim ?? undefined;
       const encoding = options.encoding ?? "utf-8";
@@ -361,12 +362,49 @@ export async function child() {
             relax_column_count_more,
             skip_empty_lines,
             trim,
-            cast: (value, context) => {
-              if (value === nullValue && !context.quoting) {
-                return null;
+            cast: cast
+              ? (value, context) => {
+                if (value === nullValue && !context.quoting) {
+                  return null;
+                }
+                const upperCase = value.toUpperCase();
+                if (upperCase === "TRUE") {
+                  return 1n;
+                } else if (upperCase === "FALSE") {
+                  return 0n;
+                }
+                if (value === "0") {
+                  return 0n;
+                }
+                if (value[0] === "-") {
+                  if (/^-[1-9]\d*$/.test(value)) {
+                    return BigInt(value);
+                  }
+                  if (/^-[.1-9]|^-0\./.test(value)) {
+                    const n = Number(value)
+                    if (!Number.isNaN(n)) {
+                      return n;
+                    }
+                  }
+                } else {
+                  if (/^[1-9]\d*$/.test(value)) {
+                    return BigInt(value);
+                  }
+                  if (/^[.1-9]|^0\./.test(value)) {
+                    const n = Number(value)
+                    if (!Number.isNaN(n)) {
+                      return n;
+                    }
+                  }
+                }
+                return value;
               }
-              return value;
-            },
+              : (value, context) => {
+                if (value === nullValue && !context.quoting) {
+                  return null;
+                }
+                return value;
+              },
           }));
           /** @type {AsyncIterable<any[]>} */
           let records

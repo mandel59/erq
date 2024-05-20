@@ -1,0 +1,2 @@
+load table test_values from 'data/values.csv' format csv, cast;;
+test_values{type = typeof(value), value};;
