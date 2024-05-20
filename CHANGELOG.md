@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.1.6] - 2024-05-20
+
+### Added
+
+- Add cast option to `load table` command.
+
+### Fixed
+
+- Fix parsing of scientific notation in numeric literal.
+
 ## [0.1.5] - 2024-04-02
 
 ### Fixed
@@ -53,6 +63,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Initial release of the library.
 - Basic functionality to analyze and manipulate SQLite databases.
 
+[0.1.6]: https://github.com/mandel59/erq/releases/tag/v0.1.6
 [0.1.5]: https://github.com/mandel59/erq/releases/tag/v0.1.5
 [0.1.4]: https://github.com/mandel59/erq/releases/tag/v0.1.4
 [0.1.3]: https://github.com/mandel59/erq/releases/tag/v0.1.3
