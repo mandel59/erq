@@ -1,0 +1,34 @@
+[
+  {
+    "type": "select",
+    "query": "select 123 as n"
+  },
+  {
+    "type": "select",
+    "query": "select 1.23 as n"
+  },
+  {
+    "type": "select",
+    "query": "select 123456 as n"
+  },
+  {
+    "type": "select",
+    "query": "select 1.234567 as n"
+  },
+  {
+    "type": "select",
+    "query": "select 0xffffffff as n"
+  },
+  {
+    "type": "select",
+    "query": "select 0xD012345A as n"
+  },
+  {
+    "type": "select",
+    "query": "select 1.0001e10 as n"
+  },
+  {
+    "type": "select",
+    "query": "select -1.0001e-10 as n"
+  }
+]
