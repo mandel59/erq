@@ -654,7 +654,7 @@ LoadOption
   / "trim" boundary { return ["trim", true]; }
   / "cast" boundary { return ["cast", true]; }
   / "no" __ "cast" boundary { return ["cast", false]; }
-  / ("format" __)? f:("csv"/"ndjson") boundary { return ["format", f]; }
+  / ("format" __)? f:("csv"/"ndjson"/"parquet") boundary { return ["format", f]; }
 
 CreateFunction
   = Do? "create" __

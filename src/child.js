@@ -317,7 +317,8 @@ export async function child() {
       const quote = options.quote ?? '"';
       const escape = options.escape ?? quote;
       const comment = options.comment ?? undefined;
-      const format = options.format ?? contentType;
+      /** @type {string | undefined} */
+      const format = options.format ?? contentType ?? sniffFormatFromPath(path);
       const relax_column_count = options.relax_column_count ?? undefined;
       const relax_column_count_less = options.relax_column_count_less ?? undefined;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;
@@ -507,6 +508,98 @@ export async function child() {
         } finally {
           fileHandle?.close();
         }
+        return true;
+      } else if (format === "parquet") {
+        if (path == null) {
+          throw new Error("file path is required for parquet format");
+        }
+        const { default: parquet } = await import("parquetjs");
+        const reader = await parquet.ParquetReader.openFile(path);
+        const schema = reader.schema
+        const getGenerator = async function* (/** @type {string[]} */ columnList) {
+          try {
+            const cursor = reader.getCursor(columnList);
+            /** @type {import("parquetjs/lib/row.interface.js").RowInterface} */
+            let record;
+            while (record = await cursor.next()) {
+              yield record;
+            }
+          } finally {
+            await reader.close();
+          }
+        }
+        /** @type {string[]} */
+        let header;
+        let definition;
+        if (def) {
+          header = columnNames;
+          definition = def;
+        } else {
+          const topLevelFields = schema.fieldList.filter(f => f.path.length === 1)
+          header = topLevelFields.map(f => f.name);
+          definition = topLevelFields.map(f => {
+            const columnName = f.name;
+            if (f.isNested || f.repetitionType === "REPEATED") {
+              return `\`${columnName.replace(/`/g, "``")}\` text`
+            }
+            switch (f.primitiveType) {
+              case "BOOLEAN":
+              case "INT32":
+              case "INT64":
+                return `\`${columnName.replace(/`/g, "``")}\` integer`
+              case "FLOAT":
+              case "DOUBLE":
+                return `\`${columnName.replace(/`/g, "``")}\` real`
+              case "BYTE_ARRAY":
+                return `\`${columnName.replace(/`/g, "``")}\` blob`
+              default:
+                return `\`${columnName.replace(/`/g, "``")}\` text`
+            }
+          }).join(", ");
+        }
+        let records = getGenerator(columnNames);
+        await asyncTransaction(db, async () => {
+          const createTableSQL = `create table ${table} (${definition})`;
+          console.error(createTableSQL);
+          db.prepare(createTableSQL).run();
+          const insertSQL = `insert into ${table} values (${header.map(_f => "?").join(", ")})`;
+          console.error(insertSQL);
+          const insert = db.prepare(insertSQL);
+          let i = 0;
+          const insertMany = async () => {
+            function convert(v) {
+              if (v == null) return null;
+              if (v instanceof Uint8Array) {
+                return Buffer.from(v);
+              }
+              if (v instanceof Date) {
+                return v.toISOString();
+              }
+              if (Array.isArray(v)) {
+                return v.map(x => convert(x));
+              }
+              return v;
+            }
+            function cast(v) {
+              if (v == null) return null;
+              if (v === true) return 1n;
+              if (v === false) return 0n;
+              if (typeof v === "object") {
+                return JSON.stringify(v);
+              }
+              return v;
+            }
+            for await (const record of records) {
+              i++;
+              insert.run(header.map(name => cast(convert(record[name]))))
+            }
+          };
+          await insertMany();
+          const t1 = performance.now();
+          const t = t1 - t0;
+          const rows = (i === 1) ? "1 row" : `${i} rows`;
+          console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
+        });
         return true;
       } else {
         console.error("unknown content type: %s", format);
@@ -1241,4 +1334,24 @@ function createEqpFormatter(format, formatOptions, outputStream) {
     }
     return outputStream.write(s + "* " + detail + "\n");
   }
+}
+
+/**
+ * @param {string} path 
+ */
+function sniffFormatFromPath(path) {
+  if (!path) {
+    return undefined;
+  }
+  const extension = path.split(".").pop();
+  if (extension === "csv") {
+    return "csv";
+  }
+  if (extension === "ndjson" || extension === "jsonl") {
+    return "ndjson";
+  }
+  if (extension === "parquet") {
+    return "parquet";
+  }
+  return undefined;
 }
