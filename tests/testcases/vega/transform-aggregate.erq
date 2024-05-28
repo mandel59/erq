@@ -1,0 +1,5 @@
+cars
+  output vega lite with
+    transform {Cylinders => mean_acc: mean(Acceleration)},
+    mark bar,
+    encoding {x: Cylinders o, y: mean_acc q};;

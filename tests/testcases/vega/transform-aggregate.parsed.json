@@ -1,0 +1,39 @@
+[
+  {
+    "type": "select",
+    "query": "select * from cars",
+    "format": {
+      "type": "vega",
+      "view": {
+        "transform": [
+          {
+            "aggregate": [
+              {
+                "op": "mean",
+                "field": "Acceleration",
+                "as": "mean_acc"
+              }
+            ],
+            "groupby": [
+              "Cylinders"
+            ]
+          }
+        ],
+        "mark": {
+          "type": "bar"
+        },
+        "encoding": {
+          "x": {
+            "field": "Cylinders",
+            "type": "ordinal"
+          },
+          "y": {
+            "field": "mean_acc",
+            "type": "quantitative"
+          }
+        }
+      },
+      "format": null
+    }
+  }
+]
