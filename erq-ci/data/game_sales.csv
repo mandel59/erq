@@ -1,0 +1,961 @@
+region,category,platform,quarter,sales
+Asia,Action,PC,Q1,603
+Asia,Action,PC,Q2,661
+Asia,Action,PC,Q3,382
+Asia,Action,PC,Q4,925
+Asia,Action,PlayStation,Q1,238
+Asia,Action,PlayStation,Q2,766
+Asia,Action,PlayStation,Q3,207
+Asia,Action,PlayStation,Q4,1074
+Asia,Action,Xbox,Q1,127
+Asia,Action,Xbox,Q2,527
+Asia,Action,Xbox,Q3,459
+Asia,Action,Xbox,Q4,805
+Asia,Action,Nintendo,Q1,318
+Asia,Action,Nintendo,Q2,92
+Asia,Action,Nintendo,Q3,880
+Asia,Action,Nintendo,Q4,1488
+Asia,Action,Mobile,Q1,954
+Asia,Action,Mobile,Q2,386
+Asia,Action,Mobile,Q3,739
+Asia,Action,Mobile,Q4,1778
+Asia,Adventure,PC,Q1,421
+Asia,Adventure,PC,Q2,618
+Asia,Adventure,PC,Q3,404
+Asia,Adventure,PC,Q4,213
+Asia,Adventure,PlayStation,Q1,237
+Asia,Adventure,PlayStation,Q2,89
+Asia,Adventure,PlayStation,Q3,109
+Asia,Adventure,PlayStation,Q4,170
+Asia,Adventure,Xbox,Q1,161
+Asia,Adventure,Xbox,Q2,110
+Asia,Adventure,Xbox,Q3,662
+Asia,Adventure,Xbox,Q4,715
+Asia,Adventure,Nintendo,Q1,396
+Asia,Adventure,Nintendo,Q2,737
+Asia,Adventure,Nintendo,Q3,253
+Asia,Adventure,Nintendo,Q4,1386
+Asia,Adventure,Mobile,Q1,656
+Asia,Adventure,Mobile,Q2,277
+Asia,Adventure,Mobile,Q3,460
+Asia,Adventure,Mobile,Q4,1191
+Asia,RPG,PC,Q1,488
+Asia,RPG,PC,Q2,292
+Asia,RPG,PC,Q3,254
+Asia,RPG,PC,Q4,838
+Asia,RPG,PlayStation,Q1,120
+Asia,RPG,PlayStation,Q2,110
+Asia,RPG,PlayStation,Q3,424
+Asia,RPG,PlayStation,Q4,477
+Asia,RPG,Xbox,Q1,394
+Asia,RPG,Xbox,Q2,566
+Asia,RPG,Xbox,Q3,622
+Asia,RPG,Xbox,Q4,817
+Asia,RPG,Nintendo,Q1,99
+Asia,RPG,Nintendo,Q2,855
+Asia,RPG,Nintendo,Q3,109
+Asia,RPG,Nintendo,Q4,420
+Asia,RPG,Mobile,Q1,214
+Asia,RPG,Mobile,Q2,465
+Asia,RPG,Mobile,Q3,1229
+Asia,RPG,Mobile,Q4,1938
+Asia,Simulation,PC,Q1,288
+Asia,Simulation,PC,Q2,187
+Asia,Simulation,PC,Q3,568
+Asia,Simulation,PC,Q4,298
+Asia,Simulation,PlayStation,Q1,614
+Asia,Simulation,PlayStation,Q2,355
+Asia,Simulation,PlayStation,Q3,791
+Asia,Simulation,PlayStation,Q4,301
+Asia,Simulation,Xbox,Q1,205
+Asia,Simulation,Xbox,Q2,133
+Asia,Simulation,Xbox,Q3,664
+Asia,Simulation,Xbox,Q4,459
+Asia,Simulation,Nintendo,Q1,738
+Asia,Simulation,Nintendo,Q2,828
+Asia,Simulation,Nintendo,Q3,189
+Asia,Simulation,Nintendo,Q4,1117
+Asia,Simulation,Mobile,Q1,156
+Asia,Simulation,Mobile,Q2,375
+Asia,Simulation,Mobile,Q3,1212
+Asia,Simulation,Mobile,Q4,733
+Asia,Strategy,PC,Q1,269
+Asia,Strategy,PC,Q2,695
+Asia,Strategy,PC,Q3,792
+Asia,Strategy,PC,Q4,566
+Asia,Strategy,PlayStation,Q1,372
+Asia,Strategy,PlayStation,Q2,427
+Asia,Strategy,PlayStation,Q3,422
+Asia,Strategy,PlayStation,Q4,318
+Asia,Strategy,Xbox,Q1,164
+Asia,Strategy,Xbox,Q2,146
+Asia,Strategy,Xbox,Q3,445
+Asia,Strategy,Xbox,Q4,705
+Asia,Strategy,Nintendo,Q1,163
+Asia,Strategy,Nintendo,Q2,602
+Asia,Strategy,Nintendo,Q3,898
+Asia,Strategy,Nintendo,Q4,936
+Asia,Strategy,Mobile,Q1,783
+Asia,Strategy,Mobile,Q2,124
+Asia,Strategy,Mobile,Q3,614
+Asia,Strategy,Mobile,Q4,904
+Asia,Sports,PC,Q1,279
+Asia,Sports,PC,Q2,381
+Asia,Sports,PC,Q3,224
+Asia,Sports,PC,Q4,220
+Asia,Sports,PlayStation,Q1,254
+Asia,Sports,PlayStation,Q2,454
+Asia,Sports,PlayStation,Q3,267
+Asia,Sports,PlayStation,Q4,207
+Asia,Sports,Xbox,Q1,272
+Asia,Sports,Xbox,Q2,324
+Asia,Sports,Xbox,Q3,72
+Asia,Sports,Xbox,Q4,257
+Asia,Sports,Nintendo,Q1,794
+Asia,Sports,Nintendo,Q2,830
+Asia,Sports,Nintendo,Q3,557
+Asia,Sports,Nintendo,Q4,174
+Asia,Sports,Mobile,Q1,836
+Asia,Sports,Mobile,Q2,487
+Asia,Sports,Mobile,Q3,501
+Asia,Sports,Mobile,Q4,1938
+Asia,Puzzle,PC,Q1,113
+Asia,Puzzle,PC,Q2,520
+Asia,Puzzle,PC,Q3,300
+Asia,Puzzle,PC,Q4,158
+Asia,Puzzle,PlayStation,Q1,206
+Asia,Puzzle,PlayStation,Q2,490
+Asia,Puzzle,PlayStation,Q3,112
+Asia,Puzzle,PlayStation,Q4,236
+Asia,Puzzle,Xbox,Q1,203
+Asia,Puzzle,Xbox,Q2,592
+Asia,Puzzle,Xbox,Q3,659
+Asia,Puzzle,Xbox,Q4,276
+Asia,Puzzle,Nintendo,Q1,686
+Asia,Puzzle,Nintendo,Q2,303
+Asia,Puzzle,Nintendo,Q3,293
+Asia,Puzzle,Nintendo,Q4,1047
+Asia,Puzzle,Mobile,Q1,151
+Asia,Puzzle,Mobile,Q2,1109
+Asia,Puzzle,Mobile,Q3,221
+Asia,Puzzle,Mobile,Q4,1232
+Asia,Arcade,PC,Q1,263
+Asia,Arcade,PC,Q2,652
+Asia,Arcade,PC,Q3,764
+Asia,Arcade,PC,Q4,273
+Asia,Arcade,PlayStation,Q1,149
+Asia,Arcade,PlayStation,Q2,443
+Asia,Arcade,PlayStation,Q3,774
+Asia,Arcade,PlayStation,Q4,261
+Asia,Arcade,Xbox,Q1,139
+Asia,Arcade,Xbox,Q2,476
+Asia,Arcade,Xbox,Q3,595
+Asia,Arcade,Xbox,Q4,648
+Asia,Arcade,Nintendo,Q1,230
+Asia,Arcade,Nintendo,Q2,443
+Asia,Arcade,Nintendo,Q3,911
+Asia,Arcade,Nintendo,Q4,1387
+Asia,Arcade,Mobile,Q1,695
+Asia,Arcade,Mobile,Q2,1097
+Asia,Arcade,Mobile,Q3,1268
+Asia,Arcade,Mobile,Q4,313
+Europe,Action,PC,Q1,943
+Europe,Action,PC,Q2,901
+Europe,Action,PC,Q3,402
+Europe,Action,PC,Q4,1609
+Europe,Action,PlayStation,Q1,827
+Europe,Action,PlayStation,Q2,395
+Europe,Action,PlayStation,Q3,564
+Europe,Action,PlayStation,Q4,500
+Europe,Action,Xbox,Q1,489
+Europe,Action,Xbox,Q2,758
+Europe,Action,Xbox,Q3,340
+Europe,Action,Xbox,Q4,358
+Europe,Action,Nintendo,Q1,655
+Europe,Action,Nintendo,Q2,832
+Europe,Action,Nintendo,Q3,573
+Europe,Action,Nintendo,Q4,1186
+Europe,Action,Mobile,Q1,719
+Europe,Action,Mobile,Q2,595
+Europe,Action,Mobile,Q3,532
+Europe,Action,Mobile,Q4,1597
+Europe,Adventure,PC,Q1,466
+Europe,Adventure,PC,Q2,382
+Europe,Adventure,PC,Q3,1071
+Europe,Adventure,PC,Q4,1159
+Europe,Adventure,PlayStation,Q1,771
+Europe,Adventure,PlayStation,Q2,709
+Europe,Adventure,PlayStation,Q3,1077
+Europe,Adventure,PlayStation,Q4,1585
+Europe,Adventure,Xbox,Q1,94
+Europe,Adventure,Xbox,Q2,677
+Europe,Adventure,Xbox,Q3,304
+Europe,Adventure,Xbox,Q4,860
+Europe,Adventure,Nintendo,Q1,704
+Europe,Adventure,Nintendo,Q2,730
+Europe,Adventure,Nintendo,Q3,719
+Europe,Adventure,Nintendo,Q4,1111
+Europe,Adventure,Mobile,Q1,264
+Europe,Adventure,Mobile,Q2,922
+Europe,Adventure,Mobile,Q3,930
+Europe,Adventure,Mobile,Q4,1265
+Europe,RPG,PC,Q1,608
+Europe,RPG,PC,Q2,1044
+Europe,RPG,PC,Q3,601
+Europe,RPG,PC,Q4,1639
+Europe,RPG,PlayStation,Q1,728
+Europe,RPG,PlayStation,Q2,609
+Europe,RPG,PlayStation,Q3,322
+Europe,RPG,PlayStation,Q4,199
+Europe,RPG,Xbox,Q1,458
+Europe,RPG,Xbox,Q2,798
+Europe,RPG,Xbox,Q3,606
+Europe,RPG,Xbox,Q4,1030
+Europe,RPG,Nintendo,Q1,625
+Europe,RPG,Nintendo,Q2,779
+Europe,RPG,Nintendo,Q3,439
+Europe,RPG,Nintendo,Q4,665
+Europe,RPG,Mobile,Q1,210
+Europe,RPG,Mobile,Q2,210
+Europe,RPG,Mobile,Q3,664
+Europe,RPG,Mobile,Q4,1550
+Europe,Simulation,PC,Q1,562
+Europe,Simulation,PC,Q2,376
+Europe,Simulation,PC,Q3,799
+Europe,Simulation,PC,Q4,235
+Europe,Simulation,PlayStation,Q1,356
+Europe,Simulation,PlayStation,Q2,1163
+Europe,Simulation,PlayStation,Q3,1308
+Europe,Simulation,PlayStation,Q4,1837
+Europe,Simulation,Xbox,Q1,464
+Europe,Simulation,Xbox,Q2,723
+Europe,Simulation,Xbox,Q3,536
+Europe,Simulation,Xbox,Q4,1513
+Europe,Simulation,Nintendo,Q1,376
+Europe,Simulation,Nintendo,Q2,283
+Europe,Simulation,Nintendo,Q3,829
+Europe,Simulation,Nintendo,Q4,1414
+Europe,Simulation,Mobile,Q1,802
+Europe,Simulation,Mobile,Q2,398
+Europe,Simulation,Mobile,Q3,855
+Europe,Simulation,Mobile,Q4,518
+Europe,Strategy,PC,Q1,281
+Europe,Strategy,PC,Q2,1056
+Europe,Strategy,PC,Q3,336
+Europe,Strategy,PC,Q4,968
+Europe,Strategy,PlayStation,Q1,467
+Europe,Strategy,PlayStation,Q2,154
+Europe,Strategy,PlayStation,Q3,945
+Europe,Strategy,PlayStation,Q4,1419
+Europe,Strategy,Xbox,Q1,801
+Europe,Strategy,Xbox,Q2,258
+Europe,Strategy,Xbox,Q3,885
+Europe,Strategy,Xbox,Q4,1372
+Europe,Strategy,Nintendo,Q1,608
+Europe,Strategy,Nintendo,Q2,506
+Europe,Strategy,Nintendo,Q3,816
+Europe,Strategy,Nintendo,Q4,1048
+Europe,Strategy,Mobile,Q1,106
+Europe,Strategy,Mobile,Q2,597
+Europe,Strategy,Mobile,Q3,448
+Europe,Strategy,Mobile,Q4,278
+Europe,Sports,PC,Q1,689
+Europe,Sports,PC,Q2,509
+Europe,Sports,PC,Q3,974
+Europe,Sports,PC,Q4,1443
+Europe,Sports,PlayStation,Q1,451
+Europe,Sports,PlayStation,Q2,906
+Europe,Sports,PlayStation,Q3,139
+Europe,Sports,PlayStation,Q4,380
+Europe,Sports,Xbox,Q1,138
+Europe,Sports,Xbox,Q2,944
+Europe,Sports,Xbox,Q3,993
+Europe,Sports,Xbox,Q4,213
+Europe,Sports,Nintendo,Q1,508
+Europe,Sports,Nintendo,Q2,406
+Europe,Sports,Nintendo,Q3,614
+Europe,Sports,Nintendo,Q4,888
+Europe,Sports,Mobile,Q1,646
+Europe,Sports,Mobile,Q2,766
+Europe,Sports,Mobile,Q3,857
+Europe,Sports,Mobile,Q4,189
+Europe,Puzzle,PC,Q1,669
+Europe,Puzzle,PC,Q2,196
+Europe,Puzzle,PC,Q3,315
+Europe,Puzzle,PC,Q4,1065
+Europe,Puzzle,PlayStation,Q1,787
+Europe,Puzzle,PlayStation,Q2,1056
+Europe,Puzzle,PlayStation,Q3,925
+Europe,Puzzle,PlayStation,Q4,978
+Europe,Puzzle,Xbox,Q1,619
+Europe,Puzzle,Xbox,Q2,189
+Europe,Puzzle,Xbox,Q3,554
+Europe,Puzzle,Xbox,Q4,615
+Europe,Puzzle,Nintendo,Q1,136
+Europe,Puzzle,Nintendo,Q2,237
+Europe,Puzzle,Nintendo,Q3,489
+Europe,Puzzle,Nintendo,Q4,753
+Europe,Puzzle,Mobile,Q1,297
+Europe,Puzzle,Mobile,Q2,930
+Europe,Puzzle,Mobile,Q3,697
+Europe,Puzzle,Mobile,Q4,427
+Europe,Arcade,PC,Q1,459
+Europe,Arcade,PC,Q2,732
+Europe,Arcade,PC,Q3,883
+Europe,Arcade,PC,Q4,1022
+Europe,Arcade,PlayStation,Q1,526
+Europe,Arcade,PlayStation,Q2,1073
+Europe,Arcade,PlayStation,Q3,1214
+Europe,Arcade,PlayStation,Q4,1459
+Europe,Arcade,Xbox,Q1,99
+Europe,Arcade,Xbox,Q2,793
+Europe,Arcade,Xbox,Q3,167
+Europe,Arcade,Xbox,Q4,704
+Europe,Arcade,Nintendo,Q1,140
+Europe,Arcade,Nintendo,Q2,342
+Europe,Arcade,Nintendo,Q3,137
+Europe,Arcade,Nintendo,Q4,561
+Europe,Arcade,Mobile,Q1,552
+Europe,Arcade,Mobile,Q2,900
+Europe,Arcade,Mobile,Q3,464
+Europe,Arcade,Mobile,Q4,171
+North America,Action,PC,Q1,1195
+North America,Action,PC,Q2,457
+North America,Action,PC,Q3,1141
+North America,Action,PC,Q4,1003
+North America,Action,PlayStation,Q1,1193
+North America,Action,PlayStation,Q2,930
+North America,Action,PlayStation,Q3,1770
+North America,Action,PlayStation,Q4,1216
+North America,Action,Xbox,Q1,1058
+North America,Action,Xbox,Q2,1325
+North America,Action,Xbox,Q3,1378
+North America,Action,Xbox,Q4,2643
+North America,Action,Nintendo,Q1,1074
+North America,Action,Nintendo,Q2,1207
+North America,Action,Nintendo,Q3,1130
+North America,Action,Nintendo,Q4,267
+North America,Action,Mobile,Q1,425
+North America,Action,Mobile,Q2,460
+North America,Action,Mobile,Q3,596
+North America,Action,Mobile,Q4,1645
+North America,Adventure,PC,Q1,714
+North America,Adventure,PC,Q2,799
+North America,Adventure,PC,Q3,780
+North America,Adventure,PC,Q4,373
+North America,Adventure,PlayStation,Q1,1218
+North America,Adventure,PlayStation,Q2,1072
+North America,Adventure,PlayStation,Q3,1608
+North America,Adventure,PlayStation,Q4,1333
+North America,Adventure,Xbox,Q1,335
+North America,Adventure,Xbox,Q2,1169
+North America,Adventure,Xbox,Q3,1137
+North America,Adventure,Xbox,Q4,2651
+North America,Adventure,Nintendo,Q1,636
+North America,Adventure,Nintendo,Q2,657
+North America,Adventure,Nintendo,Q3,1173
+North America,Adventure,Nintendo,Q4,1482
+North America,Adventure,Mobile,Q1,405
+North America,Adventure,Mobile,Q2,747
+North America,Adventure,Mobile,Q3,272
+North America,Adventure,Mobile,Q4,313
+North America,RPG,PC,Q1,362
+North America,RPG,PC,Q2,1101
+North America,RPG,PC,Q3,511
+North America,RPG,PC,Q4,2241
+North America,RPG,PlayStation,Q1,552
+North America,RPG,PlayStation,Q2,1344
+North America,RPG,PlayStation,Q3,483
+North America,RPG,PlayStation,Q4,2509
+North America,RPG,Xbox,Q1,872
+North America,RPG,Xbox,Q2,1569
+North America,RPG,Xbox,Q3,664
+North America,RPG,Xbox,Q4,1803
+North America,RPG,Nintendo,Q1,729
+North America,RPG,Nintendo,Q2,546
+North America,RPG,Nintendo,Q3,1171
+North America,RPG,Nintendo,Q4,1846
+North America,RPG,Mobile,Q1,942
+North America,RPG,Mobile,Q2,747
+North America,RPG,Mobile,Q3,351
+North America,RPG,Mobile,Q4,1501
+North America,Simulation,PC,Q1,490
+North America,Simulation,PC,Q2,781
+North America,Simulation,PC,Q3,867
+North America,Simulation,PC,Q4,1008
+North America,Simulation,PlayStation,Q1,1389
+North America,Simulation,PlayStation,Q2,280
+North America,Simulation,PlayStation,Q3,1842
+North America,Simulation,PlayStation,Q4,2533
+North America,Simulation,Xbox,Q1,563
+North America,Simulation,Xbox,Q2,1261
+North America,Simulation,Xbox,Q3,1279
+North America,Simulation,Xbox,Q4,1690
+North America,Simulation,Nintendo,Q1,621
+North America,Simulation,Nintendo,Q2,377
+North America,Simulation,Nintendo,Q3,1367
+North America,Simulation,Nintendo,Q4,1767
+North America,Simulation,Mobile,Q1,685
+North America,Simulation,Mobile,Q2,745
+North America,Simulation,Mobile,Q3,879
+North America,Simulation,Mobile,Q4,459
+North America,Strategy,PC,Q1,273
+North America,Strategy,PC,Q2,918
+North America,Strategy,PC,Q3,835
+North America,Strategy,PC,Q4,1991
+North America,Strategy,PlayStation,Q1,681
+North America,Strategy,PlayStation,Q2,1105
+North America,Strategy,PlayStation,Q3,1522
+North America,Strategy,PlayStation,Q4,2255
+North America,Strategy,Xbox,Q1,1002
+North America,Strategy,Xbox,Q2,1095
+North America,Strategy,Xbox,Q3,1774
+North America,Strategy,Xbox,Q4,2095
+North America,Strategy,Nintendo,Q1,488
+North America,Strategy,Nintendo,Q2,1321
+North America,Strategy,Nintendo,Q3,841
+North America,Strategy,Nintendo,Q4,1772
+North America,Strategy,Mobile,Q1,595
+North America,Strategy,Mobile,Q2,810
+North America,Strategy,Mobile,Q3,774
+North America,Strategy,Mobile,Q4,1121
+North America,Sports,PC,Q1,577
+North America,Sports,PC,Q2,383
+North America,Sports,PC,Q3,214
+North America,Sports,PC,Q4,1563
+North America,Sports,PlayStation,Q1,1227
+North America,Sports,PlayStation,Q2,1456
+North America,Sports,PlayStation,Q3,1464
+North America,Sports,PlayStation,Q4,1532
+North America,Sports,Xbox,Q1,156
+North America,Sports,Xbox,Q2,1043
+North America,Sports,Xbox,Q3,873
+North America,Sports,Xbox,Q4,1671
+North America,Sports,Nintendo,Q1,1226
+North America,Sports,Nintendo,Q2,1467
+North America,Sports,Nintendo,Q3,820
+North America,Sports,Nintendo,Q4,1170
+North America,Sports,Mobile,Q1,291
+North America,Sports,Mobile,Q2,252
+North America,Sports,Mobile,Q3,510
+North America,Sports,Mobile,Q4,583
+North America,Puzzle,PC,Q1,1057
+North America,Puzzle,PC,Q2,1200
+North America,Puzzle,PC,Q3,669
+North America,Puzzle,PC,Q4,938
+North America,Puzzle,PlayStation,Q1,1310
+North America,Puzzle,PlayStation,Q2,1651
+North America,Puzzle,PlayStation,Q3,688
+North America,Puzzle,PlayStation,Q4,2392
+North America,Puzzle,Xbox,Q1,1185
+North America,Puzzle,Xbox,Q2,805
+North America,Puzzle,Xbox,Q3,995
+North America,Puzzle,Xbox,Q4,1185
+North America,Puzzle,Nintendo,Q1,880
+North America,Puzzle,Nintendo,Q2,868
+North America,Puzzle,Nintendo,Q3,696
+North America,Puzzle,Nintendo,Q4,970
+North America,Puzzle,Mobile,Q1,346
+North America,Puzzle,Mobile,Q2,288
+North America,Puzzle,Mobile,Q3,290
+North America,Puzzle,Mobile,Q4,1238
+North America,Arcade,PC,Q1,1149
+North America,Arcade,PC,Q2,471
+North America,Arcade,PC,Q3,403
+North America,Arcade,PC,Q4,715
+North America,Arcade,PlayStation,Q1,539
+North America,Arcade,PlayStation,Q2,945
+North America,Arcade,PlayStation,Q3,499
+North America,Arcade,PlayStation,Q4,2723
+North America,Arcade,Xbox,Q1,1054
+North America,Arcade,Xbox,Q2,1260
+North America,Arcade,Xbox,Q3,1236
+North America,Arcade,Xbox,Q4,2619
+North America,Arcade,Nintendo,Q1,860
+North America,Arcade,Nintendo,Q2,1128
+North America,Arcade,Nintendo,Q3,326
+North America,Arcade,Nintendo,Q4,314
+North America,Arcade,Mobile,Q1,549
+North America,Arcade,Mobile,Q2,650
+North America,Arcade,Mobile,Q3,236
+North America,Arcade,Mobile,Q4,802
+South America,Action,PC,Q1,301
+South America,Action,PC,Q2,525
+South America,Action,PC,Q3,366
+South America,Action,PC,Q4,576
+South America,Action,PlayStation,Q1,366
+South America,Action,PlayStation,Q2,411
+South America,Action,PlayStation,Q3,160
+South America,Action,PlayStation,Q4,445
+South America,Action,Xbox,Q1,301
+South America,Action,Xbox,Q2,223
+South America,Action,Xbox,Q3,223
+South America,Action,Xbox,Q4,460
+South America,Action,Nintendo,Q1,338
+South America,Action,Nintendo,Q2,305
+South America,Action,Nintendo,Q3,550
+South America,Action,Nintendo,Q4,189
+South America,Action,Mobile,Q1,272
+South America,Action,Mobile,Q2,594
+South America,Action,Mobile,Q3,534
+South America,Action,Mobile,Q4,861
+South America,Adventure,PC,Q1,242
+South America,Adventure,PC,Q2,85
+South America,Adventure,PC,Q3,389
+South America,Adventure,PC,Q4,510
+South America,Adventure,PlayStation,Q1,69
+South America,Adventure,PlayStation,Q2,411
+South America,Adventure,PlayStation,Q3,184
+South America,Adventure,PlayStation,Q4,121
+South America,Adventure,Xbox,Q1,362
+South America,Adventure,Xbox,Q2,103
+South America,Adventure,Xbox,Q3,468
+South America,Adventure,Xbox,Q4,657
+South America,Adventure,Nintendo,Q1,74
+South America,Adventure,Nintendo,Q2,289
+South America,Adventure,Nintendo,Q3,282
+South America,Adventure,Nintendo,Q4,389
+South America,Adventure,Mobile,Q1,392
+South America,Adventure,Mobile,Q2,451
+South America,Adventure,Mobile,Q3,647
+South America,Adventure,Mobile,Q4,930
+South America,RPG,PC,Q1,402
+South America,RPG,PC,Q2,483
+South America,RPG,PC,Q3,423
+South America,RPG,PC,Q4,439
+South America,RPG,PlayStation,Q1,407
+South America,RPG,PlayStation,Q2,169
+South America,RPG,PlayStation,Q3,336
+South America,RPG,PlayStation,Q4,119
+South America,RPG,Xbox,Q1,357
+South America,RPG,Xbox,Q2,235
+South America,RPG,Xbox,Q3,392
+South America,RPG,Xbox,Q4,231
+South America,RPG,Nintendo,Q1,442
+South America,RPG,Nintendo,Q2,72
+South America,RPG,Nintendo,Q3,405
+South America,RPG,Nintendo,Q4,407
+South America,RPG,Mobile,Q1,105
+South America,RPG,Mobile,Q2,307
+South America,RPG,Mobile,Q3,221
+South America,RPG,Mobile,Q4,1035
+South America,Simulation,PC,Q1,199
+South America,Simulation,PC,Q2,542
+South America,Simulation,PC,Q3,441
+South America,Simulation,PC,Q4,451
+South America,Simulation,PlayStation,Q1,121
+South America,Simulation,PlayStation,Q2,252
+South America,Simulation,PlayStation,Q3,425
+South America,Simulation,PlayStation,Q4,514
+South America,Simulation,Xbox,Q1,313
+South America,Simulation,Xbox,Q2,266
+South America,Simulation,Xbox,Q3,81
+South America,Simulation,Xbox,Q4,623
+South America,Simulation,Nintendo,Q1,211
+South America,Simulation,Nintendo,Q2,200
+South America,Simulation,Nintendo,Q3,367
+South America,Simulation,Nintendo,Q4,419
+South America,Simulation,Mobile,Q1,365
+South America,Simulation,Mobile,Q2,104
+South America,Simulation,Mobile,Q3,319
+South America,Simulation,Mobile,Q4,779
+South America,Strategy,PC,Q1,261
+South America,Strategy,PC,Q2,464
+South America,Strategy,PC,Q3,567
+South America,Strategy,PC,Q4,116
+South America,Strategy,PlayStation,Q1,141
+South America,Strategy,PlayStation,Q2,309
+South America,Strategy,PlayStation,Q3,136
+South America,Strategy,PlayStation,Q4,663
+South America,Strategy,Xbox,Q1,198
+South America,Strategy,Xbox,Q2,338
+South America,Strategy,Xbox,Q3,311
+South America,Strategy,Xbox,Q4,216
+South America,Strategy,Nintendo,Q1,361
+South America,Strategy,Nintendo,Q2,64
+South America,Strategy,Nintendo,Q3,132
+South America,Strategy,Nintendo,Q4,454
+South America,Strategy,Mobile,Q1,474
+South America,Strategy,Mobile,Q2,407
+South America,Strategy,Mobile,Q3,549
+South America,Strategy,Mobile,Q4,185
+South America,Sports,PC,Q1,480
+South America,Sports,PC,Q2,163
+South America,Sports,PC,Q3,124
+South America,Sports,PC,Q4,888
+South America,Sports,PlayStation,Q1,150
+South America,Sports,PlayStation,Q2,353
+South America,Sports,PlayStation,Q3,461
+South America,Sports,PlayStation,Q4,249
+South America,Sports,Xbox,Q1,137
+South America,Sports,Xbox,Q2,426
+South America,Sports,Xbox,Q3,252
+South America,Sports,Xbox,Q4,253
+South America,Sports,Nintendo,Q1,262
+South America,Sports,Nintendo,Q2,167
+South America,Sports,Nintendo,Q3,206
+South America,Sports,Nintendo,Q4,603
+South America,Sports,Mobile,Q1,548
+South America,Sports,Mobile,Q2,126
+South America,Sports,Mobile,Q3,380
+South America,Sports,Mobile,Q4,930
+South America,Puzzle,PC,Q1,70
+South America,Puzzle,PC,Q2,81
+South America,Puzzle,PC,Q3,352
+South America,Puzzle,PC,Q4,438
+South America,Puzzle,PlayStation,Q1,309
+South America,Puzzle,PlayStation,Q2,446
+South America,Puzzle,PlayStation,Q3,169
+South America,Puzzle,PlayStation,Q4,501
+South America,Puzzle,Xbox,Q1,358
+South America,Puzzle,Xbox,Q2,384
+South America,Puzzle,Xbox,Q3,463
+South America,Puzzle,Xbox,Q4,505
+South America,Puzzle,Nintendo,Q1,101
+South America,Puzzle,Nintendo,Q2,383
+South America,Puzzle,Nintendo,Q3,623
+South America,Puzzle,Nintendo,Q4,175
+South America,Puzzle,Mobile,Q1,94
+South America,Puzzle,Mobile,Q2,464
+South America,Puzzle,Mobile,Q3,405
+South America,Puzzle,Mobile,Q4,996
+South America,Arcade,PC,Q1,373
+South America,Arcade,PC,Q2,282
+South America,Arcade,PC,Q3,502
+South America,Arcade,PC,Q4,918
+South America,Arcade,PlayStation,Q1,340
+South America,Arcade,PlayStation,Q2,398
+South America,Arcade,PlayStation,Q3,61
+South America,Arcade,PlayStation,Q4,663
+South America,Arcade,Xbox,Q1,85
+South America,Arcade,Xbox,Q2,310
+South America,Arcade,Xbox,Q3,386
+South America,Arcade,Xbox,Q4,388
+South America,Arcade,Nintendo,Q1,132
+South America,Arcade,Nintendo,Q2,432
+South America,Arcade,Nintendo,Q3,553
+South America,Arcade,Nintendo,Q4,558
+South America,Arcade,Mobile,Q1,264
+South America,Arcade,Mobile,Q2,371
+South America,Arcade,Mobile,Q3,131
+South America,Arcade,Mobile,Q4,1041
+Africa,Action,PC,Q1,71
+Africa,Action,PC,Q2,122
+Africa,Action,PC,Q3,329
+Africa,Action,PC,Q4,479
+Africa,Action,PlayStation,Q1,221
+Africa,Action,PlayStation,Q2,105
+Africa,Action,PlayStation,Q3,179
+Africa,Action,PlayStation,Q4,116
+Africa,Action,Xbox,Q1,54
+Africa,Action,Xbox,Q2,162
+Africa,Action,Xbox,Q3,233
+Africa,Action,Xbox,Q4,51
+Africa,Action,Nintendo,Q1,155
+Africa,Action,Nintendo,Q2,46
+Africa,Action,Nintendo,Q3,279
+Africa,Action,Nintendo,Q4,301
+Africa,Action,Mobile,Q1,101
+Africa,Action,Mobile,Q2,506
+Africa,Action,Mobile,Q3,243
+Africa,Action,Mobile,Q4,423
+Africa,Adventure,PC,Q1,152
+Africa,Adventure,PC,Q2,232
+Africa,Adventure,PC,Q3,105
+Africa,Adventure,PC,Q4,221
+Africa,Adventure,PlayStation,Q1,223
+Africa,Adventure,PlayStation,Q2,241
+Africa,Adventure,PlayStation,Q3,46
+Africa,Adventure,PlayStation,Q4,343
+Africa,Adventure,Xbox,Q1,141
+Africa,Adventure,Xbox,Q2,174
+Africa,Adventure,Xbox,Q3,117
+Africa,Adventure,Xbox,Q4,221
+Africa,Adventure,Nintendo,Q1,140
+Africa,Adventure,Nintendo,Q2,149
+Africa,Adventure,Nintendo,Q3,203
+Africa,Adventure,Nintendo,Q4,168
+Africa,Adventure,Mobile,Q1,258
+Africa,Adventure,Mobile,Q2,293
+Africa,Adventure,Mobile,Q3,502
+Africa,Adventure,Mobile,Q4,663
+Africa,RPG,PC,Q1,108
+Africa,RPG,PC,Q2,151
+Africa,RPG,PC,Q3,64
+Africa,RPG,PC,Q4,151
+Africa,RPG,PlayStation,Q1,77
+Africa,RPG,PlayStation,Q2,56
+Africa,RPG,PlayStation,Q3,238
+Africa,RPG,PlayStation,Q4,324
+Africa,RPG,Xbox,Q1,63
+Africa,RPG,Xbox,Q2,143
+Africa,RPG,Xbox,Q3,185
+Africa,RPG,Xbox,Q4,342
+Africa,RPG,Nintendo,Q1,149
+Africa,RPG,Nintendo,Q2,82
+Africa,RPG,Nintendo,Q3,150
+Africa,RPG,Nintendo,Q4,63
+Africa,RPG,Mobile,Q1,173
+Africa,RPG,Mobile,Q2,64
+Africa,RPG,Mobile,Q3,144
+Africa,RPG,Mobile,Q4,861
+Africa,Simulation,PC,Q1,237
+Africa,Simulation,PC,Q2,66
+Africa,Simulation,PC,Q3,89
+Africa,Simulation,PC,Q4,354
+Africa,Simulation,PlayStation,Q1,201
+Africa,Simulation,PlayStation,Q2,142
+Africa,Simulation,PlayStation,Q3,217
+Africa,Simulation,PlayStation,Q4,221
+Africa,Simulation,Xbox,Q1,32
+Africa,Simulation,Xbox,Q2,94
+Africa,Simulation,Xbox,Q3,74
+Africa,Simulation,Xbox,Q4,355
+Africa,Simulation,Nintendo,Q1,29
+Africa,Simulation,Nintendo,Q2,232
+Africa,Simulation,Nintendo,Q3,84
+Africa,Simulation,Nintendo,Q4,324
+Africa,Simulation,Mobile,Q1,403
+Africa,Simulation,Mobile,Q2,270
+Africa,Simulation,Mobile,Q3,85
+Africa,Simulation,Mobile,Q4,297
+Africa,Strategy,PC,Q1,102
+Africa,Strategy,PC,Q2,96
+Africa,Strategy,PC,Q3,59
+Africa,Strategy,PC,Q4,237
+Africa,Strategy,PlayStation,Q1,57
+Africa,Strategy,PlayStation,Q2,60
+Africa,Strategy,PlayStation,Q3,58
+Africa,Strategy,PlayStation,Q4,112
+Africa,Strategy,Xbox,Q1,178
+Africa,Strategy,Xbox,Q2,175
+Africa,Strategy,Xbox,Q3,151
+Africa,Strategy,Xbox,Q4,252
+Africa,Strategy,Nintendo,Q1,121
+Africa,Strategy,Nintendo,Q2,239
+Africa,Strategy,Nintendo,Q3,278
+Africa,Strategy,Nintendo,Q4,252
+Africa,Strategy,Mobile,Q1,64
+Africa,Strategy,Mobile,Q2,322
+Africa,Strategy,Mobile,Q3,242
+Africa,Strategy,Mobile,Q4,800
+Africa,Sports,PC,Q1,208
+Africa,Sports,PC,Q2,259
+Africa,Sports,PC,Q3,150
+Africa,Sports,PC,Q4,517
+Africa,Sports,PlayStation,Q1,231
+Africa,Sports,PlayStation,Q2,146
+Africa,Sports,PlayStation,Q3,41
+Africa,Sports,PlayStation,Q4,275
+Africa,Sports,Xbox,Q1,147
+Africa,Sports,Xbox,Q2,93
+Africa,Sports,Xbox,Q3,92
+Africa,Sports,Xbox,Q4,117
+Africa,Sports,Nintendo,Q1,41
+Africa,Sports,Nintendo,Q2,191
+Africa,Sports,Nintendo,Q3,108
+Africa,Sports,Nintendo,Q4,162
+Africa,Sports,Mobile,Q1,463
+Africa,Sports,Mobile,Q2,164
+Africa,Sports,Mobile,Q3,163
+Africa,Sports,Mobile,Q4,753
+Africa,Puzzle,PC,Q1,278
+Africa,Puzzle,PC,Q2,298
+Africa,Puzzle,PC,Q3,225
+Africa,Puzzle,PC,Q4,222
+Africa,Puzzle,PlayStation,Q1,105
+Africa,Puzzle,PlayStation,Q2,60
+Africa,Puzzle,PlayStation,Q3,41
+Africa,Puzzle,PlayStation,Q4,288
+Africa,Puzzle,Xbox,Q1,134
+Africa,Puzzle,Xbox,Q2,215
+Africa,Puzzle,Xbox,Q3,206
+Africa,Puzzle,Xbox,Q4,334
+Africa,Puzzle,Nintendo,Q1,107
+Africa,Puzzle,Nintendo,Q2,152
+Africa,Puzzle,Nintendo,Q3,56
+Africa,Puzzle,Nintendo,Q4,287
+Africa,Puzzle,Mobile,Q1,133
+Africa,Puzzle,Mobile,Q2,168
+Africa,Puzzle,Mobile,Q3,141
+Africa,Puzzle,Mobile,Q4,618
+Africa,Arcade,PC,Q1,69
+Africa,Arcade,PC,Q2,234
+Africa,Arcade,PC,Q3,51
+Africa,Arcade,PC,Q4,212
+Africa,Arcade,PlayStation,Q1,196
+Africa,Arcade,PlayStation,Q2,129
+Africa,Arcade,PlayStation,Q3,52
+Africa,Arcade,PlayStation,Q4,354
+Africa,Arcade,Xbox,Q1,71
+Africa,Arcade,Xbox,Q2,180
+Africa,Arcade,Xbox,Q3,190
+Africa,Arcade,Xbox,Q4,276
+Africa,Arcade,Nintendo,Q1,143
+Africa,Arcade,Nintendo,Q2,80
+Africa,Arcade,Nintendo,Q3,211
+Africa,Arcade,Nintendo,Q4,195
+Africa,Arcade,Mobile,Q1,169
+Africa,Arcade,Mobile,Q2,213
+Africa,Arcade,Mobile,Q3,319
+Africa,Arcade,Mobile,Q4,456
+Australia,Action,PC,Q1,210
+Australia,Action,PC,Q2,627
+Australia,Action,PC,Q3,136
+Australia,Action,PC,Q4,812
+Australia,Action,PlayStation,Q1,291
+Australia,Action,PlayStation,Q2,417
+Australia,Action,PlayStation,Q3,327
+Australia,Action,PlayStation,Q4,133
+Australia,Action,Xbox,Q1,71
+Australia,Action,Xbox,Q2,395
+Australia,Action,Xbox,Q3,345
+Australia,Action,Xbox,Q4,505
+Australia,Action,Nintendo,Q1,59
+Australia,Action,Nintendo,Q2,427
+Australia,Action,Nintendo,Q3,65
+Australia,Action,Nintendo,Q4,555
+Australia,Action,Mobile,Q1,100
+Australia,Action,Mobile,Q2,187
+Australia,Action,Mobile,Q3,356
+Australia,Action,Mobile,Q4,361
+Australia,Adventure,PC,Q1,92
+Australia,Adventure,PC,Q2,453
+Australia,Adventure,PC,Q3,696
+Australia,Adventure,PC,Q4,135
+Australia,Adventure,PlayStation,Q1,297
+Australia,Adventure,PlayStation,Q2,451
+Australia,Adventure,PlayStation,Q3,386
+Australia,Adventure,PlayStation,Q4,813
+Australia,Adventure,Xbox,Q1,315
+Australia,Adventure,Xbox,Q2,177
+Australia,Adventure,Xbox,Q3,156
+Australia,Adventure,Xbox,Q4,674
+Australia,Adventure,Nintendo,Q1,189
+Australia,Adventure,Nintendo,Q2,129
+Australia,Adventure,Nintendo,Q3,368
+Australia,Adventure,Nintendo,Q4,257
+Australia,Adventure,Mobile,Q1,183
+Australia,Adventure,Mobile,Q2,169
+Australia,Adventure,Mobile,Q3,762
+Australia,Adventure,Mobile,Q4,625
+Australia,RPG,PC,Q1,497
+Australia,RPG,PC,Q2,265
+Australia,RPG,PC,Q3,490
+Australia,RPG,PC,Q4,1021
+Australia,RPG,PlayStation,Q1,163
+Australia,RPG,PlayStation,Q2,379
+Australia,RPG,PlayStation,Q3,78
+Australia,RPG,PlayStation,Q4,511
+Australia,RPG,Xbox,Q1,50
+Australia,RPG,Xbox,Q2,177
+Australia,RPG,Xbox,Q3,274
+Australia,RPG,Xbox,Q4,447
+Australia,RPG,Nintendo,Q1,158
+Australia,RPG,Nintendo,Q2,311
+Australia,RPG,Nintendo,Q3,371
+Australia,RPG,Nintendo,Q4,187
+Australia,RPG,Mobile,Q1,306
+Australia,RPG,Mobile,Q2,471
+Australia,RPG,Mobile,Q3,103
+Australia,RPG,Mobile,Q4,394
+Australia,Simulation,PC,Q1,555
+Australia,Simulation,PC,Q2,298
+Australia,Simulation,PC,Q3,685
+Australia,Simulation,PC,Q4,1004
+Australia,Simulation,PlayStation,Q1,280
+Australia,Simulation,PlayStation,Q2,478
+Australia,Simulation,PlayStation,Q3,121
+Australia,Simulation,PlayStation,Q4,582
+Australia,Simulation,Xbox,Q1,81
+Australia,Simulation,Xbox,Q2,105
+Australia,Simulation,Xbox,Q3,279
+Australia,Simulation,Xbox,Q4,396
+Australia,Simulation,Nintendo,Q1,173
+Australia,Simulation,Nintendo,Q2,321
+Australia,Simulation,Nintendo,Q3,133
+Australia,Simulation,Nintendo,Q4,302
+Australia,Simulation,Mobile,Q1,605
+Australia,Simulation,Mobile,Q2,413
+Australia,Simulation,Mobile,Q3,307
+Australia,Simulation,Mobile,Q4,861
+Australia,Strategy,PC,Q1,369
+Australia,Strategy,PC,Q2,200
+Australia,Strategy,PC,Q3,144
+Australia,Strategy,PC,Q4,963
+Australia,Strategy,PlayStation,Q1,314
+Australia,Strategy,PlayStation,Q2,246
+Australia,Strategy,PlayStation,Q3,294
+Australia,Strategy,PlayStation,Q4,172
+Australia,Strategy,Xbox,Q1,358
+Australia,Strategy,Xbox,Q2,340
+Australia,Strategy,Xbox,Q3,360
+Australia,Strategy,Xbox,Q4,425
+Australia,Strategy,Nintendo,Q1,319
+Australia,Strategy,Nintendo,Q2,149
+Australia,Strategy,Nintendo,Q3,298
+Australia,Strategy,Nintendo,Q4,957
+Australia,Strategy,Mobile,Q1,368
+Australia,Strategy,Mobile,Q2,396
+Australia,Strategy,Mobile,Q3,627
+Australia,Strategy,Mobile,Q4,1165
+Australia,Sports,PC,Q1,569
+Australia,Sports,PC,Q2,389
+Australia,Sports,PC,Q3,312
+Australia,Sports,PC,Q4,1034
+Australia,Sports,PlayStation,Q1,224
+Australia,Sports,PlayStation,Q2,279
+Australia,Sports,PlayStation,Q3,487
+Australia,Sports,PlayStation,Q4,198
+Australia,Sports,Xbox,Q1,114
+Australia,Sports,Xbox,Q2,262
+Australia,Sports,Xbox,Q3,200
+Australia,Sports,Xbox,Q4,328
+Australia,Sports,Nintendo,Q1,452
+Australia,Sports,Nintendo,Q2,512
+Australia,Sports,Nintendo,Q3,334
+Australia,Sports,Nintendo,Q4,692
+Australia,Sports,Mobile,Q1,490
+Australia,Sports,Mobile,Q2,413
+Australia,Sports,Mobile,Q3,166
+Australia,Sports,Mobile,Q4,500
+Australia,Puzzle,PC,Q1,277
+Australia,Puzzle,PC,Q2,239
+Australia,Puzzle,PC,Q3,389
+Australia,Puzzle,PC,Q4,535
+Australia,Puzzle,PlayStation,Q1,329
+Australia,Puzzle,PlayStation,Q2,438
+Australia,Puzzle,PlayStation,Q3,505
+Australia,Puzzle,PlayStation,Q4,89
+Australia,Puzzle,Xbox,Q1,167
+Australia,Puzzle,Xbox,Q2,174
+Australia,Puzzle,Xbox,Q3,420
+Australia,Puzzle,Xbox,Q4,509
+Australia,Puzzle,Nintendo,Q1,485
+Australia,Puzzle,Nintendo,Q2,559
+Australia,Puzzle,Nintendo,Q3,442
+Australia,Puzzle,Nintendo,Q4,782
+Australia,Puzzle,Mobile,Q1,311
+Australia,Puzzle,Mobile,Q2,231
+Australia,Puzzle,Mobile,Q3,720
+Australia,Puzzle,Mobile,Q4,517
+Australia,Arcade,PC,Q1,460
+Australia,Arcade,PC,Q2,222
+Australia,Arcade,PC,Q3,508
+Australia,Arcade,PC,Q4,681
+Australia,Arcade,PlayStation,Q1,351
+Australia,Arcade,PlayStation,Q2,436
+Australia,Arcade,PlayStation,Q3,142
+Australia,Arcade,PlayStation,Q4,634
+Australia,Arcade,Xbox,Q1,190
+Australia,Arcade,Xbox,Q2,116
+Australia,Arcade,Xbox,Q3,225
+Australia,Arcade,Xbox,Q4,619
+Australia,Arcade,Nintendo,Q1,256
+Australia,Arcade,Nintendo,Q2,99
+Australia,Arcade,Nintendo,Q3,147
+Australia,Arcade,Nintendo,Q4,935
+Australia,Arcade,Mobile,Q1,472
+Australia,Arcade,Mobile,Q2,166
+Australia,Arcade,Mobile,Q3,300
+Australia,Arcade,Mobile,Q4,478

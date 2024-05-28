@@ -1,0 +1,19 @@
+load table game_sales(
+  region text,
+  category text,
+  platform text,
+  quarter text,
+  sales integer,
+) from 'data/game_sales.csv' format csv, header;;
+
+game_sales
+  output vega lite png with
+    layer (
+      mark bar,
+      encoding {x: region n {axis:null}, y: sum(sales) q {axis:null}, color: platform {legend:null}};
+      transform
+        {region => region_sum_sales: sum(sales)}
+        {=> avg_region_sum_sales: average(region_sum_sales)},
+      mark rule,
+      encoding {y: avg_region_sum_sales q {axis:null}};
+    );;
