@@ -395,6 +395,9 @@ VegaTransform
 VegaTransformMethod
   = "[" _ filter:VegaPredicate _ "]" { return [{ filter }]; }
   / "[" _ e:VegaExpression _ "]" { return [{ filter: e }]; }
+  / "{" _ fs:Name|.., _ "," _| _ "=>" _ ags:VegaLabeledAggregatedField|1.., _ "," _| _ "}" {
+    return [{ aggregate: ags, groupby: fs.map(f => escapeVegaField(unquoteSQLName(f)))}];
+  }
   / "{" _ cs:VegaCalculateField|1.., _ "," _| (_ ",")? _ "}" { return cs; }
   / "apply" __ obj:JSONObject { return [obj]; }
 
@@ -432,6 +435,15 @@ VegaPredicate3
     { return { not: { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, [op]: value } }; }
   / f:Name _ t:VegaTimeUnit _ op:VegaCompareOperator _ value:VegaValue
     { return { field: escapeVegaField(unquoteSQLName(f)), timeUnit: t, [op]: value }; }
+
+VegaLabeledAggregatedField
+  = f:Name _ ":" _ a:VegaAggregatedField {
+    return {
+      "op": a.op,
+      "field": a.field,
+      "as": escapeVegaField(unquoteSQLName(f)),
+    };
+  }
 
 VegaCalculateField
   = f:Name _ ":" _ e:VegaExpression { return { calculate: e, as: escapeVegaField(unquoteSQLName(f)) }; }
