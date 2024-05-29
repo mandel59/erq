@@ -9,6 +9,6 @@
   },
   {
     "type": "select",
-    "query": "select * from t"
+    "query": "select a, b, max(c), min(d) from t group by (a), (b)"
   }
 ]
