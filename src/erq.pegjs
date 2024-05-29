@@ -395,7 +395,7 @@ VegaTransform
 VegaTransformMethod
   = "[" _ filter:VegaPredicate _ "]" { return [{ filter }]; }
   / "[" _ e:VegaExpression _ "]" { return [{ filter: e }]; }
-  / "{" _ fs:Name|.., _ "," _| _ "=>" _ ags:VegaLabeledAggregatedField|1.., _ "," _| _ "}" {
+  / "{" _ fs:Name|.., _ "," _| (_ ",")? _ "=>" _ ags:VegaLabeledAggregatedField|1.., _ "," _| (_ ",")? _ "}" {
     return [{ aggregate: ags, groupby: fs.map(f => escapeVegaField(unquoteSQLName(f)))}];
   }
   / "{" _ cs:VegaCalculateField|1.., _ "," _| (_ ",")? _ "}" { return cs; }
@@ -688,7 +688,7 @@ FunctionParam
   }
 
 TableDef
-  = cs:ColumnDef|1.., _ "," _| vcs:(cc:ConflictClause? _ "=>" _ vs:ColumnDef|.., _ "," _| { return { cc, cs: vs }; })? cos:(_ "," _ c:TableConstraint { return c; })*
+  = cs:ColumnDef|1.., _ "," _| vcs:(cc:ConflictClause? (_ ",")? _ "=>" _ vs:ColumnDef|.., _ "," _| { return { cc, cs: vs }; })? cos:(_ "," _ c:TableConstraint { return c; })*
   {
     if (vcs) {
       const pkbody = `primary key (${cs.map(c => c.name).join(", ")})${vcs.cc ?? ""}`;
@@ -1077,7 +1077,7 @@ WindowClause
   { return { name: n, window: w }; }
 
 ColumnNameList
-  = "(" _ ns:NameList _ ")" _ { return ns; }
+  = "(" _ ns:NameList (_ ",")? _ ")" _ { return ns; }
 
 BraceColumnNameList
   = "{" _ ns:NameList (_ ",")? _ "}" _ { return ns; }
