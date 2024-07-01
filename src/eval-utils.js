@@ -1,5 +1,7 @@
 import { stdout, stderr } from "node:process";
 import { createWriteStream } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import { DEBUG } from "./options.js";
 import { quoteSQLName } from "./parser-utils.js";
 
@@ -77,9 +79,9 @@ export function evalSQLValue(db, env, sql) {
  * @param {"stdout"|"stderr"|"file"} dest.type
  * @param {string} [dest.file]
  * @param {string} [dest.sql]
- * @returns {{ outputStream: NodeJS.WritableStream, closeOutputStream?: () => Promise<void> }}
+ * @returns {Promise<{ outputStream: NodeJS.WritableStream, closeOutputStream?: () => Promise<void> }>}
  */
-export function evalDestination(db, env, dest) {
+export async function evalDestination(db, env, dest) {
   switch (dest.type) {
     case "stdout":
       return { outputStream: stdout };
@@ -92,6 +94,9 @@ export function evalDestination(db, env, dest) {
       } else {
         file = dest.file;
       }
+      await mkdir(dirname(file), {
+        recursive: true,
+      })
       const stream = createWriteStream(file);
       return {
         outputStream: stream,

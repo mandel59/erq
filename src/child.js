@@ -827,7 +827,7 @@ export async function child() {
           console.error("%s loaded (%ss)", rows, (t / 1000).toFixed(3));
           const spec = { ...format.view, data: { values } };
           if (format.format === "spec") {
-            const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
+            const { outputStream, closeOutputStream } = await evalDestination(db, env, dest);
             try {
               if (!outputStream.write(JSON.stringify(spec))) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
@@ -854,7 +854,7 @@ export async function child() {
           }).finalize();
           if (format.format === "svg") {
             const svg = await vgView.toSVG();
-            const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
+            const { outputStream, closeOutputStream } = await evalDestination(db, env, dest);
             try {
               if (!outputStream.write(svg)) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
@@ -874,7 +874,7 @@ export async function child() {
           // @ts-ignore
           const png = canvas.toBuffer();
           const size = png.length;
-          const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
+          const { outputStream, closeOutputStream } = await evalDestination(db, env, dest);
           if (format.format === "png") {
             try {
               if (!outputStream.write(png)) {
@@ -1063,7 +1063,7 @@ export async function child() {
             }
           }
 
-          let { outputStream, closeOutputStream } = evalDestination(db, env, dest);
+          let { outputStream, closeOutputStream } = await evalDestination(db, env, dest);
           if (formatOptions.encoding) {
             const { default: iconv } = await import("iconv-lite");
             const encoder = iconv.encodeStream(formatOptions.encoding);
