@@ -838,7 +838,7 @@ export async function child() {
 
             } finally {
               if (closeOutputStream) {
-                closeOutputStream();
+                await closeOutputStream();
               }
             }
             continue;
@@ -864,7 +864,7 @@ export async function child() {
               }
             } finally {
               if (closeOutputStream) {
-                closeOutputStream();
+                await closeOutputStream();
               }
             }
             continue;
@@ -876,7 +876,15 @@ export async function child() {
           const size = png.length;
           const { outputStream, closeOutputStream } = evalDestination(db, env, dest);
           if (format.format === "png") {
-            outputStream.write(png);
+            try {
+              if (!outputStream.write(png)) {
+                await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+            } finally {
+              if (closeOutputStream) {
+                await closeOutputStream();
+              }
+            }
             continue;
           }
           try {
@@ -891,7 +899,7 @@ export async function child() {
             }
           } finally {
             if (closeOutputStream) {
-              closeOutputStream();
+              await closeOutputStream();
             }
           }
           continue;
@@ -1079,7 +1087,7 @@ export async function child() {
             }
           } finally {
             if (closeOutputStream) {
-              closeOutputStream();
+              await closeOutputStream();
             }
           }
 

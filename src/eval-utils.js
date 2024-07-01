@@ -77,7 +77,7 @@ export function evalSQLValue(db, env, sql) {
  * @param {"stdout"|"stderr"|"file"} dest.type
  * @param {string} [dest.file]
  * @param {string} [dest.sql]
- * @returns {{ outputStream: NodeJS.WritableStream, closeOutputStream?: () => void }}
+ * @returns {{ outputStream: NodeJS.WritableStream, closeOutputStream?: () => Promise<void> }}
  */
 export function evalDestination(db, env, dest) {
   switch (dest.type) {
@@ -93,6 +93,16 @@ export function evalDestination(db, env, dest) {
         file = dest.file;
       }
       const stream = createWriteStream(file);
-      return { outputStream: stream, closeOutputStream: () => stream.close() };
+      return {
+        outputStream: stream,
+        closeOutputStream: async () => {
+          await new Promise((resolve, reject) => {
+            stream.close((err) => {
+              if (err) reject(err)
+              resolve()
+            })
+          })
+        },
+      };
   }
 }
