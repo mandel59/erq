@@ -658,7 +658,7 @@ LoadOption
 
 CreateFunction
   = Do? "create" __
-    type:("table" __ { return "table"; })?
+    type:("table" __ { return "table"; } / "async" __ { return "async"; })?
     "function" __ n:Name _ ps:FunctionParams _ opts:FunctionOptions _ "as" __ x:(RawBlock/ParsedStringLiteral)
   {
     return [n, ps, x, {...opts, type: type ?? undefined}];

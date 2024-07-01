@@ -54,7 +54,7 @@
     "jsdom": "^20.0.0",
     "lodash.mergewith": "^4.6.2",
     "ndjson": "^2.0.0",
-    "quickjs-emscripten": "^0.23.0",
+    "quickjs-emscripten": "^0.29.2",
     "topojson-client": "^3.1.0",
     "vega": "^5.25.0",
     "vega-lite": "^5.14.1"

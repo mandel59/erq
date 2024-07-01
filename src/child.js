@@ -530,7 +530,7 @@ export async function child() {
         if (type === "scalar") {
           rt.setFunction(fn, ps, body);
           db.function(fn, { varargs: true }, (...args) => {
-            return rt.callFunction(fn, ...args);
+            return rt.callFunction(fn, args);
           });
         } else if (type === "table") {
           let returns = opts.returns;
@@ -542,7 +542,7 @@ export async function child() {
             parameters: ps,
             columns: returns.map(([name, _type]) => name),
             *rows(...args) {
-              for (const value of rt.callGeneratorFunction(fn, ...args)) {
+              for (const value of rt.callGeneratorFunction(fn, args)) {
                 if (Array.isArray(value)) {
                   yield value;
                 } else {
@@ -550,6 +550,11 @@ export async function child() {
                 }
               }
             },
+          });
+        } else if (type === "async") {
+          rt.setAsyncFunction(fn, ps, body);
+          db.function(fn, { varargs: true }, (...args) => {
+            return rt.callFunction(fn, args, { async: true });
           });
         }
         console.error("ok");

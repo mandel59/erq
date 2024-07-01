@@ -1,0 +1,5 @@
+create async function resolve(x) as ```js
+  return await Promise.resolve(x);
+```;;
+
+{ resolve(100) };;

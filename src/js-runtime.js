@@ -55,6 +55,17 @@ export class JSRuntime {
   /**
    * 
    * @param {string} name 
+   * @param {string[]} params 
+   * @param {string} body 
+   */
+  setAsyncFunction(name, params, body) {
+    const context = this.getContext();
+    const jsFunction = `(async function (${params.join(",")}) {\n${body}\n})`;
+    this._registerFunction(context, name, jsFunction);
+  }
+  /**
+   * 
+   * @param {string} name 
    */
   removeFunction(name) {
     const context = this.getContext();
@@ -109,9 +120,11 @@ export class JSRuntime {
    * 
    * @param {string} name 
    * @param {any[]} args 
+   * @param {object} [options]
+   * @param {boolean} [options.async]
    * @returns 
    */
-  callFunction(name, ...args) {
+  callFunction(name, args, options = {}) {
     if (!this.runtime) {
       throw new JSRuntimeError("Runtime not initialized");
     }
@@ -156,6 +169,27 @@ export class JSRuntime {
       }
     }
 
+    if (options.async) {
+      if (evalResult.error) {
+        this._throwError(context, evalResult);
+      }
+      return context.unwrapResult(evalResult).consume((promiseHandle) => {
+        while (true) {
+          const state = context.getPromiseState(promiseHandle)
+          if (state.type === "pending") {
+            const result = this.runtime.executePendingJobs()
+            if (result.error) {
+              this._throwError(context, result)
+            }
+          } else if (state.type === "rejected") {
+            this._throwError(context, state)
+          } else {
+            return state.value.consume(context.dump)
+          }
+        }
+      })
+    }
+
     if (evalResult.error) {
       this._throwError(context, evalResult);
     }
@@ -168,7 +202,7 @@ export class JSRuntime {
    * @param {any[]} args 
    * @returns 
    */
-  *callGeneratorFunction(name, ...args) {
+  *callGeneratorFunction(name, args) {
     if (!this.runtime) {
       throw new JSRuntimeError("Runtime not initialized");
     }
