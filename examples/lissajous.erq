@@ -23,3 +23,13 @@ lissajous output to 'examples/output/lissajous.png' format vega lite png with
     color: t q {scale:{scheme:"sinebow"},legend:null},
     facet: p n {columns:4}
   };;
+
+-- output to PNG images with generated file names.
+range(0, 11) foreach (@p = value)
+  lissajous[p=@p] output to E'examples/output/lissajous_\%02d(@p).png' format vega lite png with
+    mark circle,
+    encoding {
+      x: x q,
+      y: y q,
+      color: t q {scale:{scheme:"sinebow"},legend:null}
+    };;
