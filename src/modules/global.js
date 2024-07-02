@@ -291,26 +291,32 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   defineFunction("path_resolve", { deterministic: false, varargs: true }, pathResolve);
 
   defineFunction("basename", { deterministic: true }, function (p) {
+    if (p == null) return null;
     return basename(p);
   });
 
   defineFunction("basename", { deterministic: true }, function (p, ext) {
+    if (p == null || ext == null) return null;
     return basename(p, ext);
   });
 
   defineFunction("dirname", { deterministic: true }, function (p) {
+    if (p == null) return null;
     return dirname(p);
   });
 
   defineFunction("json_hash", { deterministic: true }, function (json) {
+    if (json == null) return null
     return memoizedJsonHash(JSON.parse(json));
   })
 
   defineFunction("json_hash", { deterministic: true }, function (json, algorithm) {
+    if (json == null || algorithm == null) return null
     return memoizedJsonHash(JSON.parse(json), { algorithm });
   })
 
   defineFunction("json_serialize", { safeIntegers: true }, function (value) {
+    if (value == null) return null
     return JSON.stringify(serialize(JSON.parse(value)));
   })
 
