@@ -281,7 +281,14 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   });
 
   defineFunction("readfile", { deterministic: false }, function (filename) {
-    return readFileSync(filename);
+    try {
+      return readFileSync(filename);
+    } catch (e) {
+      if (e?.code === 'ENOENT') {
+        return null
+      }
+      throw e
+    }
   });
 
   defineFunction("readlink", { deterministic: false }, function (filename) {
