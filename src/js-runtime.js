@@ -231,11 +231,11 @@ export class JSRuntime {
   }
   _throwError(context, evalResult) {
     const error = evalResult.error.consume(context.dump);
-    if (typeof error === "string") {
-      throw new JSRuntimeError(error);
-    } else if ("message" in error) {
+    if (error != null && typeof error === "object" && "message" in error) {
       const stack = error?.stack;
       throw new JSRuntimeError(error.message, error.name, { stack });
+    } else {
+      throw new JSRuntimeError(String(error));
     }
   }
 }
