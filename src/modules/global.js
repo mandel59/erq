@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
-import { resolve as pathResolve, basename, dirname } from "node:path";
+import { resolve as pathResolve, basename, dirname, join as pathJoin } from "node:path";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { serialize, deserialize } from "@ungap/structured-clone";
 
@@ -280,6 +280,125 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     }
   });
 
+  defineTable("fs_find", {
+    parameters: ["_path"],
+    columns: [
+      "type",
+      "dir",
+      "name",
+      "dev",
+      "ino",
+      "mode",
+      "nlink",
+      "uid",
+      "gid",
+      "rdev",
+      "size",
+      "blksize",
+      "blocks",
+      "atime_ms",
+      "mtime_ms",
+      "ctime_ms",
+      "birthtime_ms",
+      "atime_ns",
+      "mtime_ns",
+      "ctime_ns",
+      "birthtime_ns",
+      "atime",
+      "mtime",
+      "ctime",
+      "birthtime",
+    ],
+    safeIntegers: true,
+    rows: function* find(path) {
+      if (path == null) {
+        path = ".";
+      }
+      const entries = readdirSync(path, {
+        encoding: "utf-8",
+        withFileTypes: true,
+      });
+      for (const e of entries) {
+        let type;
+        if (e.isFIFO()) {
+          type = "FIFO";
+        } else if (e.isCharacterDevice()) {
+          type = "CHR";
+        } else if (e.isDirectory()) {
+          type = "DIR";
+        } else if (e.isBlockDevice()) {
+          type = "BLK";
+        } else if (e.isFile()) {
+          type = "REG";
+        } else if (e.isSymbolicLink()) {
+          type = "LNK";
+        } else if (e.isSocket()) {
+          type = "SOCK";
+        } else {
+          type = "UNKNOWN";
+        }
+        const dir = path;
+        const name = e.name;
+        const {
+          dev,
+          ino,
+          mode,
+          nlink,
+          uid,
+          gid,
+          rdev,
+          size,
+          blksize,
+          blocks,
+          atimeMs,
+          mtimeMs,
+          ctimeMs,
+          birthtimeMs,
+          atimeNs,
+          mtimeNs,
+          ctimeNs,
+          birthtimeNs,
+          atime,
+          mtime,
+          ctime,
+          birthtime,
+        } = statSync(path, {
+          bigint: true,
+        });
+        yield [
+          type,
+          dir,
+          name,
+          dev,
+          ino,
+          mode,
+          nlink,
+          uid,
+          gid,
+          rdev,
+          size,
+          blksize,
+          blocks,
+          atimeMs,
+          mtimeMs,
+          ctimeMs,
+          birthtimeMs,
+          atimeNs,
+          mtimeNs,
+          ctimeNs,
+          birthtimeNs,
+          atime.toISOString(),
+          mtime.toISOString(),
+          ctime.toISOString(),
+          birthtime.toISOString(),
+        ];
+        if (type === "DIR") {
+          yield* find(pathJoin(dir, name));
+        }
+      }
+    }
+  });
+
   defineFunction("readfile", { deterministic: false }, function (filename) {
     try {
       return readFileSync(filename);
@@ -296,6 +415,8 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   });
 
   defineFunction("path_resolve", { deterministic: false, varargs: true }, pathResolve);
+
+  defineFunction("path_join", { deterministic: false, varargs: true }, pathJoin);
 
   defineFunction("basename", { deterministic: true }, function (p) {
     if (p == null) return null;
