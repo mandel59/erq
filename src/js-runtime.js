@@ -12,6 +12,20 @@ export class JSRuntimeError extends Error {
   }
 }
 
+/**
+ * @param {import("quickjs-emscripten").QuickJSContext} context
+ * @param {import("quickjs-emscripten").QuickJSHandle} handle
+ * @returns {any}
+ */
+function dump(context, handle) {
+  // @ts-ignore
+  const ptr = context.ffi.QTS_GetArrayBuffer(context.ctx.value, handle.value)
+  if (ptr) {
+    return Buffer.copyBytesFrom(context.getArrayBuffer(handle).value)
+  }
+  return context.dump(handle)
+}
+
 export class JSRuntime {
   /** @type {import("quickjs-emscripten").QuickJSWASMModule | undefined} */
   QuickJS;
@@ -135,6 +149,11 @@ export class JSRuntime {
             deferDispose.push(false);
             break;
           }
+          if (Buffer.isBuffer(arg)) {
+            argHandles.push(context.newArrayBuffer(arg));
+            deferDispose.push(true);
+            break;
+          }
           throw new JSRuntimeError("Unsupported argument type");
         default:
           throw new JSRuntimeError("Unsupported argument type");
@@ -153,7 +172,9 @@ export class JSRuntime {
     if (evalResult.error) {
       this._throwError(context, evalResult);
     }
-    const value = context.unwrapResult(evalResult).consume(context.dump);
+    const value = context.unwrapResult(evalResult).consume(handle => {
+      return dump(context, handle)
+    });
     return value;
   }
   /**
@@ -225,7 +246,10 @@ export class JSRuntime {
         iterator.dispose();
         break;
       }
-      yield context.getProp(resultObject, "value").consume(context.dump);
+      const value = context.getProp(resultObject, "value").consume(handle => {
+        return dump(context, handle)
+      });
+      yield value
       resultObject.dispose();
     }
   }
