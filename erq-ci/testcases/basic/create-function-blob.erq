@@ -18,4 +18,4 @@ create function reverse(buffer) as ```javascript
 iter: range(1, 100) join len: range(1, 10) {iter: iter.value, len: len.value}
   foreach (@iter, @len)
   {iter: @iter, len: @len, b: randomblob(@len)}
-  {iter, len, test: hex(b) = reverse(reverse(hex(b)))};;
+  {iter, len, test: b = reverse(reverse(b))};;
