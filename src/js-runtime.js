@@ -99,12 +99,6 @@ export class JSRuntime {
     }
     return this.context;
   }
-  resetContext() {
-    if (this.context) {
-      this.context.dispose();
-      this.context = undefined;
-    }
-  }
   /**
    * 
    * @param {string} name 
@@ -237,7 +231,6 @@ export class JSRuntime {
   }
   _throwError(context, evalResult) {
     const error = evalResult.error.consume(context.dump);
-    this.resetContext();
     if (typeof error === "string") {
       throw new JSRuntimeError(error);
     } else if ("message" in error) {
