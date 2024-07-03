@@ -1,0 +1,21 @@
+
+create function reverse(buffer) as ```javascript
+  const array = new Uint8Array(buffer);
+  const length = array.length;
+  for (let i = 0; i <= length / 2 - 1; i++) {
+    const j = length - 1 - i;
+    const x = array[i];
+    const y = array[j];
+    array[i] = y;
+    array[j] = x;
+  }
+  return buffer
+```;;
+
+"test simple case";;
+{test: reverse(cast('abc' as blob)) = cast('cba' as blob)};;
+"test random cases";;
+iter: range(1, 100) join len: range(1, 10) {iter: iter.value, len: len.value}
+  foreach (@iter, @len)
+  {iter: @iter, len: @len, b: randomblob(@len)}
+  {iter, len, test: hex(b) = reverse(reverse(hex(b)))};;
