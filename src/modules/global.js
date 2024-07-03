@@ -714,4 +714,8 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     return str.normalize(form);
   })
 
+  defineFunction("console_error", { deterministic: false, varargs: true }, function (message, ...args) {
+    console.error(message, ...args)
+    return args[0] ?? null
+  })
 });

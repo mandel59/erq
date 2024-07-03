@@ -74,6 +74,20 @@ export class JSRuntime {
     const context = this.getContext();
     this._unregisterFunction(context, name);
   }
+  /**
+   * @param {import("quickjs-emscripten").QuickJSContext} context 
+   */
+  _registerUtilFunctions(context) {
+    const { error } = console
+    context.newFunction("error", (...args) => {
+      error(...args.map(handle => dump(context, handle)))
+    }).consume(errorHandle => {
+      context.newObject().consume(consoleHandle => {
+        context.setProp(consoleHandle, "error", errorHandle)
+        context.setProp(context.global, "console", consoleHandle)
+      })
+    })
+  }
   _registerFunction(context, name, jsFunction) {
     if (this.funcs.has(name)) {
       this._unregisterFunction(context, name);
@@ -107,6 +121,7 @@ export class JSRuntime {
         throw new Error("Runtime not initialized");
       }
       this.context = this.runtime.newContext();
+      this._registerUtilFunctions(this.context)
       for (const [func, jsFunction] of this.funcs.entries()) {
         this._registerFunction(this.context, func, jsFunction);
       }
