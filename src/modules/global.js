@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname, join as pathJoin } from "node:path";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { serialize, deserialize } from "@ungap/structured-clone";
@@ -322,7 +322,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
         let type;
         const name = e.name;
         const filePath = pathJoin(dir, name)
-        const stats = statSync(filePath, {
+        const stats = lstatSync(filePath, {
           bigint: true,
         });
         const {
@@ -353,6 +353,8 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
           type = "REG";
         } else if (stats.isDirectory()) {
           type = "DIR";
+        } else if (stats.isSymbolicLink()) {
+          type = "LNK";
         } else if (stats.isFIFO()) {
           type = "FIFO";
         } else if (stats.isCharacterDevice()) {
