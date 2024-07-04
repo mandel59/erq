@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync } from "node:fs";
+import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname, join as pathJoin } from "node:path";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { serialize, deserialize } from "@ungap/structured-clone";
@@ -414,6 +414,24 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   defineFunction("readlink", { deterministic: false }, function (filename) {
     return readlinkSync(filename, "utf-8");
   });
+
+  defineFunction("symlink", { deterministic: false, directOnly: true }, function (target, path) {
+    if (target == null || path == null) return null;
+    try {
+      symlinkSync(target, path);
+      return 1n;
+    } catch (e) {
+      if (e?.code === 'EEXIST') {
+        try {
+          const link = readlinkSync(path, { encoding: 'buffer' })
+          if (Buffer.compare(Buffer.from(target), link) === 0) {
+            return 0n;
+          }
+        } catch { }
+      }
+      throw e
+    }
+  })
 
   defineFunction("path_resolve", { deterministic: false, varargs: true }, pathResolve);
 
