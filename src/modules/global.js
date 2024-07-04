@@ -310,35 +310,21 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
       "birthtime",
     ],
     safeIntegers: true,
-    rows: function* find(path) {
-      if (path == null) {
-        path = ".";
+    rows: function* find(dir) {
+      if (dir == null) {
+        dir = ".";
       }
-      const entries = readdirSync(path, {
+      const entries = readdirSync(dir, {
         encoding: "utf-8",
         withFileTypes: true,
       });
       for (const e of entries) {
         let type;
-        if (e.isFIFO()) {
-          type = "FIFO";
-        } else if (e.isCharacterDevice()) {
-          type = "CHR";
-        } else if (e.isDirectory()) {
-          type = "DIR";
-        } else if (e.isBlockDevice()) {
-          type = "BLK";
-        } else if (e.isFile()) {
-          type = "REG";
-        } else if (e.isSymbolicLink()) {
-          type = "LNK";
-        } else if (e.isSocket()) {
-          type = "SOCK";
-        } else {
-          type = "UNKNOWN";
-        }
-        const dir = path;
         const name = e.name;
+        const filePath = pathJoin(dir, name)
+        const stats = statSync(filePath, {
+          bigint: true,
+        });
         const {
           dev,
           ino,
@@ -362,9 +348,22 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
           mtime,
           ctime,
           birthtime,
-        } = statSync(path, {
-          bigint: true,
-        });
+        } = stats
+        if (stats.isFile()) {
+          type = "REG";
+        } else if (stats.isDirectory()) {
+          type = "DIR";
+        } else if (stats.isFIFO()) {
+          type = "FIFO";
+        } else if (stats.isCharacterDevice()) {
+          type = "CHR";
+        } else if (stats.isBlockDevice()) {
+          type = "BLK";
+        } else if (stats.isSocket()) {
+          type = "SOCK";
+        } else {
+          type = "UNKNOWN";
+        }
         yield [
           type,
           dir,
@@ -393,7 +392,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
           birthtime.toISOString(),
         ];
         if (type === "DIR") {
-          yield* find(pathJoin(dir, name));
+          yield* find(filePath);
         }
       }
     }
