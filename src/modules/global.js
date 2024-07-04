@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync } from "node:fs";
+import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync, mkdirSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname, join as pathJoin } from "node:path";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { serialize, deserialize } from "@ungap/structured-clone";
@@ -417,6 +417,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
 
   defineFunction("symlink", { deterministic: false, directOnly: true }, function (target, path) {
     if (target == null || path == null) return null;
+    mkdirSync(dirname(path), { recursive: true });
     try {
       symlinkSync(target, path);
       return 1n;
