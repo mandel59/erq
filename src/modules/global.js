@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname, join as pathJoin, relative as pathRelative } from "node:path";
 import { createHash } from "node:crypto";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
@@ -434,6 +434,12 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
       throw e
     }
   })
+
+  defineFunction("writefile", { deterministic: false }, function (filename, data) {
+    mkdirSync(dirname(filename), { recursive: true });
+    writeFileSync(filename, data);
+    return filename;
+  });
 
   defineFunction("path_resolve", { deterministic: false, varargs: true }, pathResolve);
 
