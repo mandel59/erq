@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync, mkdirSync } from "node:fs";
-import { resolve as pathResolve, basename, dirname, join as pathJoin } from "node:path";
+import { resolve as pathResolve, basename, dirname, join as pathJoin, relative as pathRelative } from "node:path";
+import { createHash } from "node:crypto";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
 import { serialize, deserialize } from "@ungap/structured-clone";
 
@@ -438,6 +439,11 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
 
   defineFunction("path_join", { deterministic: false, varargs: true }, pathJoin);
 
+  defineFunction("path_relative", { deterministic: false }, function (from, to) {
+    if (from == null || to == null) return null;
+    return pathRelative(from, to);
+  })
+
   defineFunction("basename", { deterministic: true }, function (p) {
     if (p == null) return null;
     return basename(p);
@@ -737,5 +743,23 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   defineFunction("console_error", { deterministic: false, varargs: true }, function (message, ...args) {
     console.error(message, ...args)
     return args[0] ?? null
+  })
+
+  defineFunction("sha256", { deterministic: true }, function(blob) {
+    const hash = createHash("sha256")
+    hash.update(blob)
+    return hash.digest()
+  })
+
+  defineFunction("sha1", { deterministic: true }, function(blob) {
+    const hash = createHash("sha1")
+    hash.update(blob)
+    return hash.digest()
+  })
+
+  defineFunction("md5", { deterministic: true }, function(blob) {
+    const hash = createHash("md5")
+    hash.update(blob)
+    return hash.digest()
   })
 });
