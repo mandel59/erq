@@ -905,8 +905,17 @@ export async function child() {
           continue;
         }
         if (type === "select" || type === "pragma" || returning) {
-          stmt.raw(true);
           stmt.safeIntegers(true);
+          try {
+            stmt.raw(true);
+          } catch (error) {
+            // pragma has already run
+            // stmt.run()
+            const t1 = performance.now();
+            const t = t1 - t0;
+            console.error("ok (%ss)", (t / 1000).toFixed(3));
+            return true;
+          }
           const columns = stmt.columns();
           const columnNames = columns.map(c => c.name);
           let interrupted = false;
