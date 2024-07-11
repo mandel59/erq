@@ -1,0 +1,6 @@
+with ids(id) as (range(1, 10))
+with random_id(id) as (
+  {abs(random() % from ids {max(id)})};
+  random_id{abs(random() % from ids {max(id)})}
+)
+random_id limit 10;;

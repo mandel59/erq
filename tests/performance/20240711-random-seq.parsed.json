@@ -1,0 +1,6 @@
+[
+  {
+    "type": "select",
+    "query": "with ids(id) as (select * from `range`(1, 10)), random_id(id) as (select abs(random() % (select max(id) from ids)) union all select abs(random() % (select max(id) from ids)) from random_id) select * from random_id limit 10"
+  }
+]
