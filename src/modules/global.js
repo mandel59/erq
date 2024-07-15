@@ -413,7 +413,14 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   });
 
   defineFunction("readlink", { deterministic: false }, function (filename) {
-    return readlinkSync(filename, "utf-8");
+    try {
+      return readlinkSync(filename, "utf-8");
+    } catch (e) {
+      if (e?.code === 'ENOENT') {
+        return null
+      }
+      throw e
+    }
   });
 
   defineFunction("symlink", { deterministic: false, directOnly: true }, function (target, path) {
@@ -751,19 +758,19 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     return args[0] ?? null
   })
 
-  defineFunction("sha256", { deterministic: true }, function(blob) {
+  defineFunction("sha256", { deterministic: true }, function (blob) {
     const hash = createHash("sha256")
     hash.update(blob)
     return hash.digest()
   })
 
-  defineFunction("sha1", { deterministic: true }, function(blob) {
+  defineFunction("sha1", { deterministic: true }, function (blob) {
     const hash = createHash("sha1")
     hash.update(blob)
     return hash.digest()
   })
 
-  defineFunction("md5", { deterministic: true }, function(blob) {
+  defineFunction("md5", { deterministic: true }, function (blob) {
     const hash = createHash("md5")
     hash.update(blob)
     return hash.digest()
