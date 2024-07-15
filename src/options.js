@@ -58,3 +58,4 @@ async function getOptions() {
 
 export const options = await getOptions();
 export const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
+export const DEBUG_PARSER = Boolean(process.env["ERQ_DEBUG_PARSER"]);

@@ -5,7 +5,7 @@
   "repository": "mandel59/erq",
   "type": "module",
   "files": [
-    "dist/**",
+    "dist/erq.js",
     "doc/**",
     "examples/**",
     "src/**",
