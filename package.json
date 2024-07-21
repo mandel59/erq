@@ -5,7 +5,7 @@
   "repository": "mandel59/erq",
   "type": "module",
   "files": [
-    "dist/**",
+    "dist/erq.js",
     "doc/**",
     "examples/**",
     "src/**",
@@ -28,7 +28,7 @@
     "@types/topojson-client": "^3.1.4",
     "ava": "^4.3.1",
     "c8": "^8.0.1",
-    "peggy": "^3.0.2"
+    "peggy": "^4.0.3"
   },
   "description": "Erq - Easy Relational Query Language",
   "license": "MIT",

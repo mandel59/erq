@@ -6,7 +6,7 @@ import chalk from "chalk";
 import { options, DEBUG } from "./options.js";
 import { loadHistory, saveHistory } from "./history.js";
 import { isTTY } from "./io.js";
-import * as parser from "../dist/erq.js";
+import { parser } from "./parser.js";
 import { ErqClient } from "./erq-client.js";
 
 export async function parent() {
