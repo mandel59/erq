@@ -990,9 +990,7 @@ ModuleArguments
   / (("'" ("''" / [^'])* "'")+ / [^()'])*
 
 IndexedColumns
-  = e1:IndexedColumn _ es:("," _ e:IndexedColumn { return e; })* {
-    return [e1, ...es].join(", ");
-  }
+  = es:IndexedColumn|1.., _ "," _| { return es.join(", "); }
 
 IndexedColumn
   = e:Expression s1:(_ s:("asc" / "desc") { return s; })? {
@@ -1287,8 +1285,7 @@ TableReference
   ;
 
 Filters
-  = f:Filter _ fs:Filters { return [f, ...fs]; }
-  / f:Filter { return [f]; }
+  = fs:Filter|1.., _| { return fs; }
   ;
 
 Filter
@@ -1405,13 +1402,11 @@ TableExpression
   ;
 
 Expressions
-  = e:Expression _ "," _ es:Expressions { return `${e}, ${es}`; }
-  / Expression
+  = es:Expression|1.., _ "," _| { return es.join(", "); }
   ;
 
 RowValues
-  = e:RowValue _ "," _ es:RowValues { return `${e}, ${es}`; }
-  / RowValue
+  = es:RowValue|1.., _ "," _| { return es.join(", "); }
   ;
 
 UnOp
