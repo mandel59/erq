@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, readlinkSync, statSync, lstatSync, symlinkSync, mkdirSync, writeFileSync, utimesSync } from "node:fs";
 import { resolve as pathResolve, basename, dirname, join as pathJoin, relative as pathRelative } from "node:path";
 import { createHash } from "node:crypto";
 import memoizedJsonHash from "@mandel59/memoized-json-hash";
@@ -7,6 +7,16 @@ import { serialize, deserialize } from "@ungap/structured-clone";
 import { createErqNodeJsModule } from "../create-erq-nodejs-module.js";
 
 export default createErqNodeJsModule('global', async ({ registerModule, defineTable, defineFunction, defineAggregate }) => {
+  function regexpVFlagSupport() {
+    try {
+      new RegExp("", "v");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  const regexpGlobalFlag = regexpVFlagSupport() ? "gv" : "gu";
 
   registerModule("dom", () => import("./dom.js"));
   registerModule("geo", () => import("./geo.js"));
@@ -68,21 +78,21 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     if (pattern == null || string == null) {
       return null;
     }
-    return Number(new RegExp(pattern, "gu").test(string));
+    return Number(new RegExp(pattern, regexpGlobalFlag).test(string));
   });
 
   defineFunction("regexp_replace", { deterministic: true }, function (source_string, pattern, replace_string) {
     if (source_string == null || pattern == null || replace_string == null) {
       return null;
     }
-    return String(source_string).replace(new RegExp(pattern, "gu"), replace_string);
+    return String(source_string).replace(new RegExp(pattern, regexpGlobalFlag), replace_string);
   });
 
   defineFunction("regexp_substr", { deterministic: true }, function (string, pattern) {
     if (string == null || pattern == null) {
       return null;
     }
-    const re = new RegExp(pattern, "gu");
+    const re = new RegExp(pattern, regexpGlobalFlag);
     const m = re.exec(string);
     if (m) {
       return m[0];
@@ -99,7 +109,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
       if (string == null || pattern == null) {
         return;
       }
-      const re = new RegExp(pattern, "gu");
+      const re = new RegExp(pattern, regexpGlobalFlag);
       let m, prev;
       while (m = re.exec(string)) {
         if (m.index === prev) {
@@ -137,7 +147,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
       if (string == null || pattern == null) {
         return;
       }
-      const re = new RegExp(pattern, "gu");
+      const re = new RegExp(pattern, regexpGlobalFlag);
       let m, prev;
       while (m = re.exec(string)) {
         if (m.index === prev) {
@@ -399,6 +409,14 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
         }
       }
     }
+  });
+
+  defineFunction("fs_touch", { deterministic: false }, function (filename, timestamp) {
+    if (timestamp == null) {
+      return null
+    }
+    utimesSync(filename, timestamp, timestamp)
+    return filename
   });
 
   defineFunction("readfile", { deterministic: false }, function (filename) {
