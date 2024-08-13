@@ -16,7 +16,9 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     }
   }
 
-  const regexpGlobalFlag = regexpVFlagSupport() ? "gv" : "gu";
+  const isVFlagSupported = regexpVFlagSupport()
+  const regexpGlobalFlag = isVFlagSupported ? "gv" : "gu";
+  const regexpFlag = isVFlagSupported ? "v" : "u";
 
   registerModule("dom", () => import("./dom.js"));
   registerModule("geo", () => import("./geo.js"));
@@ -126,7 +128,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     if (string == null || pattern == null) {
       return null;
     }
-    const re = new RegExp(pattern, "u");
+    const re = new RegExp(pattern, regexpFlag);
     const m = re.exec(string);
     if (m) {
       if (m.groups) {
