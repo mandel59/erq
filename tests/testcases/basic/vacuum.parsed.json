@@ -1,0 +1,26 @@
+[
+  {
+    "type": "vacuum",
+    "query": "vacuum"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum into 'other.db'"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum s"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum s into 'other.db'"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum `into`"
+  },
+  {
+    "type": "vacuum",
+    "query": "vacuum `into` into 'other.db'"
+  }
+]

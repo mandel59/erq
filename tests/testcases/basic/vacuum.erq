@@ -1,0 +1,6 @@
+vacuum;;
+vacuum into 'other.db';;
+vacuum s;;
+vacuum s into 'other.db';;
+vacuum `into`;;
+vacuum `into` into 'other.db';;

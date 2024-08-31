@@ -944,11 +944,11 @@ Truncate
   { return `delete from ${n}`; }
 
 Vacuum
-  = Do? "vacuum" __ n:Name _ boundary "into" boundary s:SQLStringLiteral
+  = Do? "vacuum" __ !("into" boundary) n:Name _ boundary "into" __ s:SQLStringLiteral
   { return `vacuum ${n} into ${s}`; }
-  / Do? "vacuum" __ "into" boundary s:SQLStringLiteral
+  / Do? "vacuum" __ "into" __ s:SQLStringLiteral
   { return `vacuum into ${s}`; }
-  / Do? "vacuum" __ n:Name
+  / Do? "vacuum" __ !("into" boundary) n:Name
   { return `vacuum ${n}`; }
   / Do? "vacuum"
   { return `vacuum`; }
