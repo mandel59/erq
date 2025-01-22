@@ -1,0 +1,25 @@
+{"x":{"value":1},"y":"{\"value\":1}"}
+{"x":{},"y":"{}"}
+{"x":{"a":1,"b":1},"y":"{\"a\":1,\"b\":1}"}
+{"x":{"value":1},"y":{"value":1}}
+{"x":{},"y":{}}
+{"x":{"a":1,"b":1},"y":{"a":1,"b":1}}
+{"t":true,"f":false,"obj":{"t":true,"f":false},"arr":[true,false]}
+{
+  "t": true,
+  "f": false,
+  "obj": {"t":true,"f":false},
+  "arr": [true,false]
+}
+{
+  "t": true,
+  "f": false,
+  "obj": {"t":true,"f":false},
+  "arr": [true,false]
+}
+{"a":true,"b":true,"c":1}
+{"a":false,"b":false,"c":0}
+{"a":1e999,"b":1e999,"c":null}
+{"a":2,"b":2}
+{"a":true,"b":"true","c":"true"}
+{"a":{"x":"{}","y":{}}}

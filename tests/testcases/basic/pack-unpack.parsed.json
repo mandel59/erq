@@ -17,7 +17,7 @@
   },
   {
     "type": "select",
-    "query": "select json_object('input', json(input), 'args', json_array(a, b, c), 'sum', sum) || printf('%c', char(10)) as line from t",
+    "query": "select json_object('input', json_quote(json(input)), 'args', json_array(json_quote(a), json_quote(b), json_quote(c)), 'sum', sum) || printf('%c', char(10)) as line from t",
     "format": "raw"
   }
 ]

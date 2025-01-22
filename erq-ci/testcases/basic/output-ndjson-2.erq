@@ -1,0 +1,15 @@
+range(1, 1) { x: pack {value}, y: pack {value} } output ndjson with raw json (x);;
+range(1, 1) { x: pack {}, y: pack {} } output ndjson with raw json (x);;
+range(1, 1) { x: pack {a: value, b: value}, y: pack {a: value, b: value} } output ndjson with raw json (x);;
+range(1, 1) { x: pack {value}, y: pack {value} } output ndjson with raw json;;
+range(1, 1) { x: pack {}, y: pack {} } output ndjson with raw json;;
+range(1, 1) { x: pack {a: value, b: value}, y: pack {a: value, b: value} } output ndjson with raw json;;
+{ t: pack true, f: pack false, obj: pack {t: true, f: false}, arr: pack [true, false] } output ndjson with raw json;;
+{ t: pack true, f: pack false, obj: pack {t: true, f: false}, arr: pack [true, false] } output ndjson with raw json, indent;;
+{ t: pack true, f: pack false, obj: pack {t: true, f: false}, arr: pack [true, false] } output jsonl with indent 2, raw json;;
+{a: pack true, b: 'true', c: true} output sparse with raw json, no space;;
+{a: pack false, b: 'false', c: false} output sparse with raw json (`a`, `b`, `c`), no indent;;
+{a: pack 1e999, b: '1e999', c: 1e999} output sparse with raw json, no indent;;
+{a: pack 2, b: pack (1 + 1)} output sparse with raw json, no indent;;
+{a: pack true, b: pack 'true', c: pack "true"} output sparse with raw json, no space;;
+{j: '{}'} { a: pack {x: j, y: json(j)} } output object with raw json;;

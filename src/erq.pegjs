@@ -1589,9 +1589,8 @@ PackBody
       JSON.parse(t);
       return `json(${quote(t)})`;
     } catch {
-      return e;
+      return `json_quote(${e})`;
     }
-    return e[0];
   }
 
 PackName
