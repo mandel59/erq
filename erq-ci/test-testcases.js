@@ -57,14 +57,14 @@ for (const dir of dirs) {
     } else {
       test(`${dir}/${basename(file, '.erq')}`, async (t) => {
         const erqInput = createReadStream(`testcases/${dir}/${file}`);
-        const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`);
+        const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`, 'utf-8');
         const expected = { exitCode: 0, output: erqOutputExpected };
         const erqProcess = spawn("erq", [], {
           stdio: ["pipe", "pipe", "ignore"],
           timeout: 10000,
         });
         erqInput.pipe(erqProcess.stdin);
-        const erqOutputPromise = streamConsumers.buffer(erqProcess.stdout);
+        const erqOutputPromise = streamConsumers.text(erqProcess.stdout);
         const erqExitCode = await new Promise((resolve) => {
           erqProcess.once("exit", (code) => { resolve(code); })
         });
