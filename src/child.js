@@ -956,9 +956,25 @@ export async function child() {
               console.error(JSON.stringify(columnNames));
             }
             if (format === "sparse") return async (r) => {
+              /** @type {boolean} */
               const omitNull = formatOptions.omitNull ?? false;
+              /** @type {number} */
+              let space = formatOptions.space ?? null;
+              if (space != null && space > 10) {
+                space = 10;
+              }
+              /** @type {string[] | true | undefined} */
+              const tryParse = formatOptions.tryParse;
               if (!outputStream.write("{")) {
                 await new Promise(resolve => outputStream.once("drain", () => resolve()));
+              }
+              if (space != null) {
+                if (!outputStream.write("\n")) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                }
+                if (!outputStream.write(" ".repeat(space))) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                }
               }
               let first = true;
               for (let i = 0; i < r.length; i++) {
@@ -970,14 +986,45 @@ export async function child() {
                   if (!outputStream.write(",")) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
+                  if (space != null) {
+                    if (!outputStream.write("\n")) {
+                      await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                    }
+                    if (!outputStream.write(" ".repeat(space))) {
+                      await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                    }
+                  }
                 }
-                if (!outputStream.write(JSON.stringify(columnNames[i]))) {
+                const k = columnNames[i]
+                if (!outputStream.write(JSON.stringify(k))) {
                   await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
                 if (!outputStream.write(":")) {
                   await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
-                if (typeof v === "bigint") {
+                if (space != null) {
+                  if (!outputStream.write(" ")) {
+                    await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                  }
+                }
+                if (typeof v === "string" && (tryParse === true || tryParse?.includes(k))) {
+                  let isValidJson = false;
+                  try {
+                    JSON.parse(v);
+                    isValidJson = true;
+                  } catch {
+                    // ignore error
+                  }
+                  if (isValidJson) {
+                    if (!outputStream.write(v)) {
+                      await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                    }
+                  } else {
+                    if (!outputStream.write(JSON.stringify(v))) {
+                      await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                    }
+                  }
+                } else if (typeof v === "bigint") {
                   if (!outputStream.write(String(v))) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
@@ -987,6 +1034,11 @@ export async function child() {
                   if (!outputStream.write(JSON.stringify(v))) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
+                }
+              }
+              if (space != null) {
+                if (!outputStream.write("\n")) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
               }
               if (!outputStream.write("}\n")) {

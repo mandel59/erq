@@ -142,10 +142,11 @@ FormattingClause
 FormatClause
   = _ ("format" __)? f:(
     "dense" boundary { return { format: "dense" }; }
-    / "sparse" boundary { return { format: "sparse" }; }
+    / "sparse" boundary opts:NdjsonOptions? { return { format: "sparse", formatOptions: opts ?? {} }; }
     / "array" boundary { return { format: "dense" }; }
-    / "object" boundary { return { format: "sparse" }; }
+    / "object" boundary opts:NdjsonOptions? { return { format: "sparse", formatOptions: opts ?? {} }; }
     / "ndjson" boundary opts:NdjsonOptions? { return { format: "sparse", formatOptions: opts ?? {} }; }
+    / "jsonl" boundary opts:NdjsonOptions? { return { format: "sparse", formatOptions: opts ?? {} }; }
     / "raw" boundary { return { format: "raw" }; }
     / "csv" boundary opts:CsvOptions? { return { format: "csv", formatOptions: opts ?? {} }; }
     / v:Vega { return { format: v }; }
@@ -165,6 +166,10 @@ CsvOptions
 NdjsonOptions
   = _ ("with" __)? opts:(
     "omit" __ "null" { return { omitNull: true }; }
+    / "include" __ "null" { return { omitNull: false }; }
+    / ("indent"/"space") i:(__ i:NumericLiteral boundary { return i })? { return { space: i ?? 2 }; }
+    / "no" __ ("indent"/"space") boundary { return { space: null }; }
+    / "raw" __ "json" ns:(_ ns:ColumnNameList { return ns })? { return { tryParse: ns?.map(x => unquoteSQLName(x)) ?? true } }
   )|1..,_ "," _| { return Object.assign({}, ...opts); }
 
 DestinationClause
