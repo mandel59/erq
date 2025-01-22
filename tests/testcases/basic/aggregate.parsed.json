@@ -2,36 +2,43 @@
   {
     "type": "select",
     "query": "select sum(value) as sum from `range`(1, 6)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   },
   {
     "type": "select",
     "query": "select sum(value) as sum_odd from `range`(1, 6) where (value % 2 <> 0)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   },
   {
     "type": "select",
     "query": "select sum(value) filter (where value % 2 <> 0) as sum_odd from `range`(1, 6)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   },
   {
     "type": "select",
     "query": "select group_concat(value) as gc_desc from (select * from `range`(1, 6) order by value desc)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   },
   {
     "type": "select",
     "query": "select group_concat(value order by value desc) as gc_desc from `range`(1, 6)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   },
   {
     "type": "select",
     "query": "select value % 2 <> 0 as odd, sum(value) as sum from `range`(1, 6) group by (value % 2 <> 0)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   },
   {
     "type": "select",
     "query": "select rn, group_concat(value order by value asc) as gc from (select value, row_number() over (partition by value % 2 order by value desc) as rn from `range`(1, 6)) group by (rn)",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   }
 ]

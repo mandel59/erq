@@ -21,6 +21,7 @@
   {
     "type": "select",
     "query": "select * from data",
-    "format": "sparse"
+    "format": "sparse",
+    "formatOptions": {}
   }
 ]
