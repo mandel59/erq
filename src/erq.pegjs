@@ -1583,7 +1583,16 @@ PackBody
   / "[" _ es:PackBody|.., _ "," _| (_ ",")? _ "]" {
     return `json_array(${es.join(", ")})`;
   }
-  / Expression
+  / e:(e:Expression { return [e, text()] })
+    &{ const t = e[1].toLowerCase(); return t !== 'true' && t !== 'false' } {
+    return e[0];
+  }
+  / "true"i boundary {
+    return `json('true')`
+  }
+  / "false"i boundary {
+    return `json('false')`
+  }
 
 PackName
   = k:JSONObjectKey _ ":" _ e:PackBody { return [k, e]; }
