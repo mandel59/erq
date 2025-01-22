@@ -2,6 +2,7 @@ node_modules
 coverage
 *.db*
 *.txt
+!erq-ci/data/*.txt
 *.tgz
 dist/erq.js
 dist/erq.cjs
