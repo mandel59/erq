@@ -1583,15 +1583,15 @@ PackBody
   / "[" _ es:PackBody|.., _ "," _| (_ ",")? _ "]" {
     return `json_array(${es.join(", ")})`;
   }
-  / e:(e:Expression { return [e, text()] })
-    &{ const t = e[1].toLowerCase(); return t !== 'true' && t !== 'false' } {
+  / e:Expression {
+    const t = text();
+    try {
+      JSON.parse(t);
+      return `json(${quote(t)})`;
+    } catch {
+      return e;
+    }
     return e[0];
-  }
-  / "true"i boundary {
-    return `json('true')`
-  }
-  / "false"i boundary {
-    return `json('false')`
   }
 
 PackName
