@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.1] - 2025-01-25
+
+### Added
+
+- Add CSV formatter options
+- Add escape newline syntax
+
+### Fixed
+
+- Fix multiline string parsing in REPL
+
+## [0.2.0] - 2025-01-23
+
+### Added
+
+- Add sparse format options
+- Add fs_find and path_join functions
+- Add support for underscore characters in numeric literals
+- Add brace-arrow aggregation syntax for Vega Lite
+
+### Fixed
+
+- Fix boolean values in pack body syntax
+- Fix vacuum syntax
+- Fix regexp_group handling
+- Fix symbolic link handling in readlink
+
 ## [0.1.6] - 2024-05-20
 
 ### Added
@@ -63,6 +90,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Initial release of the library.
 - Basic functionality to analyze and manipulate SQLite databases.
 
+[0.2.1]: https://github.com/mandel59/erq/releases/tag/v0.2.1
+[0.2.0]: https://github.com/mandel59/erq/releases/tag/v0.2.0
 [0.1.6]: https://github.com/mandel59/erq/releases/tag/v0.1.6
 [0.1.5]: https://github.com/mandel59/erq/releases/tag/v0.1.5
 [0.1.4]: https://github.com/mandel59/erq/releases/tag/v0.1.4
