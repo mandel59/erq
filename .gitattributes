@@ -1,0 +1,2 @@
+*.erq text eol=lf
+*.out -text
