@@ -85,10 +85,12 @@ export async function parent() {
         console.error("%s: %s", error.name, error.message);
       }
       if (error && error.location) {
-        console.error(" at line %d column %d", error.location.start.line, error.location.start.column);
+        const startLine = error.location.start.line;
+        const startColumn = error.location.start.column;
+        const endLine = error.location.end.line;
+        const endColumn = error.location.end.column
+        console.error(" at line %d column %d", startLine, startColumn);
         if (stderr.isTTY) {
-          const startLine = error.location.start.line;
-          const endLine = error.location.end.line;
           console.error("---");
           const reLine = /[^\n]*\n|[^\n]+/y;
           let i = 0, m;
@@ -98,21 +100,21 @@ export async function parent() {
             if (startLine <= i && i <= endLine) {
               let highlited = "";
               if (i === startLine && i === endLine) {
-                const start = error.location.start.column - 1;
-                const end = error.location.end.column - 1;
+                const start = startColumn - 1;
+                const end = endColumn - 1;
                 highlited += line.slice(0, start);
                 highlited += chalk.bgRed.white(line.slice(start, end));
                 highlited += line.slice(end);
               } else if (i === startLine) {
-                const start = error.location.start.column - 1;
+                const start = startColumn - 1;
                 highlited += line.slice(0, start);
-                highlited += chalk.bgRed.white(line.slice(start));
+                highlited += chalk.bgRed.white(line.slice(start) + " ");
               } else if (i === endLine) {
-                const end = error.location.end.column - 1;
+                const end = endColumn - 1;
                 highlited += chalk.bgRed.white(line.slice(0, end));
                 highlited += line.slice(end);
               } else {
-                highlited += chalk.bgRed.white(line);
+                highlited += chalk.bgRed.white(line + " ");
               }
               console.error(`${chalk.cyan(i.toString().padStart(4, " ") + ": ")}${highlited}`);
             } else if (startLine - 2 <= i && i <= endLine + 2) {
