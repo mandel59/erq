@@ -1851,6 +1851,7 @@ EscapedStringBody
       / "u(" _ e:Expression _ ")" { return ["%c", `char(${e})`]; }
       / "(" _ e:Expression _ ")" { return ["%s", e]; }
       / "%" opt:$FormatOption "(" _ e:Expression _ ")" { return [`%${opt}`, e]; }
+      / '\n' { return [""]; }
     ) { return c; }
     / "''" { return ["''"]; }
     / "%" { return ["%%"]; }
