@@ -1762,13 +1762,13 @@ SignedNumber
     }
   }
 
-Name "name"
+Name
   = QuotedName
   / Identifier
   ;
 
-QuotedName "quoted name"
-  = $('`' ("``" / [^`\u0000])* '`')+
+QuotedName
+  = $('`' ("``" / [^`\u0000])* '`')
 
 Identifier "identifier"
   = n:$(
@@ -1783,13 +1783,24 @@ Identifier "identifier"
   }
   ;
 
-Literal "literal"
-  = "true"i boundary { return "1"; }
-  / "false"i boundary { return "0"; }
-  / "null"i boundary { return "null"; }
-  / StringLiteral
+Literal
+  = BooleanLiteral
+  / LiteralNull
   / NumericLiteral
+  / StringLiteral
   ;
+
+BooleanLiteral
+  = LiteralTrue / LiteralFalse
+
+LiteralNull "null"
+  = "null"i boundary { return "null"; }
+
+LiteralTrue "true"
+  = "true"i boundary { return "1"; }
+
+LiteralFalse "false"
+  = "false"i boundary { return "0"; }
 
 StringLiteral
   = SQLStringLiteral
@@ -1802,7 +1813,7 @@ ParsedStringLiteral
   / s:JSONString { return s; }
 
 SQLStringLiteral
-  = $("'" ("''" / [^'\u0000])* "'")+
+  = $("'" ("''" / [^'\u0000])* "'")
 
 EscapedString
   = "E''"i { return "''"; } // printf('') returns null. this is a workaround.
@@ -1854,7 +1865,7 @@ FormatWidth = $([1-9][0-9]*)
 FormatPrecision = $("." [0-9]+)
 FormatType = [diufeEgGxXoscqQw]
 
-NumericLiteral
+NumericLiteral "numeric"
   = n:$("0x" [0-9A-Fa-f]+ ("_" [0-9A-Fa-f]+)*)
     { return n.replaceAll("_", ""); }
   / n:$([0-9]+ ("_" [0-9]+)* ("." ([0-9]+ ("_" [0-9]+)*)?)? ([eE] [+-]? [0-9]+ ("_" [0-9]+)*)?)
@@ -1918,7 +1929,7 @@ JSONObjectEntry
 JSONArray
   = "[" _ vs:JSONValue|.., _ "," _| (_ ",")? _ "]" { return vs; }
 
-JSONString
+JSONString "json_string"
   = s:$("\"" JSONStringBody* "\"") { return JSON.parse(s); }
 
 JSONStringBody
@@ -1926,7 +1937,7 @@ JSONStringBody
   / "\\" ["\\/bfnrt]
   / [^\u0000-\u001f"\\]
 
-JSONNumber
+JSONNumber "json_number"
   = n:$("-"? [0-9]+ ("." [0-9]+)? ([eE] [+-]? [0-9]+)?) { return JSON.parse(n); }
 
 QuasiJsonExpression
