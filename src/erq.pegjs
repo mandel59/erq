@@ -157,6 +157,8 @@ CsvOptions
     "header" boundary { return { header: true }; }
     / "no" __ "header" boundary { return { header: false }; }
     / "delimiter" __ s:ParsedStringLiteral { return { delimiter: s }; }
+    / "row" __ "delimiter" __ s:ParsedStringLiteral { return { rowDelimiter: s }; }
+    / "null" __ s:ParsedStringLiteral { return { nullValue: s }; }
     / "quote" __ s:ParsedStringLiteral { return { quote: s }; }
     / "no" __ "quote" boundary { return { quote: '' }; }
     / "escape" __ s:ParsedStringLiteral { return { escape: s }; }

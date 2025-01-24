@@ -1069,12 +1069,17 @@ export async function child() {
             }
             if (format === "csv") {
               const delimiter = formatOptions.delimiter ?? ",";
+              const rowDelimiter = formatOptions.rowDelimiter ?? "\n";
+              const nullValue = formatOptions.nullValue ?? "";
               const quote = formatOptions.quote;
               const escape = formatOptions.escape;
-              const escapeCsvValue = getEscapeCsvValue(quote, escape);
+              const escapeCsvValue = getEscapeCsvValue(quote, escape, nullValue);
               if (formatOptions.header) {
                 const s = columnNames.map(escapeCsvValue).join(delimiter);
-                if (!outputStream.write(s + "\n")) {
+                if (!outputStream.write(s)) {
+                  await new Promise(resolve => outputStream.once("drain", () => resolve()));
+                }
+                if (!outputStream.write(rowDelimiter)) {
                   await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
               }
@@ -1089,7 +1094,7 @@ export async function child() {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
                 }
-                if (!outputStream.write("\n")) {
+                if (!outputStream.write(rowDelimiter)) {
                   await new Promise(resolve => outputStream.once("drain", () => resolve()));
                 }
               }
