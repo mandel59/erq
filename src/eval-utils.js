@@ -79,6 +79,7 @@ export function evalSQLValue(db, env, sql) {
  * @param {"stdout"|"stderr"|"file"} dest.type
  * @param {string} [dest.file]
  * @param {string} [dest.sql]
+ * @param {string} [dest.variable]
  * @returns {Promise<{ outputStream: NodeJS.WritableStream, closeOutputStream?: () => Promise<void> }>}
  */
 export async function evalDestination(db, env, dest) {
@@ -91,8 +92,16 @@ export async function evalDestination(db, env, dest) {
       let file;
       if (dest.sql) {
         file = evalSQLValue(db, env, preprocess(db, env, dest.sql));
+      } else if (dest.variable) {
+        file = env.get(dest.variable.slice(1));
+        if (file == null) {
+          throw ReferenceError(`${dest.variable} is not defined`);
+        }
       } else {
         file = dest.file;
+      }
+      if (!file) {
+        throw RangeError(`file name must not be null nor empty`)
       }
       await mkdir(dirname(file), {
         recursive: true,
