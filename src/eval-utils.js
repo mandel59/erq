@@ -1,9 +1,11 @@
 import { stdout, stderr } from "node:process";
 import { createWriteStream } from "node:fs";
+import { open } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { DEBUG } from "./options.js";
 import { quoteSQLName } from "./parser-utils.js";
+import { Readable } from "node:stream";
 
 /**
  * 
@@ -138,7 +140,6 @@ export async function evalDestination(db, env, dest) {
  * @param {string} [source.variable]
  * @param {string} [source.sql]
  * @param {string} [source.as]
- * @returns {{ path: string, contentType: string, content: string }}
  */
 export function evalSource(db, env, source) {
   let path = source.path
@@ -155,5 +156,42 @@ export function evalSource(db, env, source) {
       path = value;
     }
   }
-  return { path, contentType, content };
+  /** @type {<T>(callback: (fd: import("node:fs/promises").FileHandle | undefined) => Promise<T>) => Promise<T>} */
+  async function withFileHandle(callback) {
+    if (path != null) {
+      const fd = await open(path);
+      try {
+        return await callback(fd);
+      } finally {
+        fd.close();
+      }
+    } else {
+      return await callback(undefined);
+    }
+  }
+  /** @type {(encoding: string, fd: import("node:fs/promises").FileHandle | undefined) => Promise<Readable | NodeJS.ReadWriteStream>} */
+  async function createReadStream(encoding, fd) {
+    const iconv = (await import("iconv-lite")).default;
+    if (fd != null) {
+      const stream = fd.createReadStream({ autoClose: false })
+        .pipe(iconv.decodeStream(encoding));
+      return stream;
+    } else {
+      const stream = Readable.from(content);
+      return stream;
+    }
+  }
+  /** @type {<T>(encoding: string, callback: (stream: NodeJS.ReadWriteStream | Readable) => Promise<T>) => Promise<T>} */
+  async function withReadStream(encoding, callback) {
+    return await withFileHandle(async fd => {
+      const stream = await createReadStream(encoding, fd)
+      return await callback(stream);
+    })
+  }
+  return {
+    contentType,
+    withFileHandle,
+    createReadStream,
+    withReadStream,
+  };
 }

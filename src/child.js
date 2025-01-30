@@ -288,20 +288,19 @@ export async function child() {
         ifNotExists,
         def,
         columns: columnNames,
-        source,
         options,
       } = args;
       const table = resolveTable(args.table, env);
       if (ifNotExists && tableExists(table)) {
         return true;
       }
-      const { path, content, contentType } = evalSource(db, env, source);
+      const source = evalSource(db, env, args.source);
       const nullValue = options.nullValue ?? "";
       const delimiter = options.delimiter ?? ",";
       const quote = options.quote ?? '"';
       const escape = options.escape ?? quote;
       const comment = options.comment ?? undefined;
-      const format = options.format ?? contentType;
+      const format = options.format ?? source.contentType;
       const relax_column_count = options.relax_column_count ?? undefined;
       const relax_column_count_less = options.relax_column_count_less ?? undefined;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;
@@ -311,21 +310,8 @@ export async function child() {
       const encoding = options.encoding ?? "utf-8";
       const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
       if (format === "csv") {
-        const [{ default: iconv }, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
-        /** @type {<T>(callback: (stream: NodeJS.ReadWriteStream | Readable) => Promise<T>) => Promise<T>} */
-        const withStream = async (callback) => {
-          if (path != null) {
-            const fd = await open(path);
-            try {
-              return await callback(fd.createReadStream({ autoClose: false }).pipe(iconv.decodeStream(encoding)));
-            } finally {
-              fd.close();
-            }
-          } else {
-            return await callback(Readable.from(content));
-          }
-        }
-        return await withStream(async (stream) => {
+        const [/*{ default: iconv }*/, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
+        return await source.withReadStream(encoding, async (stream) => {
           const csv = stream.pipe(parseCSV({
             bom: true,
             delimiter,
@@ -429,10 +415,9 @@ export async function child() {
           return true;
         });
       } else if (format === "ndjson") {
-        const [{ default: iconv }, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
-        const fileHandle = path != null ? await open(path) : null;
-        try {
-          let stream = fileHandle != null ? fileHandle.createReadStream({ autoClose: false }).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+        const [/*{ default: iconv }*/, ndjson] = await Promise.all([import("iconv-lite"), import("ndjson")]);
+        await source.withFileHandle(async fileHandle => {
+          let stream = await source.createReadStream(encoding, fileHandle);
           let records = stream.pipe(ndjson.parse());
           let header, definition;
           if (def) {
@@ -456,7 +441,7 @@ export async function child() {
             }
             header = Array.from(s);
             definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
-            stream = path != null ? fileHandle.createReadStream({ autoClose: false, start: 0 }).pipe(iconv.decodeStream(encoding)) : Readable.from(content);
+            stream = await source.createReadStream(encoding, fileHandle);
             records = stream.pipe(ndjson.parse());
           }
           await asyncTransaction(db, async () => {
@@ -479,9 +464,7 @@ export async function child() {
             const rows = (i === 1) ? "1 row" : `${i} rows`;
             console.error("%s inserted (%ss)", rows, (t / 1000).toFixed(3));
           });
-        } finally {
-          fileHandle?.close();
-        }
+        });
         return true;
       } else {
         console.error("unknown content type: %s", format);
