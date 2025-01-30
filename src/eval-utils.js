@@ -85,10 +85,11 @@ export function evalVariable(env, variable) {
  * @param {import("better-sqlite3").Database} db
  * @param {Map<string, string>} env
  * @param {object} dest 
- * @param {"stdout"|"stderr"|"file"} dest.type
+ * @param {"stdout"|"stderr"|"file"|"url"} dest.type
  * @param {string} [dest.file]
  * @param {string} [dest.sql]
  * @param {string} [dest.variable]
+ * @param {string} [dest.url]
  * @returns {Promise<{ outputStream: NodeJS.WritableStream, closeOutputStream?: () => Promise<void> }>}
  */
 export async function evalDestination(db, env, dest) {
@@ -127,6 +128,25 @@ export async function evalDestination(db, env, dest) {
           })
         },
       };
+    case "url": {
+      const u = new URL(dest.url)
+      const { Operator } = await import("opendal")
+      switch (u.protocol) {
+        case "s3:": {
+          const op = new Operator("s3", { bucket: u.hostname });
+          const writer = await op.writer(u.pathname);
+          const stream = writer.createWriteStream();
+          return {
+            outputStream: stream,
+            closeOutputStream: async () => {
+              await writer.close()
+            }
+          }
+        }
+        default:
+          throw Error("unsupported protocol");
+      }
+    }
   }
 }
 
@@ -140,13 +160,56 @@ export async function evalDestination(db, env, dest) {
  * @param {string} [source.variable]
  * @param {string} [source.sql]
  * @param {string} [source.as]
+ * @param {string} [source.url]
  */
 export function evalSource(db, env, source) {
+  const contentType = source.contentType
+  if (source.url) {
+    const u = new URL(source.url);
+    /** @type {<T>(callback: (fd: import("opendal").Reader) => Promise<T>) => Promise<T>} */
+    async function withFileHandle(callback) {
+      const { Operator } = await import("opendal");
+      switch (u.protocol) {
+        case "http:":
+        case "https:": {
+          const op = new Operator("http", { endpoint: u.origin });
+          const fd = await op.reader(u.pathname);
+          return await callback(fd);
+        }
+        case "s3:": {
+          const op = new Operator("s3", { endpoint: u.hostname });
+          const fd = await op.reader(u.pathname);
+          return await callback(fd);
+        }
+        default:
+          throw new Error("unsupported protocol")
+      }
+    }
+    /** @type {(encoding: string, fd: import("opendal").Reader) => Promise<NodeJS.ReadableStream>} */
+    async function createReadStream(encoding, fd) {
+      const iconv = (await import("iconv-lite")).default;
+      const stream = fd.createReadStream()
+        .pipe(iconv.decodeStream(encoding));
+      return stream;
+    }
+    /** @type {<T>(encoding: string, callback: (stream: NodeJS.ReadableStream) => Promise<T>) => Promise<T>} */
+    async function withReadStream(encoding, callback) {
+      return await withFileHandle(async fd => {
+        const stream = await createReadStream(encoding, fd)
+        return await callback(stream);
+      })
+    }
+    return {
+      contentType,
+      withFileHandle,
+      createReadStream,
+      withReadStream,
+    }
+  }
   let path = source.path
   if (source.variable != null) {
     path ??= evalVariable(env, source.variable);
   }
-  const contentType = source.contentType
   let content = source.content;
   if (source.sql != null) {
     const value = evalSQLValue(db, env, preprocess(db, env, source.sql));

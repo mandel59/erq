@@ -181,6 +181,7 @@ DestinationClause
     / ("file" boundary _)? v:Variable { return { type: "file", variable: v }; }
     / ("file" boundary _)? e:EscapedString { return { type: "file", sql: `select ${e}` }; }
     / ("file" boundary _)? f:ParsedStringLiteral { return { type: "file", file: f }; }
+    / ("url"/"uri") __ url:ParsedStringLiteral { return { type: "url", url: url }; }
   ) { return { dest: d } ; }
 
 Vega
@@ -603,7 +604,9 @@ LoadRawBlock
       / e:EscapedString { return { sql: `select ${e}`, as: "path" }; }
       / ParsedStringLiteral
       / v:Variable { return { variable: v }; }
-      / "(" e:Expression ")" { return { sql: `select ${e}`, as: "content" }; })
+      / "(" e:Expression ")" { return { sql: `select ${e}`, as: "content" }; }
+      / ("url"/"uri") __ url:ParsedStringLiteral { return { url }; }
+    )
     opt:(_ opt1:LoadOption opts:(_ "," _ o:LoadOption { return o; })* { return [opt1, ...opts]; })?
   {
     const def = d && d.def;
@@ -632,6 +635,10 @@ LoadRawBlock
         sql: x.sql,
         as: x.as,
       };
+    } else if ("url" in x) {
+      source = {
+        url: x.url
+      }
     }
     return {
       ...base,
