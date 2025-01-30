@@ -48,8 +48,7 @@ export function preprocess(db, env, sourceSql) {
       }
       return t;
     } else if (type === "e") {
-      const stmt = db.prepare(name);
-      return stmt.pluck().get(Object.fromEntries(env.entries()));
+      return evalSQLValue(db, env, name);
     } else {
       throw new Error(`unknown type: ${type}`);
     }
