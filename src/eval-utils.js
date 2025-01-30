@@ -169,7 +169,7 @@ export function evalSource(db, env, source) {
       return await callback(undefined);
     }
   }
-  /** @type {(encoding: string, fd: import("node:fs/promises").FileHandle | undefined) => Promise<Readable | NodeJS.ReadWriteStream>} */
+  /** @type {(encoding: string, fd: import("node:fs/promises").FileHandle | undefined) => Promise<NodeJS.ReadableStream>} */
   async function createReadStream(encoding, fd) {
     const iconv = (await import("iconv-lite")).default;
     if (fd != null) {
@@ -181,7 +181,7 @@ export function evalSource(db, env, source) {
       return stream;
     }
   }
-  /** @type {<T>(encoding: string, callback: (stream: NodeJS.ReadWriteStream | Readable) => Promise<T>) => Promise<T>} */
+  /** @type {<T>(encoding: string, callback: (stream: NodeJS.ReadableStream) => Promise<T>) => Promise<T>} */
   async function withReadStream(encoding, callback) {
     return await withFileHandle(async fd => {
       const stream = await createReadStream(encoding, fd)
