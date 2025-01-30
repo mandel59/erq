@@ -1,6 +1,5 @@
 import process from "node:process";
-import { open, readFile } from "node:fs/promises";
-import { Readable } from "node:stream";
+import { readFile } from "node:fs/promises";
 import Database from "better-sqlite3";
 
 import { uncons } from "./async-iter.js";
