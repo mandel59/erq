@@ -376,7 +376,7 @@ export async function child() {
           } else {
             [header, records] = await uncons(csv);
             if (header != null) {
-              definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
+              definition = header.map((f, i) => `\`${(f || `column${i + 1}`).replace(/`/g, "``")}\``).join(", ");
             }
           }
           if (definition == null) {
