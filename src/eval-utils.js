@@ -14,10 +14,7 @@ import { quoteSQLName } from "./parser-utils.js";
 export function resolveTable(table, env) {
   if (Array.isArray(table)) {
     const [s, v] = table;
-    const n = env.get(v.slice(1));
-    if (n == null) {
-      throw new Error(`variable ${v} not found`);
-    }
+    const n = evalVariable(env, v);
     if (s != null) {
       return `${s}.${quoteSQLName(n)}`
     } else {
@@ -25,10 +22,7 @@ export function resolveTable(table, env) {
     }
   }
   if (table[0] === "@") {
-    const n = env.get(table.slice(1));
-    if (n == null) {
-      throw new Error(`variable ${table} not found`);
-    }
+    const n = evalVariable(env, table);
     return quoteSQLName(n);
   }
   return table;
@@ -46,7 +40,7 @@ export function preprocess(db, env, sourceSql) {
       console.error("preprocess %s %s", type, name);
     }
     if (type === "v") {
-      return env.get(name.slice(1));
+      return evalVariable(env, name);
     } else if (type === "t") {
       const t = resolveTable(name, env);
       if (DEBUG) {
@@ -73,6 +67,20 @@ export function evalSQLValue(db, env, sql) {
 }
 
 /**
+ * 
+ * @param {Map<string, string>} env
+ * @param {string} variable 
+ * @returns {string}
+ */
+export function evalVariable(env, variable) {
+  const value = env.get(variable.slice(1));
+  if (value == null) {
+    throw new Error(`variable ${variable} not found`);
+  }
+  return value;
+}
+
+/**
  * @param {import("better-sqlite3").Database} db
  * @param {Map<string, string>} env
  * @param {object} dest 
@@ -93,7 +101,7 @@ export async function evalDestination(db, env, dest) {
       if (dest.sql) {
         file = evalSQLValue(db, env, preprocess(db, env, dest.sql));
       } else if (dest.variable) {
-        file = env.get(dest.variable.slice(1));
+        file = evalVariable(env, dest.variable);
         if (file == null) {
           throw ReferenceError(`${dest.variable} is not defined`);
         }

@@ -11,7 +11,7 @@ import {
   modulePathNameToName,
 } from "./parser-utils.js";
 import { JSRuntimeError, getJSRuntime } from "./js-runtime.js";
-import { evalDestination, preprocess, evalSQLValue } from "./eval-utils.js";
+import { evalDestination, preprocess, evalSQLValue, evalVariable } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
 import { ErqClient } from "./erq-client.js";
@@ -34,10 +34,7 @@ export async function child() {
   function resolveTable(table, env) {
     if (Array.isArray(table)) {
       const [s, v] = table;
-      const n = env.get(v.slice(1));
-      if (n == null) {
-        throw new Error(`variable ${v} not found`);
-      }
+      const n = evalVariable(env, v);
       if (s != null) {
         return `${s}.${quoteSQLName(n)}`
       } else {
@@ -45,10 +42,7 @@ export async function child() {
       }
     }
     if (table[0] === "@") {
-      const n = env.get(table.slice(1));
-      if (n == null) {
-        throw new Error(`variable ${table} not found`);
-      }
+      const n = evalVariable(env, table);
       return quoteSQLName(n);
     }
     return table;
@@ -310,7 +304,7 @@ export async function child() {
       }
       let path = args.path
       if (args.variable != null) {
-        path ??= env.get(args.variable.slice(1));
+        path ??= evalVariable(env, args.variable);
       }
       const nullValue = options.nullValue ?? "";
       const delimiter = options.delimiter ?? ",";
