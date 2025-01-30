@@ -11,7 +11,13 @@ import {
   modulePathNameToName,
 } from "./parser-utils.js";
 import { JSRuntimeError, getJSRuntime } from "./js-runtime.js";
-import { evalDestination, preprocess, evalSQLValue, evalVariable } from "./eval-utils.js";
+import {
+  evalDestination,
+  preprocess,
+  evalSQLValue,
+  evalVariable,
+  resolveTable,
+} from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
 import { ErqClient } from "./erq-client.js";
@@ -29,23 +35,6 @@ export async function child() {
     if (ready) return;
     process.send("ready");
     ready = true;
-  }
-
-  function resolveTable(table, env) {
-    if (Array.isArray(table)) {
-      const [s, v] = table;
-      const n = evalVariable(env, v);
-      if (s != null) {
-        return `${s}.${quoteSQLName(n)}`
-      } else {
-        return quoteSQLName(n);
-      }
-    }
-    if (table[0] === "@") {
-      const n = evalVariable(env, table);
-      return quoteSQLName(n);
-    }
-    return table;
   }
 
   /** @type {[string, string][]} */
