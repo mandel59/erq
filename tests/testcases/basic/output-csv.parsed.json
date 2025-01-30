@@ -15,7 +15,9 @@
         "format": "csv",
         "header": true
       },
-      "path": "data/names.csv"
+      "source": {
+        "path": "data/names.csv"
+      }
     }
   },
   {

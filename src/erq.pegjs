@@ -616,33 +616,27 @@ LoadRawBlock
       columns,
       options,
     };
+    let source
     if (typeof x === "string") {
       const path = typeof x === "string" ? x : null;
-      return {
-        ...base,
-        path,
-      };
+      source = { path }
     } else if ("rawblock" in x) {
       const contentType = x.rawblock[0];
       const content = x.rawblock[1];
-      return {
-        ...base,
-        contentType,
-        content,
-      };
+      source = { contentType, content };
     } else if ("variable" in x) {
       const variable = x.variable;
-      return {
-        ...base,
-        variable,
-      };
+      source = { variable };
     } else if ("sql" in x) {
-      return {
-        ...base,
+      source = {
         sql: x.sql,
         as: x.as,
       };
     }
+    return {
+      ...base,
+      source,
+    };
   }
 
 LoadOption

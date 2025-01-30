@@ -12,8 +12,10 @@
         "c"
       ],
       "options": {},
-      "contentType": "csv",
-      "content": "1,2,3\n2,3,4\n"
+      "source": {
+        "contentType": "csv",
+        "content": "1,2,3\n2,3,4\n"
+      }
     }
   }
 ]

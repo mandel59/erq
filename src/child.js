@@ -6,7 +6,6 @@ import Database from "better-sqlite3";
 import { uncons } from "./async-iter.js";
 import { options, DEBUG } from "./options.js";
 import {
-  quoteSQLName,
   unquoteSQLName,
   modulePathNameToName,
 } from "./parser-utils.js";
@@ -14,9 +13,8 @@ import { JSRuntimeError, getJSRuntime } from "./js-runtime.js";
 import {
   evalDestination,
   preprocess,
-  evalSQLValue,
-  evalVariable,
   resolveTable,
+  evalSource,
 } from "./eval-utils.js";
 import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
@@ -286,15 +284,18 @@ export async function child() {
     }
     else if (command === "meta-load") {
       const t0 = performance.now();
-      const { ifNotExists, def, columns: columnNames, contentType, options } = args;
+      const {
+        ifNotExists,
+        def,
+        columns: columnNames,
+        source,
+        options,
+      } = args;
       const table = resolveTable(args.table, env);
       if (ifNotExists && tableExists(table)) {
         return true;
       }
-      let path = args.path
-      if (args.variable != null) {
-        path ??= evalVariable(env, args.variable);
-      }
+      const { path, content, contentType } = evalSource(db, env, source);
       const nullValue = options.nullValue ?? "";
       const delimiter = options.delimiter ?? ",";
       const quote = options.quote ?? '"';
@@ -309,15 +310,6 @@ export async function child() {
       const trim = options.trim ?? undefined;
       const encoding = options.encoding ?? "utf-8";
       const sniff_size = options.sniff_size ?? Number.POSITIVE_INFINITY;
-      let content = args.content;
-      if (args.sql != null) {
-        const value = evalSQLValue(db, env, preprocess(db, env, args.sql));
-        if (args.as === "content") {
-          content = value;
-        } else if (args.as === "path") {
-          path = value;
-        }
-      }
       if (format === "csv") {
         const [{ default: iconv }, { parse: parseCSV }] = await Promise.all([import("iconv-lite"), import("csv-parse")]);
         /** @type {<T>(callback: (stream: NodeJS.ReadWriteStream | Readable) => Promise<T>) => Promise<T>} */

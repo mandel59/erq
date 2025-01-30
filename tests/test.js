@@ -143,8 +143,10 @@ test('load table', t => {
     type: 'command',
     args: {
       columns: null,
-      content: `x,y\n1,2\n3,4\n,6\n7,\n`,
-      contentType: 'csv',
+      source: {
+        content: `x,y\n1,2\n3,4\n,6\n7,\n`,
+        contentType: 'csv',
+      },
       def: null,
       options: {},
       table: 'p',
@@ -156,8 +158,10 @@ test('load table', t => {
     type: 'command',
     args: {
       columns: ['x', 'y'],
-      content: `x,y\n1,2\n3,4\n,6\n7,\n`,
-      contentType: 'csv',
+      source: {
+        content: `x,y\n1,2\n3,4\n,6\n7,\n`,
+        contentType: 'csv',
+      },
       def: 'x integer, y integer, z as (x + y)',
       options: { header: true },
       table: 'p',

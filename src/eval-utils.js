@@ -127,3 +127,33 @@ export async function evalDestination(db, env, dest) {
       };
   }
 }
+
+/**
+ * @param {import("better-sqlite3").Database} db
+ * @param {Map<string, string>} env
+ * @param {object} source 
+ * @param {string} [source.path]
+ * @param {string} [source.contentType]
+ * @param {string} [source.content]
+ * @param {string} [source.variable]
+ * @param {string} [source.sql]
+ * @param {string} [source.as]
+ * @returns {{ path: string, contentType: string, content: string }}
+ */
+export function evalSource(db, env, source) {
+  let path = source.path
+  if (source.variable != null) {
+    path ??= evalVariable(env, source.variable);
+  }
+  const contentType = source.contentType
+  let content = source.content;
+  if (source.sql != null) {
+    const value = evalSQLValue(db, env, preprocess(db, env, source.sql));
+    if (source.as === "content") {
+      content = value;
+    } else if (source.as === "path") {
+      path = value;
+    }
+  }
+  return { path, contentType, content };
+}
