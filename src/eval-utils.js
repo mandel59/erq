@@ -134,7 +134,7 @@ export async function evalDestination(db, env, dest) {
       switch (u.protocol) {
         case "s3:": {
           const op = new Operator("s3", { bucket: u.hostname });
-          const writer = await op.writer(u.pathname);
+          const writer = await op.writer(decodeURI(u.pathname));
           const stream = writer.createWriteStream();
           return {
             outputStream: stream,
@@ -177,12 +177,12 @@ export function evalSource(db, env, source) {
             username: u.username || undefined,
             password: u.password || undefined,
           });
-          const fd = await op.reader(u.pathname);
+          const fd = await op.reader(decodeURI(u.pathname));
           return await callback(fd);
         }
         case "s3:": {
           const op = new Operator("s3", { endpoint: u.hostname });
-          const fd = await op.reader(u.pathname);
+          const fd = await op.reader(decodeURI(u.pathname));
           return await callback(fd);
         }
         default:

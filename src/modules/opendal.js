@@ -16,11 +16,11 @@ export default createErqNodeJsModule('opendal', async ({ defineFunction, defineT
           username: u.username || undefined,
           password: u.password || undefined,
         });
-        return op.readSync(u.pathname);
+        return op.readSync(decodeURI(u.pathname));
       }
       case "s3:": {
         const op = new Operator("s3", { bucket: u.hostname });
-        return op.readSync(u.pathname);
+        return op.readSync(decodeURI(u.pathname));
       }
       default: {
         throw new RangeError('unsupported protocol');
@@ -42,12 +42,12 @@ export default createErqNodeJsModule('opendal', async ({ defineFunction, defineT
           username: u.username || undefined,
           password: u.password || undefined,
         });
-        op.writeSync(u.pathname, content);
+        op.writeSync(decodeURI(u.pathname), content);
         return 1n;
       }
       case "s3:": {
         const op = new Operator("s3", { bucket: u.hostname });
-        op.writeSync(u.pathname, content);
+        op.writeSync(decodeURI(u.pathname), content);
         return 1n;
       }
       default: {
@@ -72,7 +72,7 @@ export default createErqNodeJsModule('opendal', async ({ defineFunction, defineT
           username: u.username || undefined,
           password: u.password || undefined,
         });
-        const entries = op.listSync(u.pathname);
+        const entries = op.listSync(decodeURI(u.pathname));
         for (const entry of entries) {
           yield [entry.path()]
         }
@@ -80,7 +80,7 @@ export default createErqNodeJsModule('opendal', async ({ defineFunction, defineT
       }
       case "s3:": {
         const op = new Operator("s3", { bucket: u.hostname });
-        const entries = op.listSync(u.pathname);
+        const entries = op.listSync(decodeURI(u.pathname));
         for (const entry of entries) {
           yield [entry.path()]
         }
