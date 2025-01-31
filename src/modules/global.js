@@ -23,6 +23,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
   registerModule("dom", () => import("./dom.js"));
   registerModule("geo", () => import("./geo.js"));
   registerModule("iconv", () => import("./iconv.js"));
+  registerModule("opendal", () => import("./opendal.js"));
 
   defineTable("string_split", {
     parameters: ["_string", "_delimiter"],
