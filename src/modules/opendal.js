@@ -58,6 +58,33 @@ export default createErqNodeJsModule('opendal', async ({ defineFunction, defineT
 
   /**
    * @param {string} url
+   * @returns {BigInt}
+   */
+  function opendalDelete(url) {
+    const u = new URL(url);
+    switch (u.protocol) {
+      case "http:": case "https:": {
+        const op = new Operator("webdav", {
+          endpoint: u.origin,
+          username: u.username || undefined,
+          password: u.password || undefined,
+        });
+        op.deleteSync(decodeURI(u.pathname));
+        return 1n;
+      }
+      case "s3:": {
+        const op = new Operator("s3", { bucket: u.hostname });
+        op.deleteSync(decodeURI(u.pathname));
+        return 1n;
+      }
+      default: {
+        throw new RangeError('unsupported protocol');
+      }
+    }
+  }
+
+  /**
+   * @param {string} url
    * @param {object} _options
    * @returns {Generator<[string]>}
    */
@@ -103,6 +130,11 @@ export default createErqNodeJsModule('opendal', async ({ defineFunction, defineT
     if (typeof url !== "string") throw new TypeError("write(url,content) url must be a string");
     if (!Buffer.isBuffer(content)) throw new TypeError("write(url,content) content must be a blob");
     return write(url, content);
+  });
+  defineFunction("delete", { deterministic: false, directOnly: true }, function (url) {
+    if (url == null) return null;
+    if (typeof url !== "string") throw new TypeError("write(url) url must be a string");
+    return opendalDelete(url);
   });
   defineTable("list", {
     parameters: ["_url", "_options"],
