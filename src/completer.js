@@ -1,6 +1,9 @@
 import { erqKeywords, keywords } from "./keywords.js";
 import { quoteSQLName, reFQNamePart, reParseColumnName, unquoteSQLName } from "./parser-utils.js";
 
+function quoteErqName(name) {
+  return name.split("::").map(part => quoteSQLName(part)).join("::");
+}
 export class ErqCliCompleter {
   /** @type {import("better-sqlite3").Database} */
   db;
@@ -59,7 +62,7 @@ export class ErqCliCompleter {
     const names =
       /** @type {string[]} */
       (this.db.prepare("select name from pragma_function_list").pluck().all());
-    return names.map(name => quoteSQLName(name));
+    return names.map(name => quoteErqName(name));
   }
   async complete(line) {
     const m = reFQNamePart.exec(line);
@@ -76,7 +79,7 @@ export class ErqCliCompleter {
     if (matchDropTable) {
       const t = /** @type {"table"|"view"} */ (matchDropTable[1]);
       return [this.getTablesOnly(t).flatMap(t => {
-        return [quoteSQLName(t.name), `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`];
+        return [quoteErqName(t.name), `${quoteErqName(t.schema)}.${quoteErqName(t.name)}`];
       }).filter(n => n.startsWith(q)).sort(), q];
     }
 
@@ -91,8 +94,8 @@ export class ErqCliCompleter {
       const modules = this.getAllModules();
       const pragmas = this.getPragmaNames();
       const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
-      const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteSQLName(t.name)}`);
-      const tableNames = tables.map(t => quoteSQLName(t.name)).concat(modules.map(m => quoteSQLName(m)));
+      const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteErqName(t.name)}`);
+      const tableNames = tables.map(t => quoteSQLName(t.name)).concat(modules.map(m => quoteErqName(m)));
       let _getAllColumnNames;
       const getAllColumnNames = () => {
         if (_getAllColumnNames) return _getAllColumnNames;
