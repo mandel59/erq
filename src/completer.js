@@ -95,7 +95,15 @@ export class ErqCliCompleter {
       const pragmas = this.getPragmaNames();
       const schemas = Array.from(new Set(tables.map(t => t.schema)).values(), s => quoteSQLName(s));
       const tableNamesFQ = tables.map(t => `${quoteSQLName(t.schema)}.${quoteErqName(t.name)}`);
-      const tableNames = tables.map(t => quoteSQLName(t.name)).concat(modules.map(m => quoteErqName(m)));
+      const moduleIsTableValueFunction = this.db.prepare("select exists (select * from pragma_table_xinfo(?) where (hidden))").pluck()
+      const tableNames = tables.map(t => t.name).concat(modules).map(m => {
+        try {
+          if (moduleIsTableValueFunction.get([m])) {
+            return `${quoteErqName(m)}(`;
+          }
+        } catch { }
+        return quoteErqName(m);
+      });
       let _getAllColumnNames;
       const getAllColumnNames = () => {
         if (_getAllColumnNames) return _getAllColumnNames;
@@ -170,7 +178,6 @@ export class ErqCliCompleter {
             ...schemas,
             ...tableNames,
             ...tableNamesFQ,
-            ...modules,
             ...columnNames,
             ...functionNames.map(n => `${n}(`),
             ...pragmas.map(p => `pragma_${p}`)]).values())
