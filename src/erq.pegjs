@@ -1744,9 +1744,9 @@ NotTypeName
 
 TypeName
   = !NotTypeName x:(
-    n1:Name ns:(_ !NotTypeName n:Name { return n; })* "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
+    n1:Name ns:(_ !NotTypeName n:Name { return n; })* _ "(" _ s1:SignedNumber _ "," _ s2:SignedNumber _ ")"
     { return [n1, ...ns].join(" ") + `(${s1}, ${s2})` }
-    / n1:Name ns:(_ !NotTypeName n:Name { return n; })* "(" _ s1:SignedNumber _ ")"
+    / n1:Name ns:(_ !NotTypeName n:Name { return n; })* _ "(" _ s1:SignedNumber _ ")"
     { return [n1, ...ns].join(" ") + `(${s1})` }
     / n1:Name ns:(_ !NotTypeName n:Name { return n; })*
     { return [n1, ...ns].join(" ") }
