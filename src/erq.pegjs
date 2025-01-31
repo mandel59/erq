@@ -664,6 +664,9 @@ LoadOption
   / "cast" boundary { return ["cast", true]; }
   / "no" __ "cast" boundary { return ["cast", false]; }
   / ("format" __)? f:("csv"/"ndjson") boundary { return ["format", f]; }
+  / "skip" __ "records" __ "with" __ "error" boundary { return ["skip_records_with_error", true]; }
+  / "on" __ "error" __ "ignore" boundary { return ["skip_records_with_error", true]; }
+  / "on" __ "error" __ "abort" boundary { return ["skip_records_with_error", false]; }
 
 CreateFunction
   = Do? "create" __

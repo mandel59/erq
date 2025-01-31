@@ -303,6 +303,7 @@ export async function child() {
       const relax_column_count = options.relax_column_count ?? undefined;
       const relax_column_count_less = options.relax_column_count_less ?? undefined;
       const relax_column_count_more = options.relax_column_count_more ?? undefined;
+      const skip_records_with_error = options.skip_records_with_error ?? undefined;
       const cast = options.cast ?? false;
       const skip_empty_lines = options.skip_empty_lines ?? undefined;
       const trim = options.trim ?? undefined;
@@ -321,6 +322,7 @@ export async function child() {
             relax_column_count_less,
             relax_column_count_more,
             skip_empty_lines,
+            skip_records_with_error,
             trim,
             cast: cast
               ? (value, context) => {
