@@ -172,7 +172,11 @@ export function evalSource(db, env, source) {
       switch (u.protocol) {
         case "http:":
         case "https:": {
-          const op = new Operator("http", { endpoint: u.origin });
+          const op = new Operator("http", {
+            endpoint: u.origin,
+            username: u.username || undefined,
+            password: u.password || undefined,
+          });
           const fd = await op.reader(u.pathname);
           return await callback(fd);
         }
