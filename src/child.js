@@ -208,10 +208,10 @@ export async function child() {
 
   /**
    * @param {{command: string, args: any[]}} param0
-   * @param {Map<string, any>} env
+   * @param {Map<string, any>} [env]
    * @returns {Promise<boolean>} ok status
    */
-  async function runCLICommand({ command, args }, env) {
+  async function runCLICommand({ command, args }, env = new Map()) {
     try {
       return await runCLICommandThrowing({ command, args }, env);
     } catch (error) {
