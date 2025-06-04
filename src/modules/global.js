@@ -463,7 +463,7 @@ export default createErqNodeJsModule('global', async ({ registerModule, defineTa
     }
   })
 
-  defineFunction("writefile", { deterministic: false }, function (filename, data) {
+  defineFunction("writefile", { deterministic: false, directOnly: true }, function (filename, data) {
     mkdirSync(dirname(filename), { recursive: true });
     writeFileSync(filename, data);
     return filename;
