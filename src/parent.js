@@ -76,7 +76,8 @@ export async function parent() {
       input = "";
       return sqls;
     } catch (error) {
-      if (error.found === null) {
+      if (error.expected != null && error.found == null) {
+        // Incomplete query detected - waiting for continuation on next line
         return null;
       }
       if (DEBUG) {

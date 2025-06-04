@@ -1794,6 +1794,7 @@ Literal
   = BooleanLiteral
   / LiteralNull
   / NumericLiteral
+  / BlobLiteral
   / StringLiteral
   ;
 
@@ -1813,6 +1814,15 @@ StringLiteral
   = SQLStringLiteral
   / &"E'"i e:EscapedString { return e; }
   / s:JSONString { return quote(s); }
+
+BlobLiteral "blob-literal"
+  = "X'"i x:$[^'\s]* "'" {
+    if (/^(?:[0-9a-f]{2})*$/.test(x)) {
+      return `X'${x.toUpperCase()}'`;
+    } else {
+      error('Invalid blob literal');
+    }
+  }
 
 ParsedStringLiteral
   = l:SQLStringLiteral { return parseSQLStringLiteral(l); }
