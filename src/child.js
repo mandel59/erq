@@ -990,11 +990,11 @@ export async function child() {
                 } else if (v !== null && typeof v === "object") {
                   await writeBufferAsJsonArray(v);
                 } else if (v === Infinity) {
-                  if (!outputStream.write("1e999")) {
+                  if (!outputStream.write("9e999")) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
                 } else if (v === -Infinity) {
-                  if (!outputStream.write("-1e999")) {
+                  if (!outputStream.write("-9e999")) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
                 } else {
@@ -1085,11 +1085,11 @@ export async function child() {
                 } else if (v !== null && typeof v === "object") {
                   await writeBufferAsJsonArray(v);
                 } else if (v === Infinity) {
-                  if (!outputStream.write("1e999")) {
+                  if (!outputStream.write("9e999")) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
                 } else if (v === -Infinity) {
-                  if (!outputStream.write("-1e999")) {
+                  if (!outputStream.write("-9e999")) {
                     await new Promise(resolve => outputStream.once("drain", () => resolve()));
                   }
                 } else {
