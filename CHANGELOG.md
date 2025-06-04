@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.3.0] - 2025-06-04
+
+### Added
+
+- Add BlobLiteral support
+
+### Fixed
+
+- Fix query continuation detection
+- Fix Infinity/-Infinity handling in JSON serialization
+- Add directOnly flag to writefile function in global module
+
+### Changed
+
+- Update dependencies and lockfile version
+
 ## [0.2.2] - 2025-04-16
 
 ### Added
@@ -110,6 +126,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Initial release of the library.
 - Basic functionality to analyze and manipulate SQLite databases.
 
+[0.3.0]: https://github.com/mandel59/erq/releases/tag/v0.3.0
 [0.2.2]: https://github.com/mandel59/erq/releases/tag/v0.2.2
 [0.2.1]: https://github.com/mandel59/erq/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mandel59/erq/releases/tag/v0.2.0
