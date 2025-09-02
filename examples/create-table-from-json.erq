@@ -1,0 +1,16 @@
+-- Load JSON data
+-- Can load data from JSON arrays or JSON objects.
+-- Here we use the readfile function to load from a file.
+-- Can load from any table.
+create table puppies from json ({readfile('examples/data/puppies.json')});;
+
+-- Get the names of the puppies.
+puppies{name};;
+
+-- Find puppies without microchips.
+-- true/false values are converted to 1/0 when loaded.
+puppies[not microchip]{id, name, age};;
+
+-- Find puppies with Playful personality.
+-- Can traverse array elements using SQLite's json_each function.
+puppies['Playful' in json_each(personality){value}]{name};;
