@@ -3,10 +3,10 @@ import { fileURLToPath } from "node:url";
 import commandLineArgs from "command-line-args";
 
 export const optionList = [
-  { name: 'help', alias: 'h', type: Boolean, description: 'show Usage' },
-  { name: 'version', alias: 'v', type: Boolean, description: 'show Version' },
+  { name: 'help', alias: 'h', type: Boolean, description: 'display usage information' },
+  { name: 'version', alias: 'v', type: Boolean, description: 'display version information' },
   { name: 'load', alias: 'l', typeLabel: '{underline path}', type: String, lazyMultiple: true, defaultValue: [], description: 'load extension' },
-  { name: 'init', alias: 'i', type: String, typeLabel: '{underline path}', description: 'path to initialize Erq file' },
+  { name: 'init', alias: 'i', type: String, typeLabel: '{underline path}', description: 'path to initialization file' },
   { name: 'format', alias: 'f', type: String, typeLabel: '{underline mode}', description: 'output format' },
   { name: 'db', type: String, typeLabel: '{underline path}', defaultOption: true, description: 'path to SQLite database file' },
   { name: 'var', type: String, typeLabel: '{underline name}={underline value}', lazyMultiple: true, defaultValue: [], description: 'set global variable' },
