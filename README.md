@@ -6,6 +6,10 @@ Erq is an alternative query language for relational databases. It is designed to
 
 I originally used SQLite to analyze my own kanji database. However, the verbose and cumbersome syntax of SQL prevented me from doing ad hoc analysis quickly. So I created Erq, which simplifies the syntax of SQL.
 
+## Quickstart
+
+See [Quickstart](./doc/quickstart.md) for installation instructions, CLI examples, and a minimal `.erq` script.
+
 ## Usage
 
 Erq CLI works like SQLite CLI. You can use it to query SQLite databases.
