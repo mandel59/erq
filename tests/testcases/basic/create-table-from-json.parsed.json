@@ -1,0 +1,39 @@
+[
+  {
+    "type": "command",
+    "command": "meta-create-table-from-json",
+    "args": [
+      "test1",
+      null,
+      "select '{\"num\":1.5,\"bool\":true,\"null_value\":null}'",
+      false
+    ]
+  },
+  {
+    "type": "command",
+    "command": "meta-create-table-from-json",
+    "args": [
+      "test2",
+      {
+        "def": "num real, bool integer",
+        "columns": [
+          {
+            "def": "num real",
+            "name": "num",
+            "type": "real",
+            "constraints": []
+          },
+          {
+            "def": "bool integer",
+            "name": "bool",
+            "type": "integer",
+            "constraints": []
+          }
+        ],
+        "constraints": []
+      },
+      "select '{\"num\":1.5,\"bool\":true,\"null_value\":null}'",
+      false
+    ]
+  }
+]

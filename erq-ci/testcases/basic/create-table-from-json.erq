@@ -1,0 +1,4 @@
+create table test1 from json ({'{"num":1.5,"bool":true,"null_value":null}'});;
+test1{num, bool, null_value};;
+create table test2 (num real, bool integer) from json ({'{"num":1.5,"bool":true,"null_value":null}'});;
+test2{num, bool};;
