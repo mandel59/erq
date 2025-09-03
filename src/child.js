@@ -535,7 +535,7 @@ export async function child() {
       let header, definition;
       if (def) {
         header = columnNames;
-        definition = def;
+        definition = def.def;
       } else {
         const keys = db.prepare(`with t(v) as (${jsonsql}) `
           + `select distinct key from `
