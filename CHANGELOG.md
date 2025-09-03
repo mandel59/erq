@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased](https://github.com/mandel59/erq/compare/v0.3.0...HEAD)
+
+### Added
+- Added an example for `create table ... from json` syntax.
+
+### Fixed
+- Fixed `create table ... from json` syntax with table definitions.
+
 ## [0.3.0](https://github.com/mandel59/erq/compare/v0.2.2...v0.3.0) - 2025-06-04
 
 ### Added
