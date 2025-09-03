@@ -20,10 +20,10 @@ erq your_database.db
 
 | Option | Alias | Description |
 |-------|-------|-------------|
-| `--help` | `-h` | show Usage |
-| `--version` | `-v` | show Version |
+| `--help` | `-h` | display usage information |
+| `--version` | `-v` | display version information |
 | `--load {path}` | `-l` | load extension |
-| `--init {path}` | `-i` | path to initialize Erq file |
+| `--init {path}` | `-i` | path to initialization file |
 | `--format {mode}` | `-f` | output format |
 | `--db {path}` | (default) | path to SQLite database file |
 | `--var name=value` | – | set global variable |
