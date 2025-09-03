@@ -10,7 +10,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@mandel59/erq": "file:../mandel59-erq-0.3.0.tgz",
+    "@mandel59/erq": "file:../mandel59-erq-0.3.1-rc.tgz",
     "looks-same": "^9.0.0"
   }
 }
