@@ -1,9 +1,23 @@
-name: Node.js CI
+name: CI & Release
 
-on: [push]
+on:
+  push:
+    branches:
+      - "release/**"
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - "release/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  test:
+    name: Test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -14,6 +28,41 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
       - run: npm ci
       - run: npm run prepare
       - run: npm run test
+
+  publish:
+    name: Publish to npm
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Extract npm tag
+        id: extract_tag
+        shell: bash
+        run: |
+          VERSION_TAG="$GITHUB_REF_NAME"
+          if [[ "$VERSION_TAG" == *"-"* ]]; then
+            NPM_TAG=$(echo "$VERSION_TAG" | cut -d'-' -f2 | cut -d'.' -f1)
+          else
+            NPM_TAG="latest"
+          fi
+          echo "NPM_TAG=$NPM_TAG" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v5
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+      - run: npm ci
+      - run: npm run prepare
+      - run: npm publish --provenance --access public --tag $NPM_TAG
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

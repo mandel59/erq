@@ -1,8 +1,11 @@
 {
   "name": "@mandel59/erq",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "Ryusei Yamaguchi",
-  "repository": "mandel59/erq",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mandel59/erq.git"
+  },
   "type": "module",
   "files": [
     "dist/erq.js",
