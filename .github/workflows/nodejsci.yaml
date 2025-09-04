@@ -68,6 +68,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prepare
-      - run: npm publish --provenance --access public --tag "$NPM_TAG"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --access public --tag "$NPM_TAG"
