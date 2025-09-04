@@ -49,11 +49,16 @@ jobs:
         run: |
           VERSION_TAG="$GITHUB_REF_NAME"
           if [[ "$VERSION_TAG" == *"-"* ]]; then
-            NPM_TAG=$(echo "$VERSION_TAG" | cut -d'-' -f2 | cut -d'.' -f1)
+            NPM_TAG="$(echo "$VERSION_TAG" | cut -d'-' -f2 | cut -d'.' -f1)"
           else
             NPM_TAG="latest"
           fi
-          echo "NPM_TAG=$NPM_TAG" >> "$GITHUB_ENV"
+          if test "$NPM_TAG" | grep -Eq '^[a-z]+$'; then
+            echo "NPM_TAG=$NPM_TAG" >> "$GITHUB_ENV"
+          else
+            echo "Invalid NPM_TAG value"
+            exit 1
+          fi
       - uses: actions/checkout@v5
       - name: Use Node.js 24
         uses: actions/setup-node@v4
@@ -63,6 +68,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prepare
-      - run: npm publish --provenance --access public --tag $NPM_TAG
+      - run: npm publish --provenance --access public --tag "$NPM_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
