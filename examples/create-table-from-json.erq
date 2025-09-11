@@ -14,3 +14,10 @@ puppies[not microchip]{id, name, age};;
 -- Find puppies with Playful personality.
 -- Can traverse array elements using SQLite's json_each function.
 puppies['Playful' in json_each(personality){value}]{name};;
+
+-- Create table with explicit column definitions
+create table puppies2
+  (id integer primary key, name, description)
+  from json ({readfile('examples/data/puppies.json')});;
+
+puppies2;;
