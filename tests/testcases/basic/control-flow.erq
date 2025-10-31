@@ -1,0 +1,25 @@
+if (1 = 1) (
+  values [{1}];;
+);;
+
+if (1 = 0) then values [{0}] else do (
+  values [{1}];;
+  values [{2}];;
+);;
+
+for @row of range(1, 3) (
+  values [{@row}];;
+);;
+
+for @value = value, @double = value * 2 of range(1, 3) (
+  values [{@value, @double}];;
+);;
+
+do range(1, 3) for each (@item) (
+  values [{@item}];;
+);;
+
+range(1, 2) parallel (@row, @sum = value + value) (
+  values [{@row, @sum}];;
+);;
+

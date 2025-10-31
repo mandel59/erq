@@ -1,0 +1,108 @@
+[
+  {
+    "type": "if",
+    "condition": "1 = 1",
+    "thenStatements": [
+      {
+        "type": "select",
+        "query": "values (1)"
+      }
+    ],
+    "elseStatements": null
+  },
+  {
+    "type": "if",
+    "condition": "1 = 0",
+    "thenStatements": [
+      {
+        "type": "select",
+        "query": "values (0)"
+      }
+    ],
+    "elseStatements": [
+      {
+        "type": "select",
+        "query": "values (1)"
+      },
+      {
+        "type": "select",
+        "query": "values (2)"
+      }
+    ]
+  },
+  {
+    "type": "for",
+    "assignments": [
+      {
+        "variable": "@row",
+        "name": "`row`"
+      }
+    ],
+    "sourceTable": "select * from `range`(1, 3)",
+    "bodyStatements": [
+      {
+        "type": "select",
+        "query": "values (@row)"
+      }
+    ]
+  },
+  {
+    "type": "for",
+    "assignments": [
+      {
+        "variable": "@value",
+        "name": "value",
+        "expression": "value"
+      },
+      {
+        "variable": "@double",
+        "name": "double",
+        "expression": "value * 2"
+      }
+    ],
+    "sourceTable": "select * from `range`(1, 3)",
+    "bodyStatements": [
+      {
+        "type": "select",
+        "query": "values (@value, @double)"
+      }
+    ]
+  },
+  {
+    "type": "for",
+    "sourceTable": "select * from `range`(1, 3)",
+    "assignments": [
+      {
+        "variable": "@item",
+        "name": "item"
+      }
+    ],
+    "bodyStatements": [
+      {
+        "type": "select",
+        "query": "values (@item)"
+      }
+    ]
+  },
+  {
+    "type": "parallel",
+    "sourceTable": "select * from `range`(1, 2)",
+    "assignments": [
+      {
+        "variable": "@row",
+        "name": "`row`"
+      },
+      {
+        "variable": "@sum",
+        "name": "sum",
+        "expression": "value + value"
+      }
+    ],
+    "bodyStatements": [
+      {
+        "type": "select",
+        "query": "values (@row, @sum)"
+      }
+    ]
+  }
+]
