@@ -1,0 +1,14 @@
+create table p (
+  id integer primary key
+);;
+create table q (
+  id integer primary key
+);;
+create table r (
+  id integer primary key,
+  p_id integer not null references p (id),
+  q_id integer not null references q (id),
+  note text not null
+);;
+
+p join q { has_r: exists ^r };;

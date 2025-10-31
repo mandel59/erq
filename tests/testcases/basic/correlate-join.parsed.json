@@ -1,0 +1,18 @@
+[
+  {
+    "type": "create",
+    "query": "create table p (id integer primary key)"
+  },
+  {
+    "type": "create",
+    "query": "create table q (id integer primary key)"
+  },
+  {
+    "type": "create",
+    "query": "create table r (id integer primary key, p_id integer not null references p (id), q_id integer not null references q (id), note text not null)"
+  },
+  {
+    "type": "select",
+    "query": "select exists (select * from r where (\u0000c[[[null,\"p\",\"p\"],[null,\"q\",\"q\"]],[null,\"r\",\"r\"]]\u0000)) as has_r from p join q"
+  }
+]

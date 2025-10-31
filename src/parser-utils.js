@@ -2,6 +2,22 @@ import mergeWith from "lodash.mergewith";
 
 import { keywords } from "./keywords.js";
 
+const contextStack = [[]];
+
+function getCurrentContexts() {
+  const top = contextStack[contextStack.length - 1];
+  return top ?? [];
+}
+
+function withTableContexts(contexts, fn) {
+  contextStack.push(contexts);
+  try {
+    return fn();
+  } finally {
+    contextStack.pop();
+  }
+}
+
 export function merge(x, ...args) {
   return mergeWith(x, ...args, (a, b) => {
     if (Array.isArray(a)) {
@@ -110,7 +126,7 @@ export class TableBuilder {
   #expression;
   #rename;
   #relation;
-  #context;
+  #contexts;
   #join = [];
   #where = [];
   #window = [];
@@ -132,14 +148,12 @@ export class TableBuilder {
     this.#expression = expression;
     this.#rename = rename;
     this.#relation = options.relation ?? null;
+    const baseContexts = options.contexts ?? getCurrentContexts();
+    this.#contexts = baseContexts.map((ctx) => [...ctx]);
     const alias = name ?? (this.#relation ? this.#relation.table : null);
-    this.#context = this.#relation
-      ? [
-        this.#relation.schema ?? null,
-        this.#relation.table,
-        alias,
-      ]
-      : null;
+    if (this.#relation) {
+      this.#registerContext(this.#relation.schema ?? null, this.#relation.table, alias);
+    }
     if (options.correlate) {
       const correlateAlias = alias ?? options.correlate.table;
       const correlatePayload = [
@@ -150,11 +164,23 @@ export class TableBuilder {
       this.#where.push(`\u0000^${JSON.stringify(correlatePayload)}\u0000`);
     }
   }
+  #registerContext(schema, table, alias) {
+    if (table == null) {
+      return;
+    }
+    const effectiveAlias = alias ?? table;
+    for (const ctx of this.#contexts) {
+      if (ctx[0] === (schema ?? null) && ctx[1] === table && ctx[2] === effectiveAlias) {
+        return;
+      }
+    }
+    this.#contexts.push([schema ?? null, table, effectiveAlias]);
+  }
   #applyCorrelation(sql) {
     if (typeof sql !== "string" || sql.indexOf("\u0000^") === -1) {
       return sql;
     }
-    if (this.#context == null) {
+    if (this.#contexts == null || this.#contexts.length === 0) {
       return sql;
     }
     return sql.replace(/\u0000\^([^\u0000]*)\u0000/g, (_match, payload) => {
@@ -164,156 +190,159 @@ export class TableBuilder {
       } catch {
         return `\u0000^${payload}\u0000`;
       }
-      return `\u0000c${JSON.stringify([this.#context, target])}\u0000`;
+      const contextsPayload = this.#contexts.length === 1 ? this.#contexts[0] : this.#contexts;
+      return `\u0000c${JSON.stringify([contextsPayload, target])}\u0000`;
     });
   }
   toSQL(allowOrdered = false) {
-    if (this.#rawSQL != null) {
-      return this.#rawSQL;
-    }
-    const columns = this.#select;
-    let sql = "select ";
-    if (this.#distinct) {
-      sql += "distinct ";
-    }
-    if (columns.length === 0) {
-      sql += "*";
-    } else {
-      let i = 0;
-      for (const s of columns) {
-        i++;
-        if (i > 1) {
-          sql += ", ";
+    return withTableContexts(this.#contexts, () => {
+      if (this.#rawSQL != null) {
+        return this.#rawSQL;
+      }
+      const columns = this.#select;
+      let sql = "select ";
+      if (this.#distinct) {
+        sql += "distinct ";
+      }
+      if (columns.length === 0) {
+        sql += "*";
+      } else {
+        let i = 0;
+        for (const s of columns) {
+          i++;
+          if (i > 1) {
+            sql += ", ";
+          }
+          sql += s.expression;
+          if (s.name && s.name !== s.expression) {
+            sql += " as ";
+            sql += s.name;
+          }
         }
-        sql += s.expression;
-        if (s.name && s.name !== s.expression) {
+      }
+      if (this.#expression) {
+        sql += " from ";
+        sql += this.#expression;
+        if (this.#rename && this.#name !== this.#expression) {
           sql += " as ";
-          sql += s.name;
+          sql += this.#name;
         }
       }
-    }
-    if (this.#expression) {
-      sql += " from ";
-      sql += this.#expression;
-      if (this.#rename && this.#name !== this.#expression) {
-        sql += " as ";
-        sql += this.#name;
-      }
-    }
-    for (const j of this.#join) {
-      if (j.direction) {
-        sql += " ";
-        sql += j.direction;
-      }
-      sql += " join ";
-      sql += j.expression;
-      if (j.rename && j.name !== j.expression) {
-        sql += " as ";
-        sql += j.name;
-      }
-      if (j.using) {
-        sql += " using (";
-        sql += j.using.join(", ");
-        sql += ")";
-      }
-      if (j.on) {
-        sql += " on ";
-        sql += j.on;
-      }
-    }
-    if (this.#where.length > 0) {
-      sql += " where "
-      let i = 0;
-      for (const w of this.#where) {
-        i++
-        if (i > 1) {
-          sql += " and "
+      for (const j of this.#join) {
+        if (j.direction) {
+          sql += " ";
+          sql += j.direction;
         }
-        sql += "(";
-        sql += w;
-        sql += ")";
-      }
-    }
-    if (this.#group.length > 0 && this.#select.length > 0) {
-      sql += " group by ";
-      let i = 0;
-      for (const g of this.#group) {
-        i++
-        if (i > 1) {
-          sql += ", "
+        sql += " join ";
+        sql += j.expression;
+        if (j.rename && j.name !== j.expression) {
+          sql += " as ";
+          sql += j.name;
         }
-        sql += "(";
-        sql += g.expression;
-        sql += ")";
+        if (j.using) {
+          sql += " using (";
+          sql += j.using.join(", ");
+          sql += ")";
+        }
+        if (j.on) {
+          sql += " on ";
+          sql += j.on;
+        }
       }
-    }
-    if (this.#window.length > 0) {
-      sql += " window "
-      let i = 0;
-      for (const { name, window } of this.#window) {
-        i++
-        if (i > 1) {
+      if (this.#where.length > 0) {
+        sql += " where "
+        let i = 0;
+        for (const w of this.#where) {
+          i++
+          if (i > 1) {
+            sql += " and "
+          }
+          sql += "(";
+          sql += w;
+          sql += ")";
+        }
+      }
+      if (this.#group.length > 0 && this.#select.length > 0) {
+        sql += " group by ";
+        let i = 0;
+        for (const g of this.#group) {
+          i++
+          if (i > 1) {
+            sql += ", "
+          }
+          sql += "(";
+          sql += g.expression;
+          sql += ")";
+        }
+      }
+      if (this.#window.length > 0) {
+        sql += " window "
+        let i = 0;
+        for (const { name, window } of this.#window) {
+          i++
+          if (i > 1) {
+            sql += ", ";
+          }
+          sql += name;
+          sql += " as ";
+          sql += window;
+        }
+      }
+      if (this.#having.length > 0) {
+        sql += " having "
+        let i = 0;
+        for (const w of this.#having) {
+          i++
+          if (i > 1) {
+            sql += " and "
+          }
+          sql += "(";
+          sql += w;
+          sql += ")";
+        }
+      }
+      const order = columns
+        .map((r) => r.name != null ? [r.name, r.sort] : [`(${r.expression})`, r.sort])
+        .filter(e => e[1] != null)
+      if (this.#order.length + order.length > 0) {
+        sql += " order by ";
+        let k = 0;
+        for (const [e, s] of this.#order) {
+          k++;
+          if (k > 1) {
+            sql += ", ";
+          }
+          sql += e;
+          sql += " ";
+          sql += s;
+        }
+        if (this.#order.length > 0 && order.length > 0) {
           sql += ", ";
         }
-        sql += name;
-        sql += " as ";
-        sql += window;
-      }
-    }
-    if (this.#having.length > 0) {
-      sql += " having "
-      let i = 0;
-      for (const w of this.#having) {
-        i++
-        if (i > 1) {
-          sql += " and "
+        let i = 0;
+        for (const [e, s] of order) {
+          i++;
+          if (i > 1) {
+            sql += ", ";
+          }
+          sql += e;
+          sql += " ";
+          sql += s;
         }
-        sql += "(";
-        sql += w;
-        sql += ")";
       }
-    }
-    const order = columns
-      .map((r) => r.name != null ? [r.name, r.sort] : [`(${r.expression})`, r.sort])
-      .filter(e => e[1] != null)
-    if (this.#order.length + order.length > 0) {
-      sql += " order by ";
-      let k = 0;
-      for (const [e, s] of this.#order) {
-        k++;
-        if (k > 1) {
-          sql += ", ";
+      if (this.#limit != null) {
+        sql += " limit ";
+        sql += this.#limit.toString();
+        if (this.#offset > 0) {
+          sql += " offset ";
+          sql += this.#offset.toString();
         }
-        sql += e;
-        sql += " ";
-        sql += s;
       }
-      if (this.#order.length > 0 && order.length > 0) {
-        sql += ", ";
+      if (!allowOrdered && (this.#order.length + order.length > 0 || this.#limit != null)) {
+        return `select * from (${sql})`;
       }
-      let i = 0;
-      for (const [e, s] of order) {
-        i++;
-        if (i > 1) {
-          sql += ", ";
-        }
-        sql += e;
-        sql += " ";
-        sql += s;
-      }
-    }
-    if (this.#limit != null) {
-      sql += " limit ";
-      sql += this.#limit.toString();
-      if (this.#offset > 0) {
-        sql += " offset ";
-        sql += this.#offset.toString();
-      }
-    }
-    if (!allowOrdered && (this.#order.length + order.length > 0 || this.#limit != null)) {
-      return `select * from (${sql})`;
-    }
-    return sql;
+      return sql;
+    });
   }
   #isSelected() {
     return this.#group.length > 0 || this.#select.length > 0 || this.#distinct;
@@ -322,10 +351,10 @@ export class TableBuilder {
     return this.#limit != null;
   }
   #paren() {
-    return new TableBuilder(null, `(${this.toSQL(true)})`);
+    return new TableBuilder(null, `(${this.toSQL(true)})`, false, { contexts: this.#contexts });
   }
   as(name) {
-    return new TableBuilder(name, `(${this.toSQL(true)})`);
+    return new TableBuilder(name, `(${this.toSQL(true)})`, true, { contexts: this.#contexts });
   }
   where(e) {
     const condition = this.#applyCorrelation(e);
@@ -408,6 +437,10 @@ export class TableBuilder {
     this.#rawSQL = undefined;
     this.#lastName = j.name;
     this.#join.push(j);
+    if (tr.relation) {
+      const alias = tr.name ?? tr.relation.table;
+      this.#registerContext(tr.relation.schema ?? null, tr.relation.table, alias);
+    }
     return this;
   }
   joinUsing(tr, u, d) {
@@ -424,6 +457,10 @@ export class TableBuilder {
     this.#rawSQL = undefined;
     this.#lastName = j.name;
     this.#join.push(j);
+    if (tr.relation) {
+      const alias = tr.name ?? tr.relation.table;
+      this.#registerContext(tr.relation.schema ?? null, tr.relation.table, alias);
+    }
     return this;
   }
   sugarJoin(nl, nr, tr, dw) {

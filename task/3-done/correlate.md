@@ -139,6 +139,10 @@ select (select c from s.t where ((u.a, u.b) = (v.p, v.q))) from f as v
 
 のように変換されればOK。
 
+## 追加仕様
+
+p join q { ^r } のように、複数のテーブルをjoinしている場合の自動相関クエリは、pとrおよびqとrについて外部キーを調べ、唯一存在する関係を制約に追加してほしい。現状、そのような仕様になっているか？ そのような場合のテストケースを、具体例を考えてtests/testcases/basic/とerq-ci/testcases/basic/にそれぞれ追加する。そして、修正を行う。
+
 ## 実施内容
 
 - `^` 付きテーブル参照を `CorrelateTable`/RowValue の新規文法で受け付けるようにし、`TableReference` から `TableBuilder` へ相関メタデータ（スキーマ・テーブル・エイリアス）を伝搬させる実装を追加
@@ -146,3 +150,4 @@ select (select c from s.t where ((u.a, u.b) = (v.p, v.q))) from f as v
 - `eval-utils.preprocess` に新しいプリプロセス命令 `c` を追加し、`pragma_foreign_key_list` 等を用いて一意な外部キー対応を探索して結合条件（単一・複合キー双方対応）を生成するロジックを実装
 - 相関サブクエリの利用例と両方向（親→子 / 子→親）のパターンを検証するテストケース `tests/testcases/basic/correlate.{erq,parsed.json}` を追加
 - 同機能を紹介するサンプル `examples/correlate.erq` を追加し、`^table` を使った exists/選択例を掲載
+- `TableBuilder` のサブクエリ展開時にコンテキスト配列を引き継ぐよう修正し、複数テーブルを `join` した場合でも `^table` の自動相関が正しく全親テーブルの外部キーを解決できるようにした

@@ -1,0 +1,33 @@
+create table p (
+  id integer primary key
+);;
+create table q (
+  id integer primary key
+);;
+create table r (
+  id integer primary key,
+  p_id integer not null references p (id),
+  q_id integer not null references q (id),
+  note text not null
+);;
+
+insert into p values [
+  {1},
+  {2}
+];;
+
+insert into q values [
+  {1},
+  {2}
+];;
+
+insert into r values [
+  {1, 1, 1, 'match-11'},
+  {2, 2, 2, 'match-22'}
+];;
+
+p join q {
+  p_id: p.id,
+  q_id: q.id,
+  has_r: exists ^r
+} order by p_id, q_id output sparse;;

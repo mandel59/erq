@@ -84,7 +84,7 @@ function describeTable(schema, table) {
   return schema != null ? `${schema}.${table}` : table;
 }
 
-function buildCorrelationPredicate(db, context, target) {
+function buildPredicateForContext(db, context, target) {
   if (!Array.isArray(context) || context.length < 2 || !Array.isArray(target) || target.length < 2) {
     throw new Error("invalid correlation payload");
   }
@@ -110,7 +110,7 @@ function buildCorrelationPredicate(db, context, target) {
   if (mapping == null) {
     mapping = getForeignKeyMapping(db, contextSchemaName, contextTableName, targetTableName);
     if (mapping == null) {
-      throw new Error(`no foreign key between ${describeTable(contextSchemaName, contextTableName)} and ${describeTable(targetSchemaName, targetTableName)}`);
+      return null;
     }
     referencingQualifier = contextQualifier;
     referencedQualifier = targetQualifier;
@@ -119,6 +119,27 @@ function buildCorrelationPredicate(db, context, target) {
   const left = buildTupleExpression(referencingQualifier, mapping.from);
   const right = buildTupleExpression(referencedQualifier, mapping.to);
   return `(${left} = ${right})`;
+}
+
+function buildCorrelationPredicate(db, contexts, target) {
+  const contextList = Array.isArray(contexts) && Array.isArray(contexts[0])
+    ? contexts
+    : [contexts];
+  const predicates = [];
+  for (const context of contextList) {
+    const predicate = buildPredicateForContext(db, context, target);
+    if (predicate != null) {
+      predicates.push(predicate);
+    }
+  }
+  if (predicates.length === 0) {
+    const firstContext = contextList[0];
+    throw new Error(`no foreign key between ${describeTable(firstContext?.[0] ?? null, firstContext?.[1])} and ${describeTable(target?.[0] ?? null, target?.[1])}`);
+  }
+  if (predicates.length === 1) {
+    return predicates[0];
+  }
+  return `(${predicates.join(" and ")})`;
 }
 
 /**
