@@ -12,11 +12,23 @@
     "query": "create table t3 (t3_id integer primary key, col3 integer, foreign key (col3) references t1 (t1_id))"
   },
   {
+    "type": "create",
+    "query": "create table t4 (a integer, b integer, primary key (a, b))"
+  },
+  {
+    "type": "create",
+    "query": "create table t5 (a integer, b integer, foreign key (a, b) references t4 (a, b))"
+  },
+  {
     "type": "pragma",
     "query": "pragma foreign_key_list ('t2')"
   },
   {
     "type": "pragma",
     "query": "pragma foreign_key_list ('t3')"
+  },
+  {
+    "type": "pragma",
+    "query": "pragma foreign_key_list ('t5')"
   }
 ]

@@ -1,6 +1,8 @@
 create table t1 (t1_id integer primary key, col1 text);;
 create table t2 (t2_id integer primary key, col2 integer references t1 (t1_id));;
 create table t3 (t3_id integer primary key, col3 integer, foreign key (col3) references t1 (t1_id));;
+create table t4 (a integer, b integer, primary key (a, b));;
+create table t5 (a integer, b integer, foreign key (a, b) references t4 (a, b));;
 pragma foreign_key_list('t2');;
 pragma foreign_key_list('t3');;
-
+pragma foreign_key_list('t5');;
