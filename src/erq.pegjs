@@ -735,6 +735,7 @@ ColumnConstraintBody
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
   / "default" __ x:("(" _ e:Expression _ ")" { return `(${e})`; } / Literal / Current / SignedNumber) { return `default ${x}`; }
   / "collate" __ n:Name { return `collate ${n}`; }
+  / fk:ReferencesClause { return fk; }
   / "as" _ "(" _ e:Expression _ ")" x:(__ x:("stored" / "virtual") { return ` ${x}`; })? { return `as (${e})${x ?? ""}`; }
 
 Current
@@ -750,11 +751,59 @@ TableConstraint
   }
 
 TableConstraintBody
-  = k:("primary" __ "key" { return "primary key"; } / "unique") _ cs:ColumnNameList cc:ConflictClause? { return `${k} (${cs.join(", ")})${cc ?? ""}`; }
+  = "foreign" __ "key" _ cs:ForeignKeyColumnList fk:ReferencesClause { return `foreign key (${cs.join(", ")}) ${fk}`; }
+  / k:("primary" __ "key" { return "primary key"; } / "unique") _ cs:ColumnNameList cc:ConflictClause? { return `${k} (${cs.join(", ")})${cc ?? ""}`; }
   / "check" _ "(" _ e:Expression _ ")" { return `check (${e})`; }
 
 ConflictClause
   = _ "on" __ "conflict" __ k:("rollback"/"abort"/"fail"/"ignore"/"replace") { return ` on conflict ${k}`; }
+
+ForeignKeyColumnList
+  = "(" _ c1:Name cs:(_ "," _ c:Name { return c; })* (_ ",")? _ ")" _
+  {
+    const columns = [c1, ...cs]
+      .filter(c => c != null && c !== "")
+      .map(c => typeof c === "string" ? c.trim() : c);
+    return columns;
+  }
+
+ReferencesClause
+  = "references" __ t:TableName c:(_ fk:ForeignKeyColumnList { return fk; })? o:ForeignKeyReferencesOptions?
+  {
+    let ref = `references ${t}`;
+    if (c != null) {
+      ref += ` (${c.join(", ")})`;
+    }
+    if (o != null) {
+      ref += o;
+    }
+    return ref;
+  }
+
+ForeignKeyReferencesOptions
+  = os:ForeignKeyReferencesOption+ { return os.join(""); }
+
+ForeignKeyReferencesOption
+  = _ "on" __ a:("delete" / "update") __ k:ForeignKeyAction { return ` on ${a} ${k}`; }
+  / _ "match" __ n:Name { return ` match ${n}`; }
+  / _ d:DeferrableClause { return ` ${d}`; }
+
+ForeignKeyAction
+  = "set" __ "null" { return "set null"; }
+  / "set" __ "default" { return "set default"; }
+  / "cascade" { return "cascade"; }
+  / "restrict" { return "restrict"; }
+  / "no" __ "action" { return "no action"; }
+
+DeferrableClause
+  = "not" __ "deferrable" i:(__ "initially" __ m:("deferred" / "immediate") { return `initially ${m}`; })?
+  {
+    return `not deferrable${i != null ? ` ${i}` : ""}`;
+  }
+  / "deferrable" i:(__ "initially" __ m:("deferred" / "immediate") { return `initially ${m}`; })?
+  {
+    return `deferrable${i != null ? ` ${i}` : ""}`;
+  }
 
 Attach
   = Do? "attach" __ e:Expression _ "as" __ n:Name {

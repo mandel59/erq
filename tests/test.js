@@ -127,6 +127,8 @@ test('select table', t => {
 test('create table', t => {
   t.deepEqual(parser.parse(`table temp.t = {42}`), { type: 'create', query: `create table \`temp\`.t as select 42` });
   t.deepEqual(parser.parse(`create table temp.t(id integer primary key autoincrement, value text)`), { type: 'create', query: `create table \`temp\`.t (id integer primary key autoincrement, value text)` });
+  t.deepEqual(parser.parse(`create table t2 (t2_id integer primary key, col2 integer references t1 (t1_id))`), { type: 'create', query: `create table t2 (t2_id integer primary key, col2 integer references t1 (t1_id))` });
+  t.deepEqual(parser.parse(`create table t3 (t3_id integer primary key, col3 integer, foreign key (col3) references t1 (t1_id))`), { type: 'create', query: `create table t3 (t3_id integer primary key, col3 integer, foreign key (col3) references t1 (t1_id))` });
 })
 
 test('create view', t => {
