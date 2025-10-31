@@ -1282,10 +1282,13 @@ Table2
     return new TableBuilder(null, null).select([{ name: "value", expression: l, sort: null }]);
   }
   / tr:TableReference {
-    if (tr.table) {
+    if (tr.table && !tr.rename) {
       return tr.table;
     }
-    return new TableBuilder(tr.name, tr.expression, tr.rename);
+    return new TableBuilder(tr.name, tr.expression, tr.rename, {
+      relation: tr.relation,
+      correlate: tr.correlate,
+    });
   }
   ;
 
@@ -1341,8 +1344,26 @@ Record
   }
 
 TableReference
-  = n:Name _ !("::") ":" _ e:TableExpression { return { name: n, expression: e.expression, rename: true }; }
-  / e:TableExpression { return { name: e.name, expression: e.expression, table: e.table, rename: false }; }
+  = n:Name _ !("::") ":" _ e:TableExpression {
+    return {
+      name: n,
+      expression: e.expression,
+      table: e.table,
+      rename: true,
+      relation: e.relation,
+      correlate: e.correlate,
+    };
+  }
+  / e:TableExpression {
+    return {
+      name: e.name,
+      expression: e.expression,
+      table: e.table,
+      rename: false,
+      relation: e.relation,
+      correlate: e.correlate,
+    };
+  }
   ;
 
 Filters
@@ -1445,6 +1466,27 @@ ValueWildCardReferenceOrUnpack
   / r:ValueWildCardReference { return [r]; }
   ;
 
+CorrelateTable
+  = "^" _ s:Name _ "." _ m:ModulePathName {
+    const t = modulePathNameToSQLName(m);
+    return {
+      name: t,
+      expression: `${s}.${t}`,
+      relation: { schema: s, table: t },
+      correlate: { schema: s, table: t },
+    };
+  }
+  / "^" _ m:ModulePathName {
+    const t = modulePathNameToSQLName(m);
+    return {
+      name: t,
+      expression: t,
+      relation: { schema: null, table: t },
+      correlate: { schema: null, table: t },
+    };
+  }
+  ;
+
 TableExpression
   = "{" _ rs:ValueReferences _ "}" {
     return { name: null, expression: `(${new TableBuilder(null, null).select(rs).toSQL(true)})` };
@@ -1456,10 +1498,17 @@ TableExpression
   / l:Literal { return { name: null, expression: `(select ${l} as value)` } }
   / s:Name _ "." _ m:ModulePathName _ "(" _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${s}.${n}()` }; }
   / s:Name _ "." _ m:ModulePathName _ "(" _ es:Expressions _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${s}.${n}(${es})` }; }
-  / s:Name _ "." _ m:ModulePathName { const t = modulePathNameToSQLName(m); return { name: t, expression: `${s}.${t}` }; }
+  / c:CorrelateTable { return c; }
+  / s:Name _ "." _ m:ModulePathName {
+    const t = modulePathNameToSQLName(m);
+    return { name: t, expression: `${s}.${t}`, relation: { schema: s, table: t } };
+  }
   / m:ModulePathName _ "(" _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${n}()` }; }
   / m:ModulePathName _ "(" _ es:Expressions _ ")" { const n = modulePathNameToSQLName(m); return { name: n, expression: `${n}(${es})` }; }
-  / m:ModulePathName { const n = modulePathNameToSQLName(m); return { name: n, expression: n } }
+  / m:ModulePathName {
+    const n = modulePathNameToSQLName(m);
+    return { name: n, expression: n, relation: { schema: null, table: n } };
+  }
   ;
 
 Expressions
@@ -1592,6 +1641,7 @@ RecordOrExpression
 
 RowValue
   = "{" _ es:Expressions (_ ",")? _ "}" { return `(${es})`; }
+  / &("^") t:Table { return `(${t})`; }
   / "from" __ t:Table { return `(${t})`; }
   / t:TableName _ "." _ cnl:BraceColumnNameList { return `(${cnl.map(cn => `${t}.${cn}`)})`; }
   / v:ValuesList { return `(${v})`; }

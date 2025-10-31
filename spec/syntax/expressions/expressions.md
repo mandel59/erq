@@ -75,11 +75,13 @@ Value ::= CaseExpression
 
 ```ebnf
 RowValue ::= "{" WS Expressions WS "}"
+           | "^" WS Table
            | "from" WS Table
            | QualifiedName "." BraceColumnNameList
            | ValuesList
 ```
 
+- `^table` / `^schema.table` はテーブル式と同様に自動相関の対象となり、親クエリに対して等式条件を挿入します。
 - `table.column{a, b}` のような記法で複数列をまとめて参照できます。
 
 ## リスト系

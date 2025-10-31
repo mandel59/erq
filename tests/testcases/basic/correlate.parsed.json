@@ -1,0 +1,22 @@
+[
+  {
+    "type": "create",
+    "query": "create table article (id integer primary key, title text not null)"
+  },
+  {
+    "type": "create",
+    "query": "create table comment (id integer primary key, article integer not null references article (id), message text not null)"
+  },
+  {
+    "type": "select",
+    "query": "select * from article where (exists (select * from comment where (\u0000c[[null,\"article\",\"article\"],[null,\"comment\",\"comment\"]]\u0000)))"
+  },
+  {
+    "type": "select",
+    "query": "select (select title from article where (\u0000c[[null,\"comment\",\"comment\"],[null,\"article\",\"article\"]]\u0000)) as title, message from comment where (id = 1)"
+  },
+  {
+    "type": "select",
+    "query": "select * from comment where (exists (select * from article where (\u0000c[[null,\"comment\",\"comment\"],[null,\"article\",\"article\"]]\u0000)))"
+  }
+]

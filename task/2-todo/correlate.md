@@ -138,3 +138,11 @@ select (select c from s.t where ((u.a, u.b) = (v.p, v.q))) from f as v
 ```
 
 のように変換されればOK。
+
+## 実施内容
+
+- `^` 付きテーブル参照を `CorrelateTable`/RowValue の新規文法で受け付けるようにし、`TableReference` から `TableBuilder` へ相関メタデータ（スキーマ・テーブル・エイリアス）を伝搬させる実装を追加
+- `TableBuilder` に関連コンテキストを保持させ、中間命令 `^` を親コンテキストに応じた `c` 命令へと置換する処理、および各種演算子でのヌル命令展開を実装
+- `eval-utils.preprocess` に新しいプリプロセス命令 `c` を追加し、`pragma_foreign_key_list` 等を用いて一意な外部キー対応を探索して結合条件（単一・複合キー双方対応）を生成するロジックを実装
+- 相関サブクエリの利用例と両方向（親→子 / 子→親）のパターンを検証するテストケース `tests/testcases/basic/correlate.{erq,parsed.json}` を追加
+- 同機能を紹介するサンプル `examples/correlate.erq` を追加し、`^table` を使った exists/選択例を掲載

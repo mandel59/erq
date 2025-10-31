@@ -109,6 +109,8 @@ export class TableBuilder {
   #lastName;
   #expression;
   #rename;
+  #relation;
+  #context;
   #join = [];
   #where = [];
   #window = [];
@@ -121,10 +123,49 @@ export class TableBuilder {
   #offset = 0;
   #aggregate = false;
   #rawSQL = undefined;
-  constructor(name, expression, rename = name != null) {
+  constructor(name, expression, rename = name != null, options = {}) {
+    if (typeof rename === "object" && options === undefined) {
+      options = rename ?? {};
+      rename = name != null;
+    }
     this.#name = this.#lastName = name;
     this.#expression = expression;
     this.#rename = rename;
+    this.#relation = options.relation ?? null;
+    const alias = name ?? (this.#relation ? this.#relation.table : null);
+    this.#context = this.#relation
+      ? [
+        this.#relation.schema ?? null,
+        this.#relation.table,
+        alias,
+      ]
+      : null;
+    if (options.correlate) {
+      const correlateAlias = alias ?? options.correlate.table;
+      const correlatePayload = [
+        options.correlate.schema ?? null,
+        options.correlate.table,
+        correlateAlias,
+      ];
+      this.#where.push(`\u0000^${JSON.stringify(correlatePayload)}\u0000`);
+    }
+  }
+  #applyCorrelation(sql) {
+    if (typeof sql !== "string" || sql.indexOf("\u0000^") === -1) {
+      return sql;
+    }
+    if (this.#context == null) {
+      return sql;
+    }
+    return sql.replace(/\u0000\^([^\u0000]*)\u0000/g, (_match, payload) => {
+      let target;
+      try {
+        target = JSON.parse(payload);
+      } catch {
+        return `\u0000^${payload}\u0000`;
+      }
+      return `\u0000c${JSON.stringify([this.#context, target])}\u0000`;
+    });
   }
   toSQL(allowOrdered = false) {
     if (this.#rawSQL != null) {
@@ -287,59 +328,82 @@ export class TableBuilder {
     return new TableBuilder(name, `(${this.toSQL(true)})`);
   }
   where(e) {
+    const condition = this.#applyCorrelation(e);
     if (this.#aggregate) {
       this.#rawSQL = undefined;
-      this.#having.push(e);
+      this.#having.push(condition);
       return this;
     }
     if (this.#isSelected()) {
-      return this.#paren().where(e);
+      return this.#paren().where(condition);
     }
     this.#rawSQL = undefined;
-    this.#where.push(e);
+    this.#where.push(condition);
     return this;
   }
   select(rs) {
+    const processed = rs.map((r) => ({
+      ...r,
+      expression: this.#applyCorrelation(r.expression),
+    }));
     if (this.#isSelected()) {
-      return this.#paren().select(rs);
+      return this.#paren().select(processed);
     }
     this.#rawSQL = undefined;
-    for (const r of rs) {
+    for (const r of processed) {
       this.#select.push(r);
     }
     this.#lastName = null;
     return this;
   }
   groupSelect(grs, rs) {
+    const processedGroups = grs.map((r) => ({
+      ...r,
+      expression: this.#applyCorrelation(r.expression),
+    }));
+    const processedSelects = rs.map((r) => ({
+      ...r,
+      expression: this.#applyCorrelation(r.expression),
+    }));
     if (this.#isSelected()) {
-      return this.#paren().groupSelect(grs, rs);
+      return this.#paren().groupSelect(processedGroups, processedSelects);
     }
     this.#rawSQL = undefined;
     this.#aggregate = true;
-    for (const r of grs) {
+    for (const r of processedGroups) {
       this.#group.push(r);
     }
-    for (const r of rs) {
+    for (const r of processedSelects) {
       this.#select.push(r);
     }
     this.#lastName = null;
     return this;
   }
   window(w) {
+    const processed = {
+      ...w,
+      window: this.#applyCorrelation(w.window),
+    };
     if (this.#isSelected()) {
-      return this.#paren().window(w);
+      return this.#paren().window(processed);
     }
     this.#rawSQL = undefined;
-    this.#window.push(w);
+    this.#window.push(processed);
     return this;
   }
   join(tr, on, d) {
+    const joinExpression = this.#applyCorrelation(tr.expression);
+    const onCondition = on != null ? this.#applyCorrelation(on) : null;
     if (this.#isSelected()) {
-      return this.#paren().join(tr, on, d);
+      return this.#paren().join(
+        { name: tr.name, rename: tr.rename, expression: joinExpression },
+        onCondition,
+        d,
+      );
     }
-    const j = { name: tr.name, rename: tr.rename, expression: tr.expression, direction: d };
-    if (on) {
-      j.on = on;
+    const j = { name: tr.name, rename: tr.rename, expression: joinExpression, direction: d };
+    if (onCondition) {
+      j.on = onCondition;
     }
     this.#rawSQL = undefined;
     this.#lastName = j.name;
@@ -347,10 +411,15 @@ export class TableBuilder {
     return this;
   }
   joinUsing(tr, u, d) {
+    const joinExpression = this.#applyCorrelation(tr.expression);
     if (this.#isSelected()) {
-      return this.#paren().joinUsing(tr, u, d);
+      return this.#paren().joinUsing(
+        { name: tr.name, rename: tr.rename, expression: joinExpression },
+        u,
+        d,
+      );
     }
-    const j = { name: tr.name, rename: tr.rename, expression: tr.expression, direction: d };
+    const j = { name: tr.name, rename: tr.rename, expression: joinExpression, direction: d };
     j.using = u;
     this.#rawSQL = undefined;
     this.#lastName = j.name;
@@ -375,24 +444,27 @@ export class TableBuilder {
     return this;
   }
   orderBy(order) {
+    const processed = order.map(([e, s]) => [this.#applyCorrelation(e), s]);
     if (this.#isLimited()) {
-      return this.#paren().orderBy(order);
+      return this.#paren().orderBy(processed);
     }
     this.#rawSQL = undefined;
-    this.#order = [...order, ...this.#order];
+    this.#order = [...processed, ...this.#order];
     return this;
   }
   limitOffset(limit, offset) {
+    const processedLimit = limit != null ? this.#applyCorrelation(limit) : limit;
+    const processedOffset = offset != null ? this.#applyCorrelation(offset) : offset;
     if (this.#isLimited()) {
-      return this.#paren().limitOffset(limit, offset);
+      return this.#paren().limitOffset(processedLimit, processedOffset);
     }
     this.#rawSQL = undefined;
-    this.#limit = limit;
-    this.#offset = offset;
+    this.#limit = processedLimit;
+    this.#offset = processedOffset;
     return this;
   }
   rawSQL(sql) {
-    this.#rawSQL = sql;
+    this.#rawSQL = this.#applyCorrelation(sql);
     return this;
   }
 }

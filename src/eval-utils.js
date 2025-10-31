@@ -4,8 +4,122 @@ import { open } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { DEBUG } from "./options.js";
-import { quoteSQLName } from "./parser-utils.js";
+import { quoteSQLName, unquoteSQLName } from "./parser-utils.js";
 import { Readable } from "node:stream";
+
+const correlationCache = new Map();
+
+function normalizeIdentifier(name) {
+  if (name == null) {
+    return null;
+  }
+  if (typeof name === "string" && name.startsWith("`")) {
+    return unquoteSQLName(name);
+  }
+  return name;
+}
+
+function buildQualifier(schema, table, alias) {
+  if (alias != null) {
+    return alias;
+  }
+  if (schema != null) {
+    return `${schema}.${table}`;
+  }
+  return table;
+}
+
+function resolveSchemaName(db, schemaHint, tableName) {
+  const normalizedSchema = normalizeIdentifier(schemaHint);
+  if (normalizedSchema != null) {
+    return normalizedSchema;
+  }
+  const row = db.prepare(`
+    select schema
+    from pragma_table_list
+    where name = ?
+    order by case schema when 'temp' then 0 when 'main' then 1 else 2 end
+    limit 1
+  `).get(tableName);
+  return row ? row.schema : null;
+}
+
+function getForeignKeyMapping(db, childSchema, childTable, parentTable) {
+  const cacheKey = JSON.stringify(["fk", childSchema ?? null, childTable, parentTable]);
+  if (correlationCache.has(cacheKey)) {
+    return correlationCache.get(cacheKey);
+  }
+  const rows = db.prepare(`
+    select id,
+           json_group_array("from" order by seq) as from_cols,
+           json_group_array("to" order by seq) as to_cols
+    from pragma_foreign_key_list(?, ?)
+    where "table" = ?
+    group by id
+  `).all(childTable, childSchema ?? null, parentTable);
+  if (rows.length === 0) {
+    correlationCache.set(cacheKey, null);
+    return null;
+  }
+  if (rows.length > 1) {
+    throw new Error(`ambiguous foreign key between ${childTable} and ${parentTable}`);
+  }
+  const row = rows[0];
+  const fromCols = JSON.parse(row.from_cols).map((c) => c ?? "rowid");
+  const toCols = JSON.parse(row.to_cols).map((c) => c ?? "rowid");
+  const mapping = { from: fromCols, to: toCols };
+  correlationCache.set(cacheKey, mapping);
+  return mapping;
+}
+
+function buildTupleExpression(qualifier, columns) {
+  const qualified = columns.map((column) => `${qualifier}.${quoteSQLName(column)}`);
+  if (qualified.length === 1) {
+    return qualified[0];
+  }
+  return `(${qualified.join(", ")})`;
+}
+
+function describeTable(schema, table) {
+  return schema != null ? `${schema}.${table}` : table;
+}
+
+function buildCorrelationPredicate(db, context, target) {
+  if (!Array.isArray(context) || context.length < 2 || !Array.isArray(target) || target.length < 2) {
+    throw new Error("invalid correlation payload");
+  }
+  const [contextSchemaRaw, contextTableRaw, contextAliasRaw] = context;
+  const [targetSchemaRaw, targetTableRaw, targetAliasRaw] = target;
+
+  const contextTableName = normalizeIdentifier(contextTableRaw);
+  const targetTableName = normalizeIdentifier(targetTableRaw);
+  if (contextTableName == null || targetTableName == null) {
+    throw new Error("correlation requires concrete table names");
+  }
+
+  const contextSchemaName = resolveSchemaName(db, contextSchemaRaw, contextTableName);
+  const targetSchemaName = resolveSchemaName(db, targetSchemaRaw, targetTableName);
+
+  const contextQualifier = buildQualifier(contextSchemaRaw, contextTableRaw, contextAliasRaw);
+  const targetQualifier = buildQualifier(targetSchemaRaw, targetTableRaw, targetAliasRaw);
+
+  let mapping = getForeignKeyMapping(db, targetSchemaName, targetTableName, contextTableName);
+  let referencingQualifier = targetQualifier;
+  let referencedQualifier = contextQualifier;
+
+  if (mapping == null) {
+    mapping = getForeignKeyMapping(db, contextSchemaName, contextTableName, targetTableName);
+    if (mapping == null) {
+      throw new Error(`no foreign key between ${describeTable(contextSchemaName, contextTableName)} and ${describeTable(targetSchemaName, targetTableName)}`);
+    }
+    referencingQualifier = contextQualifier;
+    referencedQualifier = targetQualifier;
+  }
+
+  const left = buildTupleExpression(referencingQualifier, mapping.from);
+  const right = buildTupleExpression(referencedQualifier, mapping.to);
+  return `(${left} = ${right})`;
+}
 
 /**
  * 
@@ -51,6 +165,12 @@ export function preprocess(db, env, sourceSql) {
       return t;
     } else if (type === "e") {
       return evalSQLValue(db, env, name);
+    } else if (type === "c") {
+      const payload = JSON.parse(name);
+      if (!Array.isArray(payload) || payload.length !== 2) {
+        throw new Error("invalid correlation payload");
+      }
+      return buildCorrelationPredicate(db, payload[0], payload[1]);
     } else {
       throw new Error(`unknown type: ${type}`);
     }

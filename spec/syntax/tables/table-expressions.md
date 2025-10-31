@@ -12,6 +12,8 @@ TableExpression ::= "{" WS ValueReferences WS "}"
                   | ValuesList
                   | Literal
                   | ModuleQualifiedName ("(" ExpressionList ")")?
+                  | "^" WS ModuleQualifiedName
+                  | "^" WS Name WS "." WS ModuleQualifiedName
                   | ModuleQualifiedName
 
 TableReference ::= Name ":" TableExpression
@@ -21,6 +23,9 @@ TableReference ::= Name ":" TableExpression
 - `{ ... }` は列リストを用いた簡易 SELECT を表現します。
 - `lateral values (...)?` は VALUES の結果を行として展開する糖衣構文です。
 - `ModuleQualifiedName` (`module::table`) を使うとモジュール提供のテーブル値関数を呼び出せます。
+- `^table` / `^schema.table` は外部キーを基にした自動相関テーブル参照で、親側の `TableBuilder` が WHERE 句に結合条件を挿入します（下記参照）。
+  - スキーマ名はオプショナルで、SQLite の `pragma_table_list` から補完されます。
+  - 外部キーが一意に決まらない場合はエラーになります。
 
 ## `ValueReferences`
 
@@ -86,3 +91,9 @@ ValueWildCardReference ::= "*"
 
 - これらの規則は `TableBuilder` に変換され、記述順に `select`, `where`, `join`, `group by` などが適用されます。
 - 最終的な SQL は `preprocess` を通じて `@variable` 表記などを解決した後、SQLite に送られます。
+
+### 相関テーブル参照 (`^table`)
+
+- `^comment` のように参照を書くと、親テーブルと子テーブルの外部キーを SQLite の `pragma_foreign_key_list` から取得し、自動的に `(child.fk_columns = parent.pk_columns)` という等式を WHERE 句へ挿入します。
+- 両方の方向（親→子、子→親）を解析し、一意に決まる外部キーに基づいて結合条件を生成します。複数候補がある場合は曖昧性エラーになります。
+- 投影内で `{ title: ^article{title} }` のようにネストしたテーブル式を記述すると、`^` 付きサブクエリにも同じ規則が適用されます。

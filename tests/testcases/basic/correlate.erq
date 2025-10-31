@@ -1,0 +1,15 @@
+create table article (
+  id integer primary key,
+  title text not null,
+);;
+create table comment (
+  id integer primary key,
+  article integer not null references article (id),
+  message text not null,
+);;
+
+article[exists ^comment];;
+
+comment[id=1]{ title: ^article{title}, message };;
+
+comment[exists ^article];;

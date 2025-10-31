@@ -1,0 +1,35 @@
+create table if not exists article (
+  id integer primary key,
+  title text not null
+);;
+create table if not exists comment (
+  id integer primary key,
+  article integer not null references article (id),
+  message text not null
+);;
+
+insert into article values [
+  {1, 'First Post'},
+  {2, 'Second Post'},
+];;
+
+insert into comment values [
+  {1, 1, 'Nice read!'},
+  {2, 1, 'Thanks for sharing'},
+  {3, 2, 'Looking forward to more!'},
+];;
+
+-- Use ^table inside filters to add correlation predicates automatically.
+article{
+  id,
+  title,
+  has_comment: exists ^comment
+};;
+
+-- Correlated selection can pull data from the referenced table without
+-- writing the join condition explicitly.
+comment{
+  id,
+  article_title: ^article{title},
+  message
+};;

@@ -1,0 +1,32 @@
+create table article (
+  id integer primary key,
+  title text not null
+);;
+create table comment (
+  id integer primary key,
+  article integer not null references article (id),
+  message text not null
+);;
+
+insert into article values [
+  {1, 'Hello'},
+  {2, 'World'}
+];;
+
+insert into comment values [
+  {1, 1, 'First'},
+  {2, 1, 'Reply'},
+  {3, 2, 'Second'}
+];;
+
+article{
+  id,
+  title,
+  has_comment: exists ^comment
+} order by id;;
+
+comment{
+  id,
+  article_title: ^article{title},
+  message
+} order by id;;
