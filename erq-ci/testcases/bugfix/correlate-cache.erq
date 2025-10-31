@@ -1,0 +1,42 @@
+create table article (
+  id integer primary key,
+  title text not null
+);;
+
+create table comment (
+  id integer primary key,
+  article integer references article (id),
+  message text not null
+);;
+
+insert into article values [
+  {1, 'First'},
+  {2, 'Second'}
+];;
+
+insert into comment values [
+  {1, 1, 'Old'}
+];;
+
+article{
+  id,
+  has_comment: exists ^comment
+} order by id output sparse;;
+
+drop table comment;;
+
+create table comment (
+  id integer primary key,
+  article_id integer references article (id),
+  message text not null
+);;
+
+insert into comment values [
+  {1, 1, 'New'},
+  {2, 2, 'Another'}
+];;
+
+article{
+  id,
+  has_comment: exists ^comment
+} order by id output sparse;;

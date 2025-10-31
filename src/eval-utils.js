@@ -150,6 +150,7 @@ export function resolveTable(table, env) {
  * @param {string} sourceSql
  */
 export function preprocess(db, env, sourceSql) {
+  correlationCache.clear();
   const re = /\u0000(.)([^\u0000]*)\u0000/g
   return sourceSql.replace(re, (_, type, name) => {
     if (DEBUG) {
