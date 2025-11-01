@@ -1,0 +1,29 @@
+create table article (
+  id integer primary key,
+  title text not null
+);;
+create table comment (
+  id integer primary key,
+  article integer not null references article (id),
+  message text not null
+);;
+
+insert into article values [
+  {1, 'Hello'},
+  {2, 'World'}
+];;
+
+insert into comment values [
+  {1, 1, 'First'},
+  {2, 1, 'Reply'},
+  {3, 2, 'Second'}
+];;
+
+comment[^article{id} = 1] {
+  id,
+  article
+} order by id output sparse;;
+
+comment[^article{id} = ^article{id}] {
+  id
+} order by id output sparse;;

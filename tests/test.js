@@ -130,6 +130,27 @@ test('correlate join validation', t => {
   t.throws(() => parser.parse(`p cross join ^r`), { message });
 });
 
+test('correlate subquery comparison', t => {
+  t.deepEqual(
+    parser.parse(`comment[^article{id} = 1];;`, { startRule: 'cli_readline' }),
+    [
+      {
+        type: 'select',
+        query: 'select * from comment where ((select id from article where (\u0000c[[null,"comment","comment"],[null,"article","article"]]\u0000)) = 1)'
+      }
+    ]
+  );
+  t.deepEqual(
+    parser.parse(`comment[^article{id} = ^article{id}];;`, { startRule: 'cli_readline' }),
+    [
+      {
+        type: 'select',
+        query: 'select * from comment where ((select id from article where (\u0000c[[null,"comment","comment"],[null,"article","article"]]\u0000)) = (select id from article where (\u0000c[[null,"comment","comment"],[null,"article","article"]]\u0000)))'
+      }
+    ]
+  );
+});
+
 test('create table', t => {
   t.deepEqual(parser.parse(`table temp.t = {42}`), { type: 'create', query: `create table \`temp\`.t as select 42` });
   t.deepEqual(parser.parse(`create table temp.t(id integer primary key autoincrement, value text)`), { type: 'create', query: `create table \`temp\`.t (id integer primary key autoincrement, value text)` });
