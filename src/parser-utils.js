@@ -423,6 +423,9 @@ export class TableBuilder {
   join(tr, on, d) {
     const joinExpression = this.#applyCorrelation(tr.expression);
     let onCondition = on != null ? this.#applyCorrelation(on) : null;
+    if (tr.correlate && (d === "natural" || d === "cross")) {
+      throw new Error("correlated table cannot be used with natural or cross join");
+    }
     if (
       tr.correlate &&
       d !== "natural" &&
@@ -473,6 +476,9 @@ export class TableBuilder {
     return this;
   }
   joinUsing(tr, u, d) {
+    if (tr.correlate && (d === "natural" || d === "cross")) {
+      throw new Error("correlated table cannot be used with natural or cross join");
+    }
     const joinExpression = this.#applyCorrelation(tr.expression);
     if (this.#isSelected()) {
       return this.#paren().joinUsing(

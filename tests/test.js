@@ -124,6 +124,12 @@ test('select table', t => {
   )
 });
 
+test('correlate join validation', t => {
+  const message = /correlated table cannot be used with natural or cross join/;
+  t.throws(() => parser.parse(`p natural join ^r`), { message });
+  t.throws(() => parser.parse(`p cross join ^r`), { message });
+});
+
 test('create table', t => {
   t.deepEqual(parser.parse(`table temp.t = {42}`), { type: 'create', query: `create table \`temp\`.t as select 42` });
   t.deepEqual(parser.parse(`create table temp.t(id integer primary key autoincrement, value text)`), { type: 'create', query: `create table \`temp\`.t (id integer primary key autoincrement, value text)` });
