@@ -31,3 +31,13 @@ p join q {
   q_id: q.id,
   has_r: exists ^r
 } order by p_id, q_id output sparse;;
+
+p join ^r {
+  p_id: p.id,
+  r_id: r.id
+} order by p_id output sparse;;
+
+p left join ^r {
+  p_id: p.id,
+  r_id: r.id
+} order by p_id output sparse;;

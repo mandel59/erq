@@ -12,3 +12,8 @@ create table r (
 );;
 
 p join q { has_r: exists ^r };;
+
+p join ^r;;
+p left join ^r;;
+p right join ^r;;
+p full join ^r;;

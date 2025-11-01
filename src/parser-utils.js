@@ -422,10 +422,39 @@ export class TableBuilder {
   }
   join(tr, on, d) {
     const joinExpression = this.#applyCorrelation(tr.expression);
-    const onCondition = on != null ? this.#applyCorrelation(on) : null;
+    let onCondition = on != null ? this.#applyCorrelation(on) : null;
+    if (
+      tr.correlate &&
+      d !== "natural" &&
+      d !== "cross" &&
+      Array.isArray(this.#contexts) &&
+      this.#contexts.length > 0
+    ) {
+      const baseAlias = tr.name ?? (tr.relation ? tr.relation.table : null);
+      const correlateAlias = baseAlias ?? tr.correlate.table;
+      const correlatePayload = [
+        tr.correlate.schema ?? null,
+        tr.correlate.table,
+        correlateAlias,
+      ];
+      const correlateCondition = this.#applyCorrelation(
+        `\u0000^${JSON.stringify(correlatePayload)}\u0000`,
+      );
+      if (onCondition) {
+        onCondition = `(${onCondition}) and (${correlateCondition})`;
+      } else {
+        onCondition = correlateCondition;
+      }
+    }
     if (this.#isSelected()) {
       return this.#paren().join(
-        { name: tr.name, rename: tr.rename, expression: joinExpression },
+        {
+          name: tr.name,
+          rename: tr.rename,
+          expression: joinExpression,
+          relation: tr.relation,
+          correlate: tr.correlate,
+        },
         onCondition,
         d,
       );
@@ -447,7 +476,13 @@ export class TableBuilder {
     const joinExpression = this.#applyCorrelation(tr.expression);
     if (this.#isSelected()) {
       return this.#paren().joinUsing(
-        { name: tr.name, rename: tr.rename, expression: joinExpression },
+        {
+          name: tr.name,
+          rename: tr.rename,
+          expression: joinExpression,
+          relation: tr.relation,
+          correlate: tr.correlate,
+        },
         u,
         d,
       );
