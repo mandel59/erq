@@ -61,8 +61,8 @@ Value ::= CaseExpression
         | Literal
         | "cast" WS "(" WS Expression WS "as" WS TypeName WS ")"
         | Pack
-        | WindowFunctionCall
         | FilteredFunctionCall
+        | WindowFunctionCall
         | RaiseFunctionCall
         | FunctionCall
         | ModuleQualifiedName ("." Name)? ("(" ExpressionList ")")?
@@ -97,8 +97,20 @@ RecordOrExpression       ::= Record | Expression
 
 ## ウィンドウ関数とフィルタ
 
-- `FilteredFunctionCall ::= FunctionCall WS "filter" WS "(" WS "where" WS Expression WS ")"`
-- `WindowFunctionCall ::= FunctionCall WS "over" WS (WindowDefn | Name)`
-- `WindowDefn` では `partition by`, `order by`, `range/rows/groups` といったフレーム指定を組み合わせます。
+- `FilteredFunctionCall ::= FilterClause WS FunctionCall`
+  例: `[x % 2 = 0] sum(x)` とすると、偶数のみの合計を計算します。
+
+- `WindowFunctionCall ::= FilterClause WS OverClause WS FunctionCall
+                         | OverClause WS FilterClause WS FunctionCall
+                         | OverClause WS FunctionCall`
+
+  DSL で利用できる並びは次の通りです。
+  1. **`FilterClause` → `OverClause` → 関数呼び出し**（例: `[value % 2 = 0] over(partition by value % 3) sum(value)`）
+  2. **`OverClause` → `FilterClause` → 関数呼び出し**（例: `over(partition by value % 3) [value % 2 = 0] sum(value)`）
+  3. **`OverClause` → 関数呼び出し**（フィルタ無しのウィンドウ関数。例: `over(partition by value % 3) sum(value)`）
+
+- `FilterClause ::= "[" WS Expression WS "]"`
+- `OverClause ::= "over" WS (WindowDefn | Name)`  
+  `WindowDefn` では `partition by`, `order by`, `range/rows/groups` といったフレーム指定を組み合わせます。具体的な構文は `src/erq.pegjs` を参照してください。
 
 詳細なパラメータは `src/erq.pegjs` を参照しつつ、SQLite のウィンドウ関数構文に準じて理解してください。
