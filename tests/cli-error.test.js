@@ -63,3 +63,27 @@ test.serial("reports syntax errors with location information", async (t) => {
   t.true(result.stderr.includes("line 1 column"));
   t.is(result.stdout, "");
 });
+
+test.serial(".help lists dot commands", async (t) => {
+  const result = await runErqCli(".help\n");
+  t.is(result.code, 0);
+  t.true(result.stderr.includes("Connected to :memory:"));
+  t.true(result.stderr.includes("Available dot commands:"));
+  t.true(result.stderr.includes(".debug"));
+  t.is(result.stdout, "");
+});
+
+test.serial(".help debug shows detail", async (t) => {
+  const result = await runErqCli(".help debug\n");
+  t.is(result.code, 0);
+  t.true(result.stderr.includes(".debug"));
+  t.true(result.stderr.includes("Available categories"));
+  t.is(result.stdout, "");
+});
+
+test.serial(".help unknown command fails", async (t) => {
+  const result = await runErqCli(".help unknown\n");
+  t.not(result.code, 0);
+  t.true(result.stderr.includes("Unknown dot command"));
+  t.is(result.stdout, "");
+});

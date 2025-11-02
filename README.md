@@ -45,6 +45,10 @@ You can combine categories (e.g. `ERQ_DEBUG=sql,stack`) or use `1`, `true`, or `
 
 During an interactive session you can inspect or change the same setting with the `.debug` dot command, for example `.debug sql stack` to enable only SQL and stack trace logging or `.debug off` to disable it again.
 
+## Dot Commands
+
+Inside the interactive CLI you can enter dot-prefixed utility commands. Use `.help` to list them or `.help COMMAND` to see detailed usage. Tab completion now suggests dot command names as well as arguments such as `.format` modes or `.debug` categories.
+
 ## Syntax Comparison with SQL
 
 See [Syntax Comparison with SQL](./doc/syntax-comparison.md).

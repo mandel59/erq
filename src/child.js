@@ -4,7 +4,7 @@ import Database from "better-sqlite3";
 
 import { uncons } from "./async-iter.js";
 import { options } from "./options.js";
-import { debugEnabled, debugLog, setDebugLogging, getDebugConfiguration, resolveDebugInput } from "./debug.js";
+import { debugEnabled, debugLog, setDebugLogging, getDebugConfiguration, resolveDebugInput, DEBUG_CATEGORY_SUGGESTIONS } from "./debug.js";
 import {
   unquoteSQLName,
   modulePathNameToName,
@@ -20,6 +20,7 @@ import { getEscapeCsvValue } from "./csv-utils.js";
 import { ErqCliCompleter } from "./completer.js";
 import { ErqClient } from "./erq-client.js";
 import { deserializeVars } from "./serialize-vars.js";
+import { DOT_COMMANDS, findDotCommand, listDotCommandNames } from "./meta-commands.js";
 
 export async function child() {
   debugLog(["general", "lifecycle"], "child process start pid:%s", process.pid);
@@ -271,6 +272,64 @@ export async function child() {
       return false;
     } else if (command === "meta-set-output") {
       outputFormat = args[0];
+      return true;
+    }
+    else if (command === "help") {
+      const printOverview = () => {
+        console.error("Available dot commands:");
+        const maxNameLength = DOT_COMMANDS.reduce(
+          (max, c) => Math.max(max, c.name.length),
+          0,
+        );
+        for (const meta of DOT_COMMANDS) {
+          const name = `.${meta.name}`.padEnd(maxNameLength + 2, " ");
+          console.error(`  ${name} ${meta.summary}`);
+        }
+        console.error("");
+        console.error("Type .help COMMAND for detailed usage.");
+      };
+      if (args.length === 0) {
+        printOverview();
+        return true;
+      }
+      const targetName = args[0];
+      if (targetName === ";;") {
+        printOverview();
+        return true;
+      }
+      const meta = findDotCommand(targetName);
+      if (!meta) {
+        console.error("Unknown dot command: %s", targetName);
+        console.error("Type .help to list available dot commands.");
+        return false;
+      }
+      console.error(`.${meta.name}`);
+      console.error(`  ${meta.summary}`);
+      if (meta.usage?.length) {
+        console.error("");
+        console.error("Usage:");
+        for (const usage of meta.usage) {
+          console.error(`  ${usage}`);
+        }
+      }
+      if (meta.description?.length) {
+        console.error("");
+        for (const line of meta.description) {
+          console.error(` ${line}`);
+        }
+      }
+      if (meta.name === "debug") {
+        console.error("");
+        console.error(
+          "Available categories: %s",
+          DEBUG_CATEGORY_SUGGESTIONS.join(", "),
+        );
+      } else if (meta.name === "help") {
+        console.error("");
+        console.error(
+          "Examples: .help format / .help debug",
+        );
+      }
       return true;
     }
     else if (command === "debug") {

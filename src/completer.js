@@ -1,4 +1,47 @@
+import { readdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { erqKeywords, keywords } from "./keywords.js";
+import { findDotCommand, listDotCommandNames } from "./meta-commands.js";
+import { DEBUG_CATEGORY_SUGGESTIONS } from "./debug.js";
+
+function expandHomePath(path) {
+  if (!path || path[0] !== "~") return path;
+  if (path === "~") return homedir();
+  if (path.startsWith("~/")) {
+    return join(homedir(), path.slice(2));
+  }
+  return path;
+}
+
+function completePathCandidates(token, { directoriesOnly = false } = {}) {
+  const raw = token ?? "";
+  const lastSlash = raw.lastIndexOf("/");
+  const dirPart = lastSlash === -1 ? "" : raw.slice(0, lastSlash + 1);
+  const namePart = lastSlash === -1 ? raw : raw.slice(lastSlash + 1);
+  const fsDirPath = dirPart === "" ? "." : expandHomePath(dirPart);
+  let entries;
+  try {
+    entries = readdirSync(fsDirPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const suggestions = [];
+  for (const entry of entries) {
+    if (!entry.name.startsWith(namePart)) {
+      continue;
+    }
+    if (directoriesOnly && !entry.isDirectory()) {
+      continue;
+    }
+    let suggestion = dirPart + entry.name;
+    if (entry.isDirectory()) {
+      suggestion += "/";
+    }
+    suggestions.push(suggestion);
+  }
+  return suggestions.sort((a, b) => a.localeCompare(b));
+}
 import { quoteSQLName, reFQNamePart, reParseColumnName, unquoteSQLName } from "./parser-utils.js";
 
 function quoteErqName(name) {
@@ -18,6 +61,103 @@ export class ErqCliCompleter {
   constructor(context) {
     this.db = context.db;
     this.findModules = context.findModules;
+  }
+  completeDotCommand(line) {
+    if (!line.startsWith(".")) {
+      return null;
+    }
+    const commandOnlyMatch = /^\.([^\s]*)$/.exec(line);
+    if (commandOnlyMatch) {
+      const prefix = commandOnlyMatch[1];
+      const candidates = listDotCommandNames()
+        .filter((name) => name.startsWith(prefix))
+        .map((name) => `.${name}`);
+      return [candidates, commandOnlyMatch[0]];
+    }
+    const commandWithArgsMatch = /^\.([^\s]+)\s+(.*)$/.exec(line);
+    if (!commandWithArgsMatch) {
+      return null;
+    }
+    const commandNamePart = commandWithArgsMatch[1];
+    const rest = commandWithArgsMatch[2];
+    const meta = findDotCommand(commandNamePart);
+    if (!meta) {
+      const candidates = listDotCommandNames()
+        .filter((name) => name.startsWith(commandNamePart))
+        .map((name) => `.${name}`);
+      return [candidates, `.${commandNamePart}`];
+    }
+    const trimmedRest = rest.trim();
+    const hasTrailingSpace = line.endsWith(" ");
+    const parts = trimmedRest === "" ? [] : trimmedRest.split(/\s+/);
+    const committed = parts.slice();
+    let lastToken = "";
+    if (!hasTrailingSpace && committed.length > 0) {
+      lastToken = committed.pop();
+    }
+    const suggestions = this.getDotCommandArgumentSuggestions(
+      meta.name,
+      committed,
+      lastToken,
+    );
+    return [suggestions, lastToken];
+  }
+  getDotCommandArgumentSuggestions(commandName, committedArgs, lastToken) {
+    switch (commandName) {
+      case "help": {
+        if (committedArgs.length >= 1) {
+          return [];
+        }
+        return listDotCommandNames()
+          .filter((name) => name !== "help")
+          .filter((name) => name.startsWith(lastToken))
+          .map((name) => name);
+      }
+      case "format": {
+        if (committedArgs.length >= 1) {
+          return [];
+        }
+        const choices = ["array", "object"];
+        return choices.filter((choice) => choice.startsWith(lastToken));
+      }
+      case "debug": {
+        const baseChoices = new Set([
+          "on",
+          "off",
+          "all",
+          "none",
+          "true",
+          "false",
+          "yes",
+          "no",
+          "1",
+          "0",
+          "enable",
+          "disable",
+          ...DEBUG_CATEGORY_SUGGESTIONS,
+        ]);
+        const used = new Set(committedArgs.map((arg) => arg.toLowerCase()));
+        const token = lastToken.toLowerCase();
+        const suggestions = Array.from(baseChoices.values())
+          .filter((choice) => !used.has(choice.toLowerCase()))
+          .filter((choice) => choice.toLowerCase().startsWith(token));
+        return suggestions;
+      }
+      case "cd": {
+        if (committedArgs.length >= 1) {
+          return [];
+        }
+        return completePathCandidates(lastToken, { directoriesOnly: true });
+      }
+      case "load": {
+        if (committedArgs.length >= 1) {
+          return [];
+        }
+        return completePathCandidates(lastToken);
+      }
+      default:
+        return [];
+    }
   }
   getTables() {
     const tables =
@@ -65,6 +205,10 @@ export class ErqCliCompleter {
     return names.map(name => quoteErqName(name));
   }
   async complete(line) {
+    const dotResult = this.completeDotCommand(line);
+    if (dotResult) {
+      return dotResult;
+    }
     const m = reFQNamePart.exec(line);
     const q = m[0];
     const qq = q.replace(/`/g, "");

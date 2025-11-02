@@ -1,5 +1,16 @@
 import process from "node:process";
 
+export const DEBUG_CATEGORY_SUGGESTIONS = [
+  "general",
+  "sql",
+  "script",
+  "import",
+  "lifecycle",
+  "ipc",
+  "stack",
+  "preprocess",
+];
+
 let rawDebugValue = process.env["ERQ_DEBUG"] ?? "";
 
 /** @type {Set<string>} */
