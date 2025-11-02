@@ -57,5 +57,5 @@ async function getOptions() {
 }
 
 export const options = await getOptions();
-export const DEBUG = Boolean(process.env["ERQ_DEBUG"]);
+export { DEBUG, debugEnabled, debugLog, createDebugLogger, getDebugConfiguration, setDebugLogging } from "./debug.js";
 export const DEBUG_PARSER = Boolean(process.env["ERQ_DEBUG_PARSER"]);

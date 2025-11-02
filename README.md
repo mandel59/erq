@@ -26,6 +26,25 @@ Or you can use it interactively:
 erq your_database.db
 ```
 
+## Debug Logging
+
+Erq writes debug information to `stderr`. You can opt into specific groups by setting the `ERQ_DEBUG` environment variable to a space- or comma-separated list of categories.
+
+Available categories include:
+
+- `sql` – SQL statements generated during script execution or imports
+- `script` – script-specific helpers such as loop conditions
+- `import` – SQL emitted when loading external data sources
+- `lifecycle` – parent/child process lifecycle events
+- `ipc` – IPC messages (e.g. completer results)
+- `stack` – stack traces for caught exceptions
+- `preprocess` – interpolation details while expanding ERQ expressions
+- `general` – legacy bucket that enables all historical debug output
+
+You can combine categories (e.g. `ERQ_DEBUG=sql,stack`) or use `1`, `true`, or `all` to enable every debug message.
+
+During an interactive session you can inspect or change the same setting with the `.debug` dot command, for example `.debug sql stack` to enable only SQL and stack trace logging or `.debug off` to disable it again.
+
 ## Syntax Comparison with SQL
 
 See [Syntax Comparison with SQL](./doc/syntax-comparison.md).

@@ -3,16 +3,15 @@ import readline from "node:readline";
 
 import chalk from "chalk";
 
-import { options, DEBUG } from "./options.js";
+import { options } from "./options.js";
+import { debugEnabled, debugLog, setDebugLogging, resolveDebugInput } from "./debug.js";
 import { loadHistory, saveHistory } from "./history.js";
 import { isTTY } from "./io.js";
 import { parser } from "./parser.js";
 import { ErqClient } from "./erq-client.js";
 
 export async function parent() {
-  if (DEBUG) {
-    console.error("parent process start");
-  }
+  debugLog(["general", "lifecycle"], "parent process start");
 
   /** @type {string[] | undefined} */
   let history;
@@ -80,8 +79,8 @@ export async function parent() {
         // Incomplete query detected - waiting for continuation on next line
         return null;
       }
-      if (DEBUG) {
-        console.error(error);
+      if (debugEnabled(["general", "stack"])) {
+        debugLog(["general", "stack"], error);
       } else {
         console.error("%s: %s", error.name, error.message);
       }
@@ -126,9 +125,32 @@ export async function parent() {
         }
       }
       input = "";
-    }
-    return null;
   }
+  return null;
+}
+
+/**
+ * Applies local-side effects for debug commands so the parent process stays in sync.
+ * @param {any[]} statements
+ */
+function applyDebugDirectives(statements) {
+  if (!Array.isArray(statements)) return;
+  for (const statement of statements) {
+    if (statement == null || typeof statement !== "object") continue;
+    if (statement.type !== "command" || statement.command !== "debug") continue;
+    const args = Array.isArray(statement.args) ? statement.args : [];
+    if (args.length === 0) continue;
+    const resolved = resolveDebugInput(args.join(" "));
+    if (!resolved.ok) continue;
+    const nextValue = resolved.value ?? "";
+    if (nextValue === "") {
+      delete process.env["ERQ_DEBUG"];
+    } else {
+      process.env["ERQ_DEBUG"] = nextValue;
+    }
+    setDebugLogging(nextValue);
+  }
+}
 
   const historySize = process.env['ERQ_HISTORY_SIZE'] ? parseInt(process.env['ERQ_HISTORY_SIZE'], 10) : 1000;
   const rl = readline.createInterface({
@@ -137,9 +159,7 @@ export async function parent() {
     terminal: isTTY,
     completer: (line, callback) => {
       client.ipcCall("completer", [line]).then(value => {
-        if (DEBUG) {
-          console.error("[completer]: %s", JSON.stringify(value));
-        }
+        debugLog(["general", "ipc"], "[completer]: %s", JSON.stringify(value));
         callback(null, value)
       });
     },
@@ -208,6 +228,7 @@ export async function parent() {
           if (sqls == null) {
             break;
           }
+          applyDebugDirectives(sqls);
           await client.runSqls(sqls);
         }
       } finally {
@@ -232,6 +253,7 @@ export async function parent() {
         client.quit(1);
         return;
       }
+      applyDebugDirectives(sqls);
       const ok = await client.runSqls(sqls);
       if (!ok) {
         client.quit(1);

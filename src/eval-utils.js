@@ -3,7 +3,7 @@ import { createWriteStream } from "node:fs";
 import { open } from "node:fs/promises";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { DEBUG } from "./options.js";
+import { debugLog } from "./debug.js";
 import { quoteSQLName, unquoteSQLName } from "./parser-utils.js";
 import { Readable } from "node:stream";
 
@@ -174,16 +174,12 @@ export function preprocess(db, env, sourceSql) {
   correlationCache.clear();
   const re = /\u0000(.)([^\u0000]*)\u0000/g
   return sourceSql.replace(re, (_, type, name) => {
-    if (DEBUG) {
-      console.error("preprocess %s %s", type, name);
-    }
+    debugLog(["general", "preprocess"], "preprocess %s %s", type, name);
     if (type === "v") {
       return evalVariable(env, name);
     } else if (type === "t") {
       const t = resolveTable(name, env);
-      if (DEBUG) {
-        console.error("resolved table %s", t);
-      }
+      debugLog(["general", "preprocess"], "resolved table %s", t);
       return t;
     } else if (type === "e") {
       return evalSQLValue(db, env, name);

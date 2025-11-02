@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises";
 import Database from "better-sqlite3";
 
 import { uncons } from "./async-iter.js";
-import { options, DEBUG } from "./options.js";
+import { options } from "./options.js";
+import { debugEnabled, debugLog, setDebugLogging, getDebugConfiguration, resolveDebugInput } from "./debug.js";
 import {
   unquoteSQLName,
   modulePathNameToName,
@@ -21,9 +22,7 @@ import { ErqClient } from "./erq-client.js";
 import { deserializeVars } from "./serialize-vars.js";
 
 export async function child() {
-  if (DEBUG) {
-    console.error("child process start pid:%s", process.pid);
-  }
+  debugLog(["general", "lifecycle"], "child process start pid:%s", process.pid);
 
   const initCwd = process.cwd();
   let ready = false;
@@ -215,8 +214,8 @@ export async function child() {
     try {
       return await runCLICommandThrowing({ command, args }, env);
     } catch (error) {
-      if (DEBUG) {
-        console.error(error);
+      if (debugEnabled(["general", "stack"])) {
+        debugLog(["general", "stack"], error);
       } else {
         console.error("%s: %s", error.name, error.message);
       }
@@ -272,6 +271,39 @@ export async function child() {
       return false;
     } else if (command === "meta-set-output") {
       outputFormat = args[0];
+      return true;
+    }
+    else if (command === "debug") {
+      /** @param {ReturnType<typeof getDebugConfiguration>} config */
+      function printStatus(config) {
+        console.error("Debug logging %s.", config.enabled ? "enabled" : "disabled");
+        if (config.all) {
+          console.error(" categories: * (all)");
+        } else if (config.categories.length > 0) {
+          console.error(" categories: %s", config.categories.join(", "));
+        } else {
+          console.error(" categories: (none)");
+        }
+        console.error(" raw: %s", config.raw === "" ? "(empty)" : config.raw);
+      }
+      if (args.length === 0) {
+        printStatus(getDebugConfiguration());
+        console.error("usage: .debug [on|off|CATEGORY ...]");
+        return true;
+      }
+      const resolved = resolveDebugInput(args.join(" "));
+      if (!resolved.ok) {
+        console.error("usage: .debug [on|off|CATEGORY ...]");
+        return false;
+      }
+      const nextValue = resolved.value ?? "";
+      if (nextValue === "") {
+        delete process.env["ERQ_DEBUG"];
+      } else {
+        process.env["ERQ_DEBUG"] = nextValue;
+      }
+      setDebugLogging(nextValue);
+      printStatus(getDebugConfiguration());
       return true;
     }
     else if (command === "meta-load-module") {
@@ -387,10 +419,10 @@ export async function child() {
           }
           await asyncTransaction(db, async () => {
             const createTableSQL = `create table ${table} (${definition})`;
-            console.error(createTableSQL);
+            debugLog(["general", "sql", "import"], createTableSQL);
             db.prepare(createTableSQL).run();
             const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-            console.error(insertSQL);
+            debugLog(["general", "sql", "import"], insertSQL);
             const insert = db.prepare(insertSQL);
             let i = 0;
             const insertMany = async () => {
@@ -447,10 +479,10 @@ export async function child() {
           }
           await asyncTransaction(db, async () => {
             const createTableSQL = `create table ${table} (${definition})`;
-            console.error(createTableSQL);
+            debugLog(["general", "sql", "import"], createTableSQL);
             db.prepare(createTableSQL).run();
             const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-            console.error(insertSQL);
+            debugLog(["general", "sql", "import"], insertSQL);
             const insert = db.prepare(insertSQL);
             let i = 0;
             const insertMany = async () => {
@@ -523,15 +555,13 @@ export async function child() {
       const t0 = performance.now();
       const [tableWithVariable, def, jsonsqlSource, ifNotExists] = args;
       const jsonsql = jsonsqlSource && preprocess(db, env, jsonsqlSource);
-      if (DEBUG) {
-        console.error(jsonsql);
-      }
+      debugLog(["general", "sql", "script"], jsonsql);
       const table = resolveTable(tableWithVariable, env);
       if (ifNotExists && tableExists(table)) {
         return true;
       }
-      if (DEBUG) {
-        console.error(def);
+      if (def) {
+        debugLog(["general", "sql", "script"], def);
       }
       const columnNames = def && def.columns.filter(c => !c.constraints.some(({ body }) => body.startsWith("as"))).map(c => c.name);
       let header, definition;
@@ -549,10 +579,10 @@ export async function child() {
         definition = header.map(f => `\`${f.replace(/`/g, "``")}\``).join(", ");
       }
       const createTableSQL = `create table ${table} (${definition})`;
-      console.error(createTableSQL);
+      debugLog(["general", "sql", "script"], createTableSQL);
       db.prepare(createTableSQL).run();
       const insertSQL = `insert into ${table} values (${header.map(f => "?").join(", ")})`;
-      console.error(insertSQL);
+      debugLog(["general", "sql", "script"], insertSQL);
       const insert = db.prepare(insertSQL);
       const records = db.prepare(jsonsql).pluck().all(vars);
       let ct = 0
@@ -595,7 +625,7 @@ export async function child() {
         if (statement.type === "if") {
           const { condition: conditionSql, thenStatements, elseStatements } = statement;
           const sql = `select case when ${preprocess(db, env, conditionSql)} then 1 else 0 end`;
-          console.error(sql);
+          debugLog(["general", "sql", "script"], sql);
           const stmt = db.prepare(sql);
           const condition = stmt.pluck().get(Object.fromEntries(env.entries()));
           const ok = await runSqlsWithEnv(condition ? thenStatements : elseStatements ?? [], env);
@@ -605,13 +635,13 @@ export async function child() {
         if (statement.type === "while") {
           const { condition: conditionSql, bodyStatements } = statement;
           const sql = `select case when ${preprocess(db, env, conditionSql)} then 1 else 0 end`;
-          console.error(sql);
+          debugLog(["general", "sql", "script"], sql);
           const stmt = db.prepare(sql);
           let condition = stmt.pluck().get(Object.fromEntries(env.entries()));
           while (condition) {
             const ok = await runSqlsWithEnv(bodyStatements, env);
             if (!ok) return false;
-            console.error(sql);
+            debugLog(["general", "sql", "script"], sql);
             condition = stmt.pluck().get(Object.fromEntries(env.entries()));
           }
           continue;
@@ -626,7 +656,7 @@ export async function child() {
             if (expression == null) return name;
             return `${expression} as ${name}`
           }).join(", ")} from (${preprocess(db, env, sourceTable)})`
-          console.error(sourceSql);
+          debugLog(["general", "sql", "script"], sourceSql);
           const t0 = performance.now();
           const stmt = db.prepare(sourceSql);
           stmt.safeIntegers(true);
@@ -661,7 +691,7 @@ export async function child() {
             if (expression == null) return name;
             return `${expression} as ${name}`
           }).join(", ")} from (${preprocess(db, env, sourceTable)})`
-          console.error(sourceSql);
+          debugLog(["general", "sql", "script"], sourceSql);
           const t0 = performance.now();
           const stmt = db.prepare(sourceSql);
           stmt.safeIntegers(true);
@@ -722,8 +752,8 @@ export async function child() {
                 return false;
               }
               console.error("%s: %s", error.name, error.message);
-              if (DEBUG && error?.stack) {
-                console.error(error.stack);
+              if (error?.stack) {
+                debugLog(["general", "stack"], error.stack);
               }
               return false;
             } finally {
@@ -732,8 +762,8 @@ export async function child() {
                   client.quit(0);
                 } catch (error) {
                   console.error("%s: %s", error.name, error.message);
-                  if (DEBUG && error?.stack) {
-                    console.error(error.stack);
+                  if (error?.stack) {
+                    debugLog(["general", "stack"], error.stack);
                   }
                 }
               }
@@ -753,7 +783,7 @@ export async function child() {
           break;
         }
         const sql = preprocess(db, env, sourceSql);
-        console.error(sql);
+        debugLog(["general", "sql", "script"], sql);
         const t0 = performance.now();
         const stmt = db.prepare(sql);
         if (typeof format === "object" && format.type === "vega") {
@@ -1158,8 +1188,8 @@ export async function child() {
       if (error instanceof JSRuntimeError && error.runtimeStack) {
         console.error(error.runtimeStack.trimEnd());
       }
-      if (DEBUG && error?.stack) {
-        console.error(error.stack);
+      if (error?.stack) {
+        debugLog(["general", "stack"], error.stack);
       }
       return false;
     } finally {
@@ -1189,9 +1219,7 @@ export async function child() {
    * @param {[string, string, string][]} [vars] 
    */
   async function runScript(erqScript, vars = []) {
-    if (DEBUG) {
-      console.error("pid:%s runScript:%s", process.pid, JSON.stringify(erqScript));
-    }
+    debugLog(["general", "lifecycle"], "pid:%s runScript:%s", process.pid, JSON.stringify(erqScript));
     const parser = await import("../dist/erq.js");
     const sqls = parser.parse(erqScript, { startRule: "script" })
     return await runSqls(sqls, vars);
@@ -1204,9 +1232,7 @@ export async function child() {
    * @param {[string, string, string][]} [vars] 
    */
   async function runFile(filepath, vars) {
-    if (DEBUG) {
-      console.error("pid:%s runFile:%s", process.pid, JSON.stringify(filepath));
-    }
+    debugLog(["general", "lifecycle"], "pid:%s runFile:%s", process.pid, JSON.stringify(filepath));
     const erqScript = await readFile(filepath, "utf-8");
     return await runScript(erqScript, vars);
   }
