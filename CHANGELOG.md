@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased](https://github.com/mandel59/erq/compare/v0.3.1...main)
+## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.0...main)
+
+## [0.4.0](https://github.com/mandel59/erq/compare/v0.3.1...v0.4.0) - 2025-11-02
+
+### Added
+- Added automatic correlated subquery syntax using `^table`, including join support and a new `examples/correlate.erq`.
+- Added `.help` meta command and enhanced meta command autocompletion for arguments and file paths.
+- Added foreign key definition support to `create table` statements.
+
+### Changed
+- Introduced category-based debug logging with `.debug` toggles and moved SQL output off standard output.
+- Expanded CLI and parser regression tests to cover control-flow scripts, output options, and common error cases.
 
 ### Fixed
 - Fix debug log on `create table ... from json` syntax with column definitions.
