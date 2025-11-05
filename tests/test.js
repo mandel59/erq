@@ -151,6 +151,35 @@ test('correlate subquery comparison', t => {
   );
 });
 
+test('correlate alias inherits context', t => {
+  t.deepEqual(
+    parser.parse(`article as a join ^comment;;`, { startRule: 'cli_readline' }),
+    [
+      {
+        type: 'select',
+        query: 'select * from (select * from article) as a join comment on \u0000c[[null,"article","a"],[null,"comment","comment"]]\u0000'
+      }
+    ]
+  );
+});
+
+test('correlate base filter stays scoped', t => {
+  t.deepEqual(
+    parser.parse(`article[id=1] join ^comment;;`, { startRule: 'cli_readline' }),
+    [
+      {
+        type: 'select',
+        query: 'select * from (select * from article where (id = 1)) as article join comment on \u0000c[[null,"article","article"],[null,"comment","comment"]]\u0000'
+      }
+    ]
+  );
+});
+
+test('correlate alias ambiguity rejected', t => {
+  const error = t.throws(() => parser.parse(`article join comment as t join ^comment;;`, { startRule: 'cli_readline' }));
+  t.regex(error.message, /correlated table comment requires table context for t/);
+});
+
 test('create table', t => {
   t.deepEqual(parser.parse(`table temp.t = {42}`), { type: 'create', query: `create table \`temp\`.t as select 42` });
   t.deepEqual(parser.parse(`create table temp.t(id integer primary key autoincrement, value text)`), { type: 'create', query: `create table \`temp\`.t (id integer primary key autoincrement, value text)` });

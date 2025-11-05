@@ -161,7 +161,10 @@ export class TableBuilder {
         options.correlate.table,
         correlateAlias,
       ];
-      this.#where.push(`\u0000^${JSON.stringify(correlatePayload)}\u0000`);
+      this.#where.push({
+        expression: `\u0000^${JSON.stringify(correlatePayload)}\u0000`,
+        scope: "global",
+      });
     }
   }
   #registerContext(schema, table, alias) {
@@ -258,7 +261,7 @@ export class TableBuilder {
             sql += " and "
           }
           sql += "(";
-          sql += w;
+          sql += w.expression;
           sql += ")";
         }
       }
@@ -353,8 +356,63 @@ export class TableBuilder {
   #paren() {
     return new TableBuilder(null, `(${this.toSQL(true)})`, false, { contexts: this.#contexts });
   }
+  #materializeBaseFilters() {
+    if (!this.#expression || this.#where.length === 0) {
+      return;
+    }
+    const baseFilters = this.#where.filter((w) => w.scope === "base");
+    if (baseFilters.length === 0) {
+      return;
+    }
+    const alias = this.#name ?? (this.#relation ? this.#relation.table : null);
+    const base = new TableBuilder(alias, this.#expression, this.#rename, {
+      relation: this.#relation,
+      contexts: this.#contexts,
+    });
+    for (const f of baseFilters) {
+      base.where(f.expression);
+    }
+    const subquerySQL = base.toSQL(true);
+    this.#expression = `(${subquerySQL})`;
+    this.#rename = alias != null;
+    if (alias != null) {
+      this.#name = alias;
+    }
+    this.#rawSQL = undefined;
+    this.#where = this.#where.filter((w) => w.scope !== "base");
+  }
+  exportContext() {
+    const contexts = Array.isArray(this.#contexts)
+      ? this.#contexts.map((ctx) => [...ctx])
+      : [];
+    return {
+      contexts,
+      relation: this.#relation,
+    };
+  }
   as(name) {
-    return new TableBuilder(name, `(${this.toSQL(true)})`, true, { contexts: this.#contexts });
+    const relation = this.#relation ?? null;
+    const canRegisterRelation = relation && this.#join.length === 0;
+    const previousAlias = this.#name ?? (canRegisterRelation ? relation.table : null);
+    const adjustedContexts = canRegisterRelation
+      ? this.#contexts.map((ctx) => {
+        if (
+          ctx[0] === (relation.schema ?? null) &&
+          ctx[1] === relation.table &&
+          (previousAlias == null || ctx[2] === previousAlias)
+        ) {
+          return [ctx[0], ctx[1], name];
+        }
+        if (previousAlias != null && ctx[2] === previousAlias) {
+          return [ctx[0], ctx[1], name];
+        }
+        return [...ctx];
+      })
+      : [];
+    return new TableBuilder(name, `(${this.toSQL(true)})`, true, {
+      contexts: adjustedContexts,
+      relation: canRegisterRelation ? relation : null,
+    });
   }
   where(e) {
     const condition = this.#applyCorrelation(e);
@@ -367,7 +425,8 @@ export class TableBuilder {
       return this.#paren().where(condition);
     }
     this.#rawSQL = undefined;
-    this.#where.push(condition);
+    const scope = this.#join.length === 0 ? "base" : "global";
+    this.#where.push({ expression: condition, scope });
     return this;
   }
   select(rs) {
@@ -421,18 +480,20 @@ export class TableBuilder {
     return this;
   }
   join(tr, on, d) {
+    this.#materializeBaseFilters();
     const joinExpression = this.#applyCorrelation(tr.expression);
     let onCondition = on != null ? this.#applyCorrelation(on) : null;
-    if (tr.correlate && (d === "natural" || d === "cross")) {
-      throw new Error("correlated table cannot be used with natural or cross join");
-    }
-    if (
-      tr.correlate &&
-      d !== "natural" &&
-      d !== "cross" &&
-      Array.isArray(this.#contexts) &&
-      this.#contexts.length > 0
-    ) {
+    if (tr.correlate) {
+      if (d === "natural" || d === "cross") {
+        throw new Error("correlated table cannot be used with natural or cross join");
+      }
+      if (!Array.isArray(this.#contexts) || this.#contexts.length === 0) {
+        const alias = this.#name ?? (this.#relation ? this.#relation.table : null);
+        if (alias != null) {
+          throw new Error(`correlated table ${tr.correlate.table} requires table context for ${alias}`);
+        }
+        throw new Error(`correlated table ${tr.correlate.table} requires table context`);
+      }
       const baseAlias = tr.name ?? (tr.relation ? tr.relation.table : null);
       const correlateAlias = baseAlias ?? tr.correlate.table;
       const correlatePayload = [
@@ -476,6 +537,7 @@ export class TableBuilder {
     return this;
   }
   joinUsing(tr, u, d) {
+    this.#materializeBaseFilters();
     if (tr.correlate && (d === "natural" || d === "cross")) {
       throw new Error("correlated table cannot be used with natural or cross join");
     }

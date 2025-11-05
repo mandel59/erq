@@ -1,0 +1,33 @@
+create table article (
+  id integer primary key,
+  title text not null
+);;
+
+create table comment (
+  id integer primary key,
+  article integer not null references article (id),
+  message text not null
+);;
+
+insert into article values [
+  {1, 'First'},
+  {2, 'Second'}
+];;
+
+insert into comment values [
+  {1, 1, 'alpha'},
+  {2, 1, 'beta'},
+  {3, 2, 'gamma'}
+];;
+
+article as a join ^comment {
+  article_id: a.id,
+  comment_id: comment.id,
+  message: comment.message
+} order by article_id, comment_id output sparse;;
+
+article[id=1] join ^comment {
+  article_id: article.id,
+  comment_id: comment.id,
+  message: comment.message
+} order by comment_id output sparse;;

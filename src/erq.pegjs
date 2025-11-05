@@ -1214,7 +1214,27 @@ TableUnion
       }
     }
     if (cs.length > 0) {
-      let tb = new TableBuilder(alias ?? null, `(${sql})`);
+      const contextExport = t1.exportContext();
+      if (alias != null) {
+        if (
+          contextExport.relation != null &&
+          contextExport.contexts.length <= 1
+        ) {
+          contextExport.contexts = contextExport.contexts.map((ctx) => {
+            if (
+              ctx[0] === (contextExport.relation.schema ?? null) &&
+              ctx[1] === contextExport.relation.table
+            ) {
+              return [ctx[0], ctx[1], alias];
+            }
+            return ctx;
+          });
+        } else {
+          contextExport.contexts = [];
+          contextExport.relation = null;
+        }
+      }
+      let tb = new TableBuilder(alias ?? null, `(${sql})`, alias != null, contextExport);
       for (const [tag, v] of cs) {
         if (tag === "distinct") {
           tb = tb.distinct(v);
