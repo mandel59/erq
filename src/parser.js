@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url"
 
 import * as erqParser from "../dist/erq.js";
 
-let parser = erqParser;
+let parser = { ...erqParser };
+const parseCache = new Map();
 
 if (DEBUG_PARSER) {
   try {
@@ -19,7 +20,7 @@ if (DEBUG_PARSER) {
     });
     await writeFile(join(dirname(fileURLToPath(import.meta.url)), "../dist/erq-debug.js"), parserSource, "utf-8");
     // @ts-ignore
-    parser = await import("../dist/erq-debug.js");
+    parser = { ...(await import("../dist/erq-debug.js")) };
   } catch (e) {
     console.error(e);
     // ignore error
@@ -27,3 +28,20 @@ if (DEBUG_PARSER) {
 }
 
 export { parser }
+
+const originalParse = parser.parse.bind(parser);
+
+parser.parse = (input, options = {}) => {
+  if (typeof input !== "string") {
+    return originalParse(input, options);
+  }
+  const cacheKey = `${JSON.stringify(options ?? {})}\u0000${input}`;
+  const cached = parseCache.get(cacheKey);
+  if (cached != null) {
+    return structuredClone(cached);
+  }
+  const result = originalParse(input, options);
+  const snapshot = structuredClone(result);
+  parseCache.set(cacheKey, snapshot);
+  return structuredClone(snapshot);
+};

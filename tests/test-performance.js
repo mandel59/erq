@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import test from "ava";
 
-import * as parser from "../dist/erq.js";
+import { parser } from "../src/parser.js";
 
 const files = readdirSync("tests/performance");
 for (const file of files) {

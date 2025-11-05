@@ -1,6 +1,6 @@
 import test from "ava";
 
-import * as parser from "../dist/erq.js";
+import { parser } from "../src/parser.js";
 
 test('select table', t => {
   t.deepEqual(parser.parse(`employees`), { type: 'select', query: 'select * from employees' });

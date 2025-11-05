@@ -7,7 +7,6 @@ import {
   parseSQLStringLiteral,
   intoSQLIdentifier,
   parseEscapedStringBody,
-  isIdentifier,
   quote,
   escapeVegaField,
   TableBuilder,
@@ -20,7 +19,14 @@ start = _ s:Statement _ { return s; };
 
 cli_readline
   = c:CLICommand { return [c]; }
-  / _ ss:(s:Statement? _ ";;" _ { return s; })* { return ss.filter(s => s != null); };
+  / _ ss:StatementEntries { return ss; };
+
+StatementEntries
+  = es:StatementEntry* { return es.filter((s) => s != null); }
+
+StatementEntry
+  = s:Statement _ ";;" _ { return s; }
+  / ";;" _ { return null; }
 
 script
   = _ ss:(Statement?)|.., _ ";;" _| _ ";;"? _ { return ss.filter(s => s != null); }
@@ -1507,6 +1513,21 @@ CorrelateTable
   }
   ;
 
+CorrelateRowValue
+  = c:CorrelateTable fs:(_ fs:Filters { return fs; })? {
+    let tb = new TableBuilder(c.name, c.expression, false, {
+      relation: c.relation,
+      correlate: c.correlate,
+    });
+    if (fs != null) {
+      for (const f of fs) {
+        tb = f(tb);
+      }
+    }
+    return tb.toSQL(true);
+  }
+  ;
+
 TableExpression
   = "{" _ rs:ValueReferences _ "}" {
     return { name: null, expression: `(${new TableBuilder(null, null).select(rs).toSQL(true)})` };
@@ -1661,6 +1682,7 @@ RecordOrExpression
 
 RowValue
   = "{" _ es:Expressions (_ ",")? _ "}" { return `(${es})`; }
+  / c:CorrelateRowValue { return `(${c})`; }
   / &("^") t:Table { return `(${t})`; }
   / "from" __ t:Table { return `(${t})`; }
   / t:TableName _ "." _ cnl:BraceColumnNameList { return `(${cnl.map(cn => `${t}.${cn}`)})`; }
@@ -1675,7 +1697,8 @@ Expression1
   ;
 
 Value
-  = CaseExpression
+  = &("^") c:CorrelateRowValue { return `(${c})`; }
+  / CaseExpression
   / "(" _ e:Expression _ ")" { return `(${e})` }
   / &(("from" / "with" / "values") boundary) t:Table { return `(${t})` }
   / "not" __ "exists" __ t:Table { return `not exists (${t})` }
@@ -1902,9 +1925,7 @@ Identifier "identifier"
     [_A-Za-z\u0100-\uffff]
     (
       ![ \f\n\r\t\v\u00a0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]
-      [_A-Za-z0-9\u0100-\uffff])*) & {
-    return isIdentifier(n);
-  } {
+      [_A-Za-z0-9\u0100-\uffff])*) {
     return intoSQLIdentifier(n);
   }
   ;

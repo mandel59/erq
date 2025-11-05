@@ -35,6 +35,7 @@ export const patModule = `(?:${patName}(?:::${patName})*)`;
 export const patModulePart = `(?:(?:${patName}::)*(?:${patName}:{0,2}|${patNamePart}))`;
 export const reIdent = new RegExp(`^${patIdent}$`, "u");
 export const reFQNamePart = new RegExp(`(?:${patQuotPart}|(?:${patName}\\.${patModule}\\.${patNamePart}?)|${patModule}\\.${patNamePart}?|${patModulePart})?$`, "u");
+const reAsciiIdent = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /**
  * Parse dot-separated name like `t.c` or `s.t.c`.
@@ -95,6 +96,9 @@ export function parseEscapedStringBody(b) {
 }
 
 export function isIdentifier(n) {
+  if (reAsciiIdent.test(n)) {
+    return true;
+  }
   return reIdent.test(n);
 }
 

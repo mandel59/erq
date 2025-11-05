@@ -1,0 +1,6 @@
+[
+  {
+    "type": "select",
+    "query": "select (select (select (select x from quux where (\u0000c[[null,\"baz\",\"baz\"],[null,\"quux\",\"quux\"]]\u0000)) from baz where (\u0000c[[null,\"bar\",\"bar\"],[null,\"baz\",\"baz\"]]\u0000)) from bar where (\u0000c[[null,\"foo\",\"foo\"],[null,\"bar\",\"bar\"]]\u0000)) from foo"
+  }
+]
