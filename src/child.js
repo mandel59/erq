@@ -365,6 +365,10 @@ export async function child() {
       printStatus(getDebugConfiguration());
       return true;
     }
+    else if (command === "editor") {
+      console.error(".editor is only available in interactive mode");
+      return false;
+    }
     else if (command === "meta-load-module") {
       const [modulePath, name] = args;
       const moduleName = modulePathNameToName(modulePath);

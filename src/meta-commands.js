@@ -9,6 +9,16 @@ export const DOT_COMMANDS = [
     ],
   },
   {
+    name: "editor",
+    summary: "Switch to editor mode for composing multiline input.",
+    usage: [".editor"],
+    description: [
+      "Disables the prompt and records all following lines verbatim until Ctrl+D is pressed.",
+      "Ctrl+C cancels the pending script instead of interrupting the running query.",
+      "Editor mode is only available when stdin and stderr are attached to a TTY.",
+    ],
+  },
+  {
     name: "load",
     summary: "Load a SQLite extension shared library.",
     usage: [".load PATH"],

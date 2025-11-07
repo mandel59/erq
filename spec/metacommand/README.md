@@ -7,6 +7,7 @@ Erq ではメタコマンドを 2 つの層で扱います。
 - ユーザーが直接呼び出し、`src/child.js` の `runCLICommandThrowing` で一対一に処理されます。
 - ドキュメント:  
   - [`.help`](./help.md) — ドットメタコマンド一覧や詳細表示  
+  - [`.editor`](./editor.md) — エディターモードに入る  
   - [`.load`](./load.md) — SQLite 拡張をロード  
   - [`.cd`](./cd.md) — 子プロセスのカレントディレクトリ変更  
   - [`.format`](./format.md) — 既定出力フォーマット切り替え

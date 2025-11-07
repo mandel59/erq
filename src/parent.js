@@ -52,6 +52,12 @@ export async function parent() {
   /** @type {"read" | "eval" | "hang"} */
   let state = "read";
   let input = "";
+  const editorState = {
+    active: false,
+    buffer: "",
+    finishing: false,
+    flushPending: false,
+  };
 
   if (options.format) {
     const ok = await client.runCLICommand({ command: "format", args: [options.format] });
@@ -158,6 +164,10 @@ function applyDebugDirectives(statements) {
     output: stderr,
     terminal: isTTY,
     completer: (line, callback) => {
+      if (editorState.active) {
+        callback(null, [[], line]);
+        return;
+      }
       client.ipcCall("completer", [line]).then(value => {
         debugLog(["general", "ipc"], "[completer]: %s", JSON.stringify(value));
         callback(null, value)
@@ -168,7 +178,117 @@ function applyDebugDirectives(statements) {
     historySize,
   });
 
+  // @ts-ignore accessing readline internals to hook editor shortcuts
+  const defaultTtyWrite = (isTTY && typeof rl._ttyWrite === "function")
+    // @ts-ignore node readline ships _ttyWrite on terminal interfaces
+    ? rl._ttyWrite.bind(rl)
+    : null;
+  if (defaultTtyWrite) {
+    // @ts-ignore override private method intentionally
+    rl._ttyWrite = function ttyWriteWithEditorHook(chunk, key) {
+      if (editorState.active && key) {
+        if (key.ctrl && !key.meta && !key.shift && key.name === "d") {
+          handleEditorCtrlD();
+          return;
+        }
+        if (key.name === "up" || key.name === "down") {
+          return;
+        }
+        if (key.ctrl && !key.meta && !key.shift && (key.name === "n" || key.name === "p")) {
+          return;
+        }
+        if (key.name === "tab") {
+          return;
+        }
+      }
+      defaultTtyWrite(chunk, key);
+    };
+  }
+
+  function startEditorMode() {
+    editorState.active = true;
+    editorState.buffer = "";
+    editorState.finishing = false;
+    editorState.flushPending = false;
+    cancelScheduledPrompt();
+    rl.setPrompt("");
+    console.error("-- Entering editor mode (Ctrl+D to finish, Ctrl+C to cancel)");
+  }
+
+  function handleEditorCtrlD() {
+    if (!editorState.active || editorState.finishing) {
+      return;
+    }
+    editorState.finishing = true;
+    const hasPendingLine = typeof rl.line === "string" && rl.line.length > 0;
+    if (hasPendingLine && defaultTtyWrite) {
+      editorState.flushPending = true;
+      defaultTtyWrite("", { name: "return" });
+      return;
+    }
+    if (hasPendingLine) {
+      editorState.buffer += rl.line;
+      editorState.buffer += "\n";
+      // @ts-ignore accessing readline internals to clear the buffer
+      rl.line = "";
+    }
+    editorState.flushPending = false;
+    void finalizeEditorSubmission();
+  }
+
+  async function finalizeEditorSubmission() {
+    if (!editorState.active) {
+      editorState.finishing = false;
+      editorState.flushPending = false;
+      return;
+    }
+    const script = editorState.buffer;
+    editorState.buffer = "";
+    editorState.active = false;
+    editorState.flushPending = false;
+    editorState.finishing = false;
+    setPrompt();
+    if (script.trim() === "") {
+      schedulePrompt();
+      return;
+    }
+    const previousInput = input;
+    let editorInput = script;
+    if (!editorInput.endsWith("\n")) {
+      editorInput += "\n";
+    }
+    editorInput += ";;\n";
+    input = editorInput;
+    try {
+      await evaluateInput();
+    } finally {
+      input = previousInput;
+      setPrompt();
+      schedulePrompt();
+    }
+  }
+
+  function cancelEditorMode() {
+    if (!editorState.active) {
+      return;
+    }
+    editorState.active = false;
+    editorState.buffer = "";
+    editorState.finishing = false;
+    editorState.flushPending = false;
+    // @ts-ignore clearLine is available on readline.Interface
+    rl.clearLine(0);
+    stderr.write("\n");
+    console.error("-- Editor input canceled");
+    setPrompt();
+    schedulePrompt();
+  }
+
   function setPrompt() {
+    if (editorState.active) {
+      rl.setPrompt("");
+      return;
+    }
     if (input === "") {
       rl.setPrompt("erq> ");
     } else {
@@ -179,13 +299,13 @@ function applyDebugDirectives(statements) {
   /** @type {NodeJS.Timeout | null} */
   let scheduledPrompt = null;
   function schedulePrompt() {
-    if (!isTTY) return;
+    if (!isTTY || editorState.active) return;
     if (scheduledPrompt) {
       return;
     }
     scheduledPrompt = setTimeout(() => {
       scheduledPrompt = null;
-      if (state === "read") {
+      if (state === "read" && !editorState.active) {
         rl.prompt();
       }
     }, 10);
@@ -209,6 +329,9 @@ function applyDebugDirectives(statements) {
           break;
         }
         applyDebugDirectives(sqls);
+        if (handleLocalCommands(sqls)) {
+          continue;
+        }
         await client.runSqls(sqls);
       }
     } finally {
@@ -219,7 +342,43 @@ function applyDebugDirectives(statements) {
     }
   }
 
+  function handleLocalCommands(sqls) {
+    if (!Array.isArray(sqls) || sqls.length !== 1) {
+      return false;
+    }
+    const [statement] = sqls;
+    if (!statement || typeof statement !== "object") {
+      return false;
+    }
+    if (statement.type !== "command" || statement.command !== "editor") {
+      return false;
+    }
+    const args = Array.isArray(statement.args) ? statement.args : [];
+    if (args.length > 0) {
+      console.error("usage: .editor");
+      return true;
+    }
+    if (!isTTY) {
+      console.error(".editor is only available when stdin is a TTY");
+      return true;
+    }
+    if (editorState.active) {
+      console.error("Already in editor mode");
+      return true;
+    }
+    if (input !== "") {
+      console.error("Finish the current statement before entering editor mode");
+      return true;
+    }
+    startEditorMode();
+    return true;
+  }
+
   function handleSigint() {
+    if (editorState.active) {
+      cancelEditorMode();
+      return;
+    }
     if (state === "read") {
       // @ts-ignore
       rl.clearLine(0);
@@ -260,6 +419,20 @@ function applyDebugDirectives(statements) {
   (async () => {
     for await (const line of rl) {
       cancelScheduledPrompt();
+      if (editorState.active) {
+        editorState.buffer += line;
+        editorState.buffer += "\n";
+        // @ts-ignore
+        if (Array.isArray(rl.history) && rl.history[0] === line) {
+          // @ts-ignore
+          rl.history.shift();
+        }
+        if (editorState.flushPending) {
+          editorState.flushPending = false;
+          await finalizeEditorSubmission();
+        }
+        continue;
+      }
       input += line + "\n";
       if (!isTTY) {
         // slurp all input before run
@@ -280,6 +453,10 @@ function applyDebugDirectives(statements) {
       input += "\n;;\n";
       const sqls = await parseErq();
       if (sqls == null) {
+        client.quit(1);
+        return;
+      }
+      if (!isTTY && handleLocalCommands(sqls)) {
         client.quit(1);
         return;
       }
