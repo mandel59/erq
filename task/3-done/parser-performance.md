@@ -24,6 +24,7 @@ tests/performance/ 以下に問題になりうるクエリのテストを作成�
 - `src/parser.js` にパース結果のメモ化を追加し、同一クエリを繰り返し解析するケースで2回目以降を高速化。
 - 新たに `tests/performance/correlate-nested.erq`/`.parsed.json` を追加し、問題の多段相関クエリを性能回帰テストとして固定。
 - `tests/test-performance.js` と `tests/test.js` を `src/parser.js` 経由のパーサー利用に切り替えてキャッシュ経路を通すよう調整。
+- `peggy` コマンドに `--cache` オプションを指定し、PEGパーサーのキャッシュも有効化する。
 
 ## 実施したテスト
 
