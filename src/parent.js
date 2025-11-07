@@ -176,6 +176,49 @@ function applyDebugDirectives(statements) {
     }
   }
 
+  /** @type {NodeJS.Timeout | null} */
+  let scheduledPrompt = null;
+  function schedulePrompt() {
+    if (!isTTY) return;
+    if (scheduledPrompt) {
+      return;
+    }
+    scheduledPrompt = setTimeout(() => {
+      scheduledPrompt = null;
+      if (state === "read") {
+        rl.prompt();
+      }
+    }, 10);
+  }
+  function cancelScheduledPrompt() {
+    if (scheduledPrompt) {
+      clearTimeout(scheduledPrompt);
+      scheduledPrompt = null;
+    }
+  }
+
+  async function evaluateInput() {
+    if (!isTTY) {
+      return;
+    }
+    state = "eval";
+    try {
+      while (input !== "") {
+        const sqls = parseErq();
+        if (sqls == null) {
+          break;
+        }
+        applyDebugDirectives(sqls);
+        await client.runSqls(sqls);
+      }
+    } finally {
+      state = "read";
+      await client.ipcCall("resetSigint", []);
+      setPrompt();
+      schedulePrompt();
+    }
+  }
+
   function handleSigint() {
     if (state === "read") {
       // @ts-ignore
@@ -214,32 +257,19 @@ function applyDebugDirectives(statements) {
   rl.on("SIGTSTP", handleSigtstp)
 
   if (isTTY) { rl.prompt(); }
-  rl.on("line", async (line) => {
-    input += line + "\n";
-    if (!isTTY) {
-      // slurp all input before run
-      return;
-    }
-    if (state === "read") {
-      state = "eval";
-      try {
-        while (input !== "") {
-          const sqls = parseErq();
-          if (sqls == null) {
-            break;
-          }
-          applyDebugDirectives(sqls);
-          await client.runSqls(sqls);
-        }
-      } finally {
-        state = "read";
-        await client.ipcCall("resetSigint", []);
-        setPrompt();
-        if (isTTY) {
-          rl.prompt();
-        }
+  (async () => {
+    for await (const line of rl) {
+      cancelScheduledPrompt();
+      input += line + "\n";
+      if (!isTTY) {
+        // slurp all input before run
+        continue;
       }
+      await evaluateInput();
     }
+  })().catch((error) => {
+    console.error(error);
+    rl.close();
   });
 
   rl.on("history", (h) => {
