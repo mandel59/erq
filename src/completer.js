@@ -212,6 +212,8 @@ export class ErqCliCompleter {
     const m = reFQNamePart.exec(line);
     const q = m[0];
     const qq = q.replace(/`/g, "");
+    const lineBeforeToken = line.slice(0, line.length - q.length);
+    const caretContext = lineBeforeToken.endsWith("^");
 
     // pragma completion
     const isPragma = /pragma\s+\w*$/.test(line);
@@ -264,7 +266,7 @@ export class ErqCliCompleter {
         })).values());
       }
       // column completion
-      {
+      if (!caretContext) {
         const m = reParseColumnName.exec(q);
         if (m != null) {
           const m1 = unquoteSQLName(m[1]);
@@ -313,6 +315,18 @@ export class ErqCliCompleter {
       }
       // other name completion
       {
+        if (caretContext) {
+          const schemaMatches = schemas
+            .filter((name) => name.replace(/`/g, "").startsWith(qq));
+          const tableMatches = Array.from(new Set(tables.map((t) => quoteErqName(t.name))))
+            .filter((name) => name.replace(/`/g, "").startsWith(qq));
+          const fqMatches = tables
+            .map((t) => `${quoteSQLName(t.schema)}.${quoteErqName(t.name)}`)
+            .filter((name) => name.replace(/`/g, "").startsWith(qq));
+          const matches = Array.from(new Set([...schemaMatches, ...tableMatches, ...fqMatches]).values())
+            .sort();
+          return [matches, q];
+        }
         const columnNames = getAllColumnNames();
         const functionNames = this.getAllFunctionNames();
         const matches
