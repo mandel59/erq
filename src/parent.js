@@ -449,6 +449,10 @@ function applyDebugDirectives(statements) {
     history = h;
   });
   rl.on("close", async () => {
+    if (isTTY) {
+      // Output a line break to move the cursor to the next line of the prompt.
+      console.error();
+    }
     if (input !== null) {
       input += "\n;;\n";
       const sqls = await parseErq();
