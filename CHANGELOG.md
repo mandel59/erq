@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.0...main)
+## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.1...main)
+
+## [0.4.1](https://github.com/mandel59/erq/compare/v0.4.0...v0.4.1) - 2025-11-13
+
+### Added
+- Added a `.editor` dot command that mirrors the Node.js REPL experience for drafting multi-line scripts before execution.
+
+### Changed
+- Updated the CLI autocompleter so `^`-prefixed correlated table shorthands only suggest schema and table names.
+- Memoized parser output and enabled Peggy's cache to keep deeply nested correlated queries responsive across repeated parses.
+- Upgraded `better-sqlite3` to 12.4.1 and refreshed the Vega toolchain (`vega` 6.0.0 / `vega-lite` 6.4.1).
+
+### Fixed
+- Corrected correlated join generation so filters stay scoped to their base tables, single-table aliases retain context for `^table` lookups, and compound aliases now raise errors instead of producing invalid SQL.
+- Deferred REPL prompt redraws while scripts execute, preventing multi-line paste input from being corrupted in VS Code and similar terminals.
 
 ## [0.4.0](https://github.com/mandel59/erq/compare/v0.3.1...v0.4.0) - 2025-11-02
 
