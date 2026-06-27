@@ -10,6 +10,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "looks-same": "^9.0.0"
+    "looks-same": "^10.0.1"
   }
 }
