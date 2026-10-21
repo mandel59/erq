@@ -24,7 +24,7 @@
     "@types/jsdom": "^28.0.3",
     "@types/node": "^22.20.0",
     "@types/topojson-client": "^3.1.5",
-    "c8": "^11.0.0",
+    "c8": "^12.0.0",
     "looks-same": "^10.0.1",
     "peggy": "^5.1.0"
   },
