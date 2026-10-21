@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.1...main)
+## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.2...main)
+
+## [0.4.2](https://github.com/mandel59/erq/compare/v0.4.1...v0.4.2) - 2026-10-22
+
+### Changed
+- Updated runtime and development dependencies to address npm audit findings.
+- Migrated tests from AVA to Node.js's built-in test runner and upgraded c8 for Node.js 26 compatibility.
+- Consolidated CI dependencies and added isolated installation tests for the packed npm package, with retained audit and diagnostic artifacts.
+- Expanded CI coverage to Windows and Linux on Node.js 22, 24, and 26.
+
+### Fixed
+- Made filesystem test expectations portable across Windows and Unix path separators.
+- Stabilized PNG integration test dimensions across supported Vega versions.
 
 ## [0.4.1](https://github.com/mandel59/erq/compare/v0.4.0...v0.4.1) - 2025-11-13
 
