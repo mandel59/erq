@@ -1,4 +1,5 @@
-import test from "ava";
+import test from "node:test";
+import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,50 +41,50 @@ function runErqCli(input, args = []) {
   });
 }
 
-test.serial("fails when referencing missing table", async (t) => {
+test("fails when referencing missing table", async () => {
   const result = await runErqCli("invalid;;\n");
-  t.not(result.code, 0);
-  t.true(result.stderr.includes("Connected to :memory:"));
-  t.true(result.stderr.includes("SqliteError: no such table: invalid"));
-  t.is(result.stdout, "");
+  assert.notStrictEqual(result.code, 0);
+  assert.strictEqual(result.stderr.includes("Connected to :memory:"), true);
+  assert.strictEqual(result.stderr.includes("SqliteError: no such table: invalid"), true);
+  assert.strictEqual(result.stdout, "");
 });
 
-test.serial("shows usage when .format receives invalid mode", async (t) => {
+test("shows usage when .format receives invalid mode", async () => {
   const result = await runErqCli(".format foo\n;;\n");
-  t.not(result.code, 0);
-  t.true(result.stderr.includes("usage: .format MODE"));
-  t.true(result.stderr.includes("MODE is one of"));
-  t.is(result.stdout, "");
+  assert.notStrictEqual(result.code, 0);
+  assert.strictEqual(result.stderr.includes("usage: .format MODE"), true);
+  assert.strictEqual(result.stderr.includes("MODE is one of"), true);
+  assert.strictEqual(result.stdout, "");
 });
 
-test.serial("reports syntax errors with location information", async (t) => {
+test("reports syntax errors with location information", async () => {
   const result = await runErqCli("select {;;\n");
-  t.not(result.code, 0);
-  t.true(result.stderr.includes("SyntaxError"));
-  t.true(result.stderr.includes("line 1 column"));
-  t.is(result.stdout, "");
+  assert.notStrictEqual(result.code, 0);
+  assert.strictEqual(result.stderr.includes("SyntaxError"), true);
+  assert.strictEqual(result.stderr.includes("line 1 column"), true);
+  assert.strictEqual(result.stdout, "");
 });
 
-test.serial(".help lists dot commands", async (t) => {
+test(".help lists dot commands", async () => {
   const result = await runErqCli(".help\n");
-  t.is(result.code, 0);
-  t.true(result.stderr.includes("Connected to :memory:"));
-  t.true(result.stderr.includes("Available dot commands:"));
-  t.true(result.stderr.includes(".debug"));
-  t.is(result.stdout, "");
+  assert.strictEqual(result.code, 0);
+  assert.strictEqual(result.stderr.includes("Connected to :memory:"), true);
+  assert.strictEqual(result.stderr.includes("Available dot commands:"), true);
+  assert.strictEqual(result.stderr.includes(".debug"), true);
+  assert.strictEqual(result.stdout, "");
 });
 
-test.serial(".help debug shows detail", async (t) => {
+test(".help debug shows detail", async () => {
   const result = await runErqCli(".help debug\n");
-  t.is(result.code, 0);
-  t.true(result.stderr.includes(".debug"));
-  t.true(result.stderr.includes("Available categories"));
-  t.is(result.stdout, "");
+  assert.strictEqual(result.code, 0);
+  assert.strictEqual(result.stderr.includes(".debug"), true);
+  assert.strictEqual(result.stderr.includes("Available categories"), true);
+  assert.strictEqual(result.stdout, "");
 });
 
-test.serial(".help unknown command fails", async (t) => {
+test(".help unknown command fails", async () => {
   const result = await runErqCli(".help unknown\n");
-  t.not(result.code, 0);
-  t.true(result.stderr.includes("Unknown dot command"));
-  t.is(result.stdout, "");
+  assert.notStrictEqual(result.code, 0);
+  assert.strictEqual(result.stderr.includes("Unknown dot command"), true);
+  assert.strictEqual(result.stdout, "");
 });

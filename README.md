@@ -52,3 +52,7 @@ Inside the interactive CLI you can enter dot-prefixed utility commands. Use `.he
 ## Syntax Comparison with SQL
 
 See [Syntax Comparison with SQL](./doc/syntax-comparison.md).
+
+## Development
+
+See [Testing](./doc/testing.md) for dependency installation, CLI tests, and package test artifacts.

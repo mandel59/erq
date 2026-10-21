@@ -1,18 +1,18 @@
 import { readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import test from "ava";
+import test from "node:test";
+import assert from "node:assert/strict";
 
 import { parser } from "../src/parser.js";
+
+const maxIteration = 10;
+const timeoutForEachIteration = 5000;
 
 const files = readdirSync("tests/performance");
 for (const file of files) {
   if (!file.endsWith(".erq")) continue;
-  test(`performance/${basename(file, ".erq")}`, async (t) => {
-    const maxIteration = 10;
-    const timeoutForEachIteration = 5000;
-    t.timeout(maxIteration * timeoutForEachIteration);
-
+  test(`performance/${basename(file, ".erq")}`, { timeout: maxIteration * timeoutForEachIteration }, async () => {
     const erqInput = await readFile(`tests/performance/${file}`, { encoding: "utf-8" });
     const erqOutputExpected = await readFile(`tests/performance/${file.replace(/\.erq$/, ".parsed.json")}`, { encoding: "utf-8" });
     const expected = JSON.parse(erqOutputExpected);
@@ -25,7 +25,7 @@ for (const file of files) {
 
       const actual = JSON.parse(JSON.stringify(parsed));
 
-      t.deepEqual(actual, expected);
+      assert.deepStrictEqual(actual, expected);
     }
 
     const parseMeasures = performance.getEntriesByName("parse-measure");
@@ -33,6 +33,6 @@ for (const file of files) {
     const sum = durations.reduce((x, y) => x + y, 0);
     const average = sum / durations.length;
 
-    t.assert(average < 1000, `${average} is not less than 1000`);
+    assert.ok(average < 1000, `${average} is not less than 1000`);
   });
 }

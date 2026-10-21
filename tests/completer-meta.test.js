@@ -1,4 +1,5 @@
-import test from "ava";
+import test, { after } from "node:test";
+import assert from "node:assert/strict";
 import Database from "better-sqlite3";
 
 import { ErqCliCompleter } from "../src/completer.js";
@@ -9,37 +10,37 @@ const completer = new ErqCliCompleter({
   findModules: () => [],
 });
 
-test.after.always(() => {
+after(() => {
   db.close();
 });
 
-test("completes dot command names", async (t) => {
+test("completes dot command names", async () => {
   const [suggestions, prefix] = await completer.complete(".d");
-  t.deepEqual(prefix, ".d");
-  t.true(suggestions.includes(".debug"));
-  t.true(suggestions.every((value) => value.startsWith(".")));
+  assert.deepStrictEqual(prefix, ".d");
+  assert.strictEqual(suggestions.includes(".debug"), true);
+  assert.strictEqual(suggestions.every((value) => value.startsWith(".")), true);
 });
 
-test("suggests .help when requested", async (t) => {
+test("suggests .help when requested", async () => {
   const [suggestions, prefix] = await completer.complete(".h");
-  t.deepEqual(prefix, ".h");
-  t.true(suggestions.includes(".help"));
+  assert.deepStrictEqual(prefix, ".h");
+  assert.strictEqual(suggestions.includes(".help"), true);
 });
 
-test("completes .help arguments", async (t) => {
+test("completes .help arguments", async () => {
   const [suggestions, prefix] = await completer.complete(".help d");
-  t.is(prefix, "d");
-  t.true(suggestions.includes("debug"));
+  assert.strictEqual(prefix, "d");
+  assert.strictEqual(suggestions.includes("debug"), true);
 });
 
-test("completes .format arguments", async (t) => {
+test("completes .format arguments", async () => {
   const [suggestions, prefix] = await completer.complete(".format ");
-  t.is(prefix, "");
-  t.deepEqual(suggestions.sort(), ["array", "object"]);
+  assert.strictEqual(prefix, "");
+  assert.deepStrictEqual(suggestions.sort(), ["array", "object"]);
 });
 
-test("filters used debug categories", async (t) => {
+test("filters used debug categories", async () => {
   const [suggestions, prefix] = await completer.complete(".debug sql ");
-  t.is(prefix, "");
-  t.false(suggestions.some((value) => value.toLowerCase() === "sql"));
+  assert.strictEqual(prefix, "");
+  assert.strictEqual(suggestions.some((value) => value.toLowerCase() === "sql"), false);
 });

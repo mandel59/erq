@@ -1,82 +1,62 @@
 import test from "node:test";
 import { readdirSync, createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { join, basename, isAbsolute } from "node:path";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { pipeline } from "node:stream/promises";
 import streamConsumers from "node:stream/consumers";
-import assert from "node:assert";
+import assert from "node:assert/strict";
 import looksSame from "looks-same";
 import { fileURLToPath } from "node:url";
 
-const dirs = readdirSync("testcases");
-const erqCliPath = fileURLToPath(import.meta.resolve("@mandel59/erq/bin/erq-cli.js"));
+const testRoot = fileURLToPath(new URL("./", import.meta.url));
+const casesRoot = join(testRoot, "testcases");
+const erqCliPath = process.env.ERQ_TEST_CLI ?? fileURLToPath(new URL("../bin/erq-cli.js", import.meta.url));
+assert.ok(isAbsolute(erqCliPath), "ERQ_TEST_CLI must be an absolute path.");
 
-for (const dir of dirs) {
-  const files = readdirSync(`testcases/${dir}`);
+async function runErq(inputPath) {
+  const child = spawn(process.execPath, [erqCliPath], {
+    cwd: testRoot,
+    env: { ...process.env, ERQ_DEBUG: "" },
+    stdio: ["pipe", "pipe", "pipe"],
+    timeout: 10000,
+  });
+  const input = pipeline(createReadStream(inputPath), child.stdin).catch(error => {
+    // A CLI that fails before reading its input can close stdin early.
+    if (error.code !== "EPIPE" && error.code !== "ERR_STREAM_PREMATURE_CLOSE") throw error;
+  });
+  const [output, stderr, [code, signal]] = await Promise.all([
+    streamConsumers.buffer(child.stdout),
+    streamConsumers.text(child.stderr),
+    once(child, "close"),
+    input,
+  ]);
+  assert.strictEqual(code, 0, `CLI failed (signal: ${signal}):\n${stderr}`);
+  return output;
+}
+
+for (const dir of readdirSync(casesRoot)) {
+  const files = readdirSync(join(casesRoot, dir));
   for (const file of files) {
     if (!file.endsWith(".erq")) continue;
-    const erqBaseName = basename(file, '.erq');
-    const outFile = files.find((f) => f.startsWith(`${erqBaseName}.out`));
+    const name = basename(file, ".erq");
+    const outFile = files.find(f => f.startsWith(`${name}.out`));
     if (!outFile) {
-      console.warn(`WARN Skipping test case ${dir}/${basename(file, '.erq')}`);
+      console.warn(`WARN Skipping test case ${dir}/${name}`);
       continue;
     }
-    if (outFile.endsWith('.png')) {
-      test(`${dir}/${basename(file, '.erq')}`, async (t) => {
-        const erqInput = createReadStream(`testcases/${dir}/${file}`);
-        const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`);
-        const erqProcess = spawn("node", [erqCliPath], {
-          stdio: ["pipe", "pipe", "ignore"],
-          timeout: 10000,
-        });
-        erqProcess.on("error", console.error);
-        erqInput.pipe(erqProcess.stdin);
-        const erqOutputPromise = streamConsumers.buffer(erqProcess.stdout);
-        const erqExitCode = await new Promise((resolve) => {
-          erqProcess.once("exit", (code) => { resolve(code); })
-        });
-        const erqOutputActual = await erqOutputPromise;
-        const { equal } = await looksSame(erqOutputActual, erqOutputExpected);
-        assert.ok(equal);
-      });
-    } else if (outFile.endsWith('.json')) {
-      test(`${dir}/${basename(file, '.erq')}`, async (t) => {
-        const erqInput = createReadStream(`testcases/${dir}/${file}`);
-        const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`);
-        const expected = { exitCode: 0, output: JSON.parse(erqOutputExpected.toString()) };
-        const erqProcess = spawn("node", [erqCliPath], {
-          stdio: ["pipe", "pipe", "ignore"],
-          timeout: 10000,
-        });
-        erqProcess.on("error", console.error);
-        erqInput.pipe(erqProcess.stdin);
-        const erqOutputPromise = streamConsumers.buffer(erqProcess.stdout);
-        const erqExitCode = await new Promise((resolve) => {
-          erqProcess.once("exit", (code) => { resolve(code); })
-        });
-        const erqOutputActual = await erqOutputPromise;
-        const actual = { exitCode: erqExitCode, output: JSON.parse(erqOutputActual.toString()) };
-        assert.deepEqual(actual, expected);
-      });
-    } else {
-      test(`${dir}/${basename(file, '.erq')}`, async (t) => {
-        const erqInput = createReadStream(`testcases/${dir}/${file}`);
-        const erqOutputExpected = await readFile(`testcases/${dir}/${outFile}`, 'utf-8');
-        const expected = { exitCode: 0, output: erqOutputExpected };
-        const erqProcess = spawn("node", [erqCliPath], {
-          stdio: ["pipe", "pipe", "ignore"],
-          timeout: 10000,
-        });
-        erqProcess.on("error", console.error);
-        erqInput.pipe(erqProcess.stdin);
-        const erqOutputPromise = streamConsumers.text(erqProcess.stdout);
-        const erqExitCode = await new Promise((resolve) => {
-          erqProcess.once("exit", (code) => { resolve(code); })
-        });
-        const erqOutputActual = await erqOutputPromise;
-        const actual = { exitCode: erqExitCode, output: erqOutputActual };
-        assert.deepEqual(actual, expected);
-      });
-    }
+    test(`${dir}/${name}`, async () => {
+      const expected = await readFile(join(casesRoot, dir, outFile));
+      const actual = await runErq(join(casesRoot, dir, file));
+      if (outFile.endsWith(".png")) {
+        const { equal } = await looksSame(actual, expected);
+        assert.ok(equal, "CLI image differs from the expected image.");
+      } else if (outFile.endsWith(".json")) {
+        assert.deepStrictEqual(JSON.parse(actual.toString()), JSON.parse(expected.toString()));
+      } else {
+        assert.strictEqual(actual.toString(), expected.toString());
+      }
+    });
   }
 }

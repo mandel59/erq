@@ -1,4 +1,5 @@
-import test from "ava";
+import test, { afterEach } from "node:test";
+import assert from "node:assert/strict";
 
 import {
   DEBUG,
@@ -12,7 +13,7 @@ import {
 const originalDebugRaw = getDebugConfiguration().raw;
 const originalEnvDebug = process.env.ERQ_DEBUG;
 
-test.afterEach.always(() => {
+afterEach(() => {
   setDebugLogging(originalDebugRaw);
   if (originalEnvDebug === undefined) {
     delete process.env.ERQ_DEBUG;
@@ -21,12 +22,12 @@ test.afterEach.always(() => {
   }
 });
 
-test.serial("debug defaults to disabled", (t) => {
+test("debug defaults to disabled", () => {
   setDebugLogging("");
-  t.false(DEBUG);
-  t.false(debugEnabled());
-  t.false(debugEnabled("sql"));
-  t.deepEqual(getDebugConfiguration(), {
+  assert.strictEqual(DEBUG, false);
+  assert.strictEqual(debugEnabled(), false);
+  assert.strictEqual(debugEnabled("sql"), false);
+  assert.deepStrictEqual(getDebugConfiguration(), {
     enabled: false,
     all: false,
     categories: [],
@@ -34,11 +35,11 @@ test.serial("debug defaults to disabled", (t) => {
   });
 });
 
-test.serial("debug categories are case insensitive", (t) => {
+test("debug categories are case insensitive", () => {
   setDebugLogging("SQL stack");
-  t.true(debugEnabled("sql"));
-  t.true(debugEnabled("stack"));
-  t.false(debugEnabled("lifecycle"));
+  assert.strictEqual(debugEnabled("sql"), true);
+  assert.strictEqual(debugEnabled("stack"), true);
+  assert.strictEqual(debugEnabled("lifecycle"), false);
   const messages = [];
   const original = console.error;
   console.error = (...args) => {
@@ -51,8 +52,8 @@ test.serial("debug categories are case insensitive", (t) => {
   } finally {
     console.error = original;
   }
-  t.deepEqual(messages, [["select 1"], ["trace"]]);
-  t.deepEqual(getDebugConfiguration(), {
+  assert.deepStrictEqual(messages, [["select 1"], ["trace"]]);
+  assert.deepStrictEqual(getDebugConfiguration(), {
     enabled: true,
     all: false,
     categories: ["sql", "stack"],
@@ -60,9 +61,9 @@ test.serial("debug categories are case insensitive", (t) => {
   });
 });
 
-test.serial("truthy tokens enable all logging", (t) => {
+test("truthy tokens enable all logging", () => {
   setDebugLogging("1");
-  t.true(debugEnabled("anything"));
+  assert.strictEqual(debugEnabled("anything"), true);
   const messages = [];
   const original = console.error;
   console.error = (...args) => {
@@ -74,12 +75,12 @@ test.serial("truthy tokens enable all logging", (t) => {
   } finally {
     console.error = original;
   }
-  t.deepEqual(messages, [["select 1"], ["trace"]]);
+  assert.deepStrictEqual(messages, [["select 1"], ["trace"]]);
 });
 
-test("resolveDebugInput normalizes tokens", (t) => {
-  t.deepEqual(resolveDebugInput(""), { ok: false });
-  t.deepEqual(resolveDebugInput(" off "), { ok: true, value: "" });
-  t.deepEqual(resolveDebugInput("enabled"), { ok: true, value: "all" });
-  t.deepEqual(resolveDebugInput("sql stack"), { ok: true, value: "sql stack" });
+test("resolveDebugInput normalizes tokens", () => {
+  assert.deepStrictEqual(resolveDebugInput(""), { ok: false });
+  assert.deepStrictEqual(resolveDebugInput(" off "), { ok: true, value: "" });
+  assert.deepStrictEqual(resolveDebugInput("enabled"), { ok: true, value: "all" });
+  assert.deepStrictEqual(resolveDebugInput("sql stack"), { ok: true, value: "sql stack" });
 });

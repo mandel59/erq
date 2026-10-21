@@ -17,11 +17,6 @@
     "LICENSE",
     "README.md"
   ],
-  "ava": {
-    "files": [
-      "tests/**"
-    ]
-  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/command-line-args": "^5.2.3",
@@ -29,8 +24,8 @@
     "@types/jsdom": "^28.0.3",
     "@types/node": "^22.20.0",
     "@types/topojson-client": "^3.1.5",
-    "ava": "^8.0.1",
     "c8": "^11.0.0",
+    "looks-same": "^10.0.1",
     "peggy": "^5.1.0"
   },
   "description": "Erq - Easy Relational Query Language",
@@ -39,10 +34,12 @@
     "erq": "bin/erq-cli.js"
   },
   "scripts": {
-    "test": "c8 ava && sh ./scripts/ci.sh",
-    "test:unit": "c8 ava",
-    "test:ci": "sh ./scripts/ci.sh",
-    "prepare": "peggy --cache -o dist/erq.js --format es --allowed-start-rules start,cli_readline,script src/erq.pegjs"
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "c8 node --test \"tests/*.js\"",
+    "test:ci": "npm run test:package",
+    "prepare": "peggy --cache -o dist/erq.js --format es --allowed-start-rules start,cli_readline,script src/erq.pegjs",
+    "test:integration": "node --test erq-ci/test-testcases.js",
+    "test:package": "node scripts/test-package.js"
   },
   "dependencies": {
     "@mandel59/memoized-json-hash": "^0.2.0",
