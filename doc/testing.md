@@ -61,3 +61,16 @@ A package test can be limited to selected cases using Node.js test flags:
 ```sh
 npm run test:package -- --test-name-pattern=basic/aggregate
 ```
+
+## Platform coverage
+
+CI runs the tests on Ubuntu and Windows with Node.js 22, 24, and 26.
+Windows CI enables Git symlinks before checkout so the filesystem fixtures
+retain their file and directory links. Local Windows checkouts also need
+symlink support enabled.
+
+The filesystem fixture normalizes path separators in its query; CLI path
+functions retain the host platform's native path behavior. The sinecurve PNG
+fixture sets padding and disables autosizing so its 110-by-110 canvas does
+not depend on Vega's automatic bounds calculation. Its expected image was
+checked against both the locked and freshly resolved Vega dependencies.

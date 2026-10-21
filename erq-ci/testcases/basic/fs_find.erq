@@ -1,4 +1,5 @@
+-- Compare native filesystem paths using a portable separator.
 "find files in a directory";;
-fs_find('data/fsdir1'){type, dir, name};;
+fs_find('data/fsdir1'){type, dir: replace(dir, char(92), '/'), name};;
 "find files in a directory via symbolic link";;
-fs_find('data/fsdir1/link2'){type, dir, name};;
+fs_find('data/fsdir1/link2'){type, dir: replace(dir, char(92), '/'), name};;
