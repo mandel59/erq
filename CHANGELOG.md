@@ -5,9 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.2...main)
+## [Unreleased](https://github.com/mandel59/erq/compare/v0.4.3...main)
 
-## [0.4.2](https://github.com/mandel59/erq/compare/v0.4.1...v0.4.2) - 2026-10-22
+## [0.4.3](https://github.com/mandel59/erq/compare/v0.4.1...v0.4.3) - 2026-10-23
+
+Version 0.4.2 was tagged but not published to npm.
 
 ### Changed
 - Updated runtime and development dependencies to address npm audit findings.
@@ -16,6 +18,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Expanded CI coverage to Windows and Linux on Node.js 22, 24, and 26.
 
 ### Fixed
+- Wait for pending stdout and stderr writes before the CLI exits, preventing truncated piped output on both successful and failed runs.
+- Allow up to 60 seconds per integration-test process for cold native module and Vega initialization on CI runners.
 - Made filesystem test expectations portable across Windows and Unix path separators.
 - Stabilized PNG integration test dimensions across supported Vega versions.
 

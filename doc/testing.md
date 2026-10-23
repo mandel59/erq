@@ -69,6 +69,10 @@ Windows CI enables Git symlinks before checkout so the filesystem fixtures
 retain their file and directory links. Local Windows checkouts also need
 symlink support enabled.
 
+Each CLI case has a 60-second process timeout to allow cold native module and
+Vega initialization on shared runners. Timed-out processes still fail the test;
+the failure reports the case name, signal, timeout, and captured stderr.
+
 The filesystem fixture normalizes path separators in its query; CLI path
 functions retain the host platform's native path behavior. The sinecurve PNG
 fixture sets padding and disables autosizing so its 110-by-110 canvas does
