@@ -15,12 +15,15 @@ const casesRoot = join(testRoot, "testcases");
 const erqCliPath = process.env.ERQ_TEST_CLI ?? fileURLToPath(new URL("../bin/erq-cli.js", import.meta.url));
 assert.ok(isAbsolute(erqCliPath), "ERQ_TEST_CLI must be an absolute path.");
 
+// Allow cold native/Vega initialization on shared CI runners while bounding hangs.
+const cliTimeoutMs = 60_000;
+
 async function runErq(inputPath) {
   const child = spawn(process.execPath, [erqCliPath], {
     cwd: testRoot,
     env: { ...process.env, ERQ_DEBUG: "" },
     stdio: ["pipe", "pipe", "pipe"],
-    timeout: 10000,
+    timeout: cliTimeoutMs,
   });
   const input = pipeline(createReadStream(inputPath), child.stdin).catch(error => {
     // A CLI that fails before reading its input can close stdin early.
@@ -32,7 +35,7 @@ async function runErq(inputPath) {
     once(child, "close"),
     input,
   ]);
-  assert.strictEqual(code, 0, `CLI failed (signal: ${signal}):\n${stderr}`);
+  assert.strictEqual(code, 0, `CLI failed for ${basename(inputPath)} (signal: ${signal}, timeout: ${cliTimeoutMs}ms):\n${stderr}`);
   return output;
 }
 

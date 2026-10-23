@@ -11,10 +11,11 @@ const cliPath = resolve(projectRoot, "bin/erq-cli.js");
  * Runs the Erq CLI with the provided input and returns execution details.
  * @param {string} input
  * @param {string[]} [args]
+ * @param {string[]} [nodeArgs]
  */
-function runErqCli(input, args = []) {
+function runErqCli(input, args = [], nodeArgs = []) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
+    const child = spawn(process.execPath, [...nodeArgs, cliPath, ...args], {
       cwd: projectRoot,
       env: { ...process.env, ERQ_DEBUG: "" },
       stdio: ["pipe", "pipe", "pipe"],
@@ -87,4 +88,20 @@ test(".help unknown command fails", async () => {
   assert.notStrictEqual(result.code, 0);
   assert.strictEqual(result.stderr.includes("Unknown dot command"), true);
   assert.strictEqual(result.stdout, "");
+});
+
+const delayedStdioArgs = ["--import", new URL("./fixtures/delayed-stdio.js", import.meta.url).href];
+
+test("flushes pending stdout before a successful exit", async () => {
+  const result = await runErqCli('range(1, 10) {value};;\n', [], delayedStdioArgs);
+  assert.strictEqual(result.code, 0);
+  assert.strictEqual(result.stdout, Array.from({ length: 10 }, (_, i) => `[${i + 1}]\n`).join(""));
+  assert.ok(result.stderr.includes("Connected to :memory:"));
+});
+
+test("flushes pending stdout and stderr before a failed exit", async () => {
+  const result = await runErqCli('"hello";; invalid;;\n', [], delayedStdioArgs);
+  assert.strictEqual(result.code, 1);
+  assert.strictEqual(result.stdout, '["hello"]\n');
+  assert.ok(result.stderr.includes("SqliteError: no such table: invalid"));
 });

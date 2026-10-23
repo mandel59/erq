@@ -1303,6 +1303,14 @@ export async function child() {
 
   async function quit(status) {
     db.close();
+    // A successful write() can still be queued when stdout/stderr is a pipe.
+    // Wait for all preceding writes before process.exit() discards pending I/O.
+    await Promise.all([process.stdout, process.stderr].map(stream => new Promise((resolve, reject) => {
+      stream.write("", error => {
+        if (error) reject(error);
+        else resolve();
+      });
+    })));
     process.exit(status);
   }
   ipcExport(quit);
